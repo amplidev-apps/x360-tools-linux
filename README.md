@@ -17,11 +17,12 @@
 *   **Smart Ingestion**: High-speed SQLite indexing ensures zero-lag searching even within the massive catalog.
 
 #### 🛡️ Advanced Backup System (Exclusive `.x360b` Format)
-*   **Professional Safety**: Create full-device compressed images in our own `.x360b` format.
-*   **Format highlights**:
-    *   **High Compression**: Saves significant disk space while preserving every Xbox-specific metadata.
-    *   **Intelligent Restore**: Automatically handles device formatting to ensure 100% recognition by the Xbox 360 kernel.
-    *   **Metadata Preserving**: Stores original device labels and folder structures.
+*   **Complete Device Imaging**: Unlike simple file copying, the `.x360b` engine captures the entire structure of the device (Content, Games, Profiles).
+*   **Format Highlights**:
+    *   **High-Ratio Compression**: Uses advanced algorithms to shrink partition images, making full backups manageable and portable.
+    *   **Smart Metadata Embedding**: Includes the original device label, date, and console-specific hardware identifiers (Title IDs) inside a single package.
+    *   **Automated Recovery Flow**: The system handles low-level formatting of the destination USB drive to be natively compliant with the Xbox 360 FAT32 filesystem (recognizing exact cluster sizes).
+    *   **Label Management**: Allows renaming your device during the restore process, ensuring easy organization between different consoles/pendrives.
 
 #### 🏞️ x360 Landscape (STFS & Identity)
 *   **Gamerpic Injection**: Access a warehouse of thousands of Original and Custom Gamerpics to personalize your profile.
@@ -56,11 +57,12 @@ O **x360 Tools for Linux** não é apenas uma ferramenta—é um ecossistema com
 *   **Busca SQLite**: Indexação de alta velocidade que garante pesquisa instantânea mesmo em uma base massiva.
 
 #### 🛡️ Sistema de Backup Avançado (Formato Exclusivo `.x360b`)
-*   **Segurança Profissional**: Crie imagens comprimidas completas do seu dispositivo no nosso formato proprietário `.x360b`.
+*   **Imagem Completa do Dispositivo**: Diferente de uma simples cópia de arquivos, o motor `.x360b` captura toda a estrutura do dispositivo (Content, Games, Perfis).
 *   **Destaques do Formato**:
-    *   **Alta Compressão**: Economize espaço em disco preservando todos os metadados específicos do Xbox.
-    *   **Restauração Inteligente**: Formata automaticamente o destino para garantir 100% de reconhecimento pelo kernel do Xbox 360.
-    *   **Preservação de Rótulos**: Armazena nomes de dispositivos e estruturas de pastas originais.
+    *   **Alta Taxa de Compressão**: Usa algoritmos avançados para reduzir imagens de partição, tornando backups completos portáteis e fáceis de gerenciar.
+    *   **Metadados Inteligentes**: Inclui rótulo original, data e identificadores de console (Title IDs) dentro de um único pacote.
+    *   **Fluxo de Recuperação Automatizado**: Sistema cuida da formatação de baixo nível do USB para ser nativamente compatível com o sistema de arquivos FAT32 do Xbox 360 (ajuste exato de clusters).
+    *   **Gestão de Rótulos**: Permite renomear o dispositivo durante a restauração para organização fácil.
 
 #### 🏞️ x360 Landscape (STFS & Identidade)
 *   **Injeção de Gamerpics**: Acesse um armazém de milhares de fotos de perfil originais e customizadas para seu avatar.
@@ -91,11 +93,12 @@ O **x360 Tools for Linux** não é apenas uma ferramenta—é um ecossistema com
 *   **Búsqueda SQLite**: Indexación ultra rápida que garantiza búsquedas sin lag incluso en catálogos gigantes.
 
 #### 🛡️ Sistema de Backup Avanzado (Formato Exclusivo `.x360b`)
-*   **Seguridad Profesional**: Crea imágenes completas del dispositivo comprimidas en nuestro propio formato `.x360b`.
+*   **Imagen Completa del Dispositivo**: A diferencia de una simple copia, el motor `.x360b` captura toda la estructura (Content, Games, Perfiles).
 *   **Lo más destacado**:
-    *   **Alta compresión**: Ahorra espacio manteniendo todos los metadados específicos de Xbox.
-    *   **Restauración inteligente**: Maneja automáticamente el formato del dispositivo para asegurar el 100% de reconocimiento por el Xbox 360.
-    *   **Preservación de metadados**: Almacena las etiquetas originales del dispositivo y las estructuras de carpetas.
+    *   **Alta Compresión**: Utiliza algoritmos avanzados para reducir imágenes, facilitando su transporte y gestión.
+    *   **Metadatos Inteligentes**: Incluye etiqueta original, fecha e identificadores de consola (Title IDs).
+    *   **Recuperación Automatizada**: El sistema gestiona el formato FAT32 nativo del Xbox 360 (ajuste exacto de clusters).
+    *   **Gestión de Etiquetas**: Permite renombrar el dispositivo durante la restauración.
 
 #### 🏞️ x360 Landscape (STFS e Identidad)
 *   **Inyección de Gamerpics**: Accede a un almacén de miles de imágenes de jugador originales y personalizadas.
