@@ -5,126 +5,102 @@
 ---
 
 <a name="english"></a>
-## 🇬🇧 English: The Ultimate Xbox 360 Manager for Linux
+## 🇬🇧 English: The Ultimate Xbox 360 Ecosystem for Linux
 
-**x360 Tools for Linux** is a professional-grade, open-source suite designed for enthusiasts of the Xbox 360 and Xbox Classic. It bridges the gap between modern Linux distributions and legacy console hardware, providing a stunning **Flutter v2.0** interface backed by a high-performance **Python engine**.
+**x360 Tools for Linux** is not just a tool—it's a complete ecosystem for the modern Xbox 360 and Xbox Classic enthusiast. Built with a stunning **Flutter v2.0** interface and a high-performance **Python asynchronous engine**, it provides the most professional experience available for console management on Linux.
 
 ### 🌟 Exclusive Features & Highlights
 
-#### 🛒 x360 Freemarket (Premium Store)
-*   **Massive Library**: Instant access to thousands of titles from the Internet Archive metadata.
-*   **Smart Search**: Blazing fast SQLite-powered search with regional filtering and DLC aggregation.
-*   **Automated Workflow**: Find a game, click "Install", and let the app handle the rest.
+#### 🛒 x360 Freemarket (The Massive Warehouse)
+*   **10,000+ Items Available**: A unified catalog aggregating over 14 Internet Archive metadata databases.
+*   **Hype-Level Library**: Thousands of Full Games, DLCs, and Title Updates ready for instant, automated deployment.
+*   **Smart Ingestion**: High-speed SQLite indexing ensures zero-lag searching even within the massive catalog.
 
-#### ⚡ Advanced Downloads Manager (NEW)
-*   **Multi-Phase Tracking**: Unlike simple downloaders, this manager tracks:
-    1.  **Downloading**: Real-time progress with speed and ETA.
-    2.  **Extracting**: Automatic unpacking of compressed archives.
-    3.  **Converting**: On-the-fly conversion of ISOs or raw files.
-    4.  **Installing**: Secure transfer to Xbox-formatted FAT32 devices.
-*   **Concurrent Tasks**: Manage multiple installations simultaneously with independent cancellation control.
-*   **One-Click Access**: Open the installation folder directly using Linux native file explorers.
+#### 🛡️ Advanced Backup System (Exclusive `.x360b` Format)
+*   **Professional Safety**: Create full-device compressed images in our own `.x360b` format.
+*   **Format highlights**:
+    *   **High Compression**: Saves significant disk space while preserving every Xbox-specific metadata.
+    *   **Intelligent Restore**: Automatically handles device formatting to ensure 100% recognition by the Xbox 360 kernel.
+    *   **Metadata Preserving**: Stores original device labels and folder structures.
 
-#### 🏞️ x360 Landscape (STFS Management)
-*   **Content Injection**: Easily transfer DLCs, Title Updates (TUs), and Gamesaves.
-*   **Profile Customizer**: Inject custom Gamer Pictures (Profile Pics) into your Xbox profile.
-*   **USB Explorer**: Browse and extract content from your Xbox-formatted USB drives.
+#### 🏞️ x360 Landscape (STFS & Identity)
+*   **Gamerpic Injection**: Access a warehouse of thousands of Original and Custom Gamerpics to personalize your profile.
+*   **STFS Powerhouse**: Manage DLCs, Arcade Games, and Title Updates with simple drag-and-drop or automated selection.
+*   **Saves Management**: Backup and transfer your progress with ease.
 
-#### 🔄 x360 Converter
-*   **ISO to GOD**: Convert Xbox 360 ISOs to "Games on Demand" format for RGH/JTAG compatibility.
-*   **Classic Support**: Special handling for Xbox Classic ISOs, converting them to extract-based folders.
-*   **Auto-Install**: Option to convert and install directly to a selected drive in one step.
+#### ⚡ Advanced Downloads Manager
+*   **Multi-Phase Engine**: Tracks each step from `Downloading` -> `Extracting` -> `Converting` -> `Installing`.
+*   **Concurrent Operations**: Fast, stable, and multi-threaded processing.
 
-#### 🧙‍♂️ Intelligent Installation Wizard
-*   **Beginner Friendly**: A step-by-step guide to prepare your console.
-*   **Hardware Aware**: Automatically selects appropriate payloads for RGH/JTAG vs. LT+ or Original consoles.
-*   **Device Prep**: Includes FAT32 formatting and system file deployment (Aurora, Freestyle, XeXMenu).
+#### 🔄 x360 Converter & Wizard
+*   **ISO to GOD (Games on Demand)**: The gold standard for RGH/JTAG users.
+*   **Xbox Classic Legacy**: Automated extraction and conversion for original Xbox games.
+*   **The Wizard**: A guided setup that handles FAT32 formatting and system file deploy (Aurora/FSD) from zero to play.
 
-### 🛠️ Technical Details
-*   **Frontend**: Flutter v2.0 with premium **Segoe UI** typography and smooth animations.
-*   **Backend**: Python 3.x using a robust process-bridge for asynchronous operations.
-*   **Native Integration**: Uses `xdg-open` for system integration and `pyudev` for reliable device detection.
+### 🛠️ Technical Prowess
+*   **UI/UX**: Premium **Segoe UI** typography with a bespoke Xbox-inspired dark theme.
+*   **Architecture**: Decoupled Python/Flutter bridge for maximum stability and speed.
 
 ---
 
 <a name="português"></a>
-## 🇧🇷 Português: A Central Definitiva para Xbox 360 no Linux
+## 🇧🇷 Português: O Ecossistema Definitivo para Xbox 360 no Linux
 
-O **x360 Tools for Linux** é uma suíte de código aberto de nível profissional, projetada para entusiastas do Xbox 360 e Xbox Clássico. Ele une a modernidade das distribuições Linux com o hardware clássico, oferecendo uma interface **Flutter v2.0** impecável e um motor **Python** de alta performance.
+O **x360 Tools for Linux** não é apenas uma ferramenta—é um ecossistema completo para o entusiasta moderno de Xbox 360 e Xbox Clássico. Desenvolvido com uma interface **Flutter v2.0** deslumbrante e um motor **Python assíncrono**, é a solução mais profissional para gestão de console disponível no Linux.
 
-### 🌟 Funcionalidades Exclusivas
+### 🌟 Funcionalidades Exclusivas e Novidades
 
-#### 🛒 x360 Freemarket (Loja Premium)
-*   **Cátalogo Gigante**: Acesso instantâneo a milhares de títulos via metadados do Internet Archive.
-*   **Busca Inteligente**: Pesquisa ultra-rápida via SQLite com filtros regionais e agregação de DLCs.
-*   **Fluxo Automatizado**: Encontre o jogo, clique em "Instalar" e o app cuida de tudo.
+#### 🛒 x360 Freemarket (O Maior Cátalogo do Mundo)
+*   **Mais de 10.000 Itens**: Um catálogo unificado que agrega metadados de 14 bases de dados oficiais do Internet Archive.
+*   **Biblioteca Gigante**: Milhares de Jogos Completos, DLCs e Title Updates prontos para instalação automatizada instantânea.
+*   **Busca SQLite**: Indexação de alta velocidade que garante pesquisa instantânea mesmo em uma base massiva.
 
-#### ⚡ Gerenciador de Downloads Avançado (NOVO)
-*   **Acompanhamento Multi-Fase**: O sistema monitora cada passo:
-    1.  **Baixando**: Progresso em tempo real com velocidade e ETA.
-    2.  **Extraindo**: Descompactação automática de arquivos.
-    3.  **Convertendo**: Conversão "on-the-fly" de ISOs e arquivos brutos.
-    4.  **Instalando**: Transferência segura para dispositivos FAT32 do Xbox.
-*   **Tarefas Simultâneas**: Gerencie múltiplas instalações ao mesmo tempo com controle individual de cancelamento.
-*   **Acesso Direto**: Botão "Abrir Pasta" integrado ao gerenciador de arquivos nativo do Linux.
+#### 🛡️ Sistema de Backup Avançado (Formato Exclusivo `.x360b`)
+*   **Segurança Profissional**: Crie imagens comprimidas completas do seu dispositivo no nosso formato proprietário `.x360b`.
+*   **Destaques do Formato**:
+    *   **Alta Compressão**: Economize espaço em disco preservando todos os metadados específicos do Xbox.
+    *   **Restauração Inteligente**: Formata automaticamente o destino para garantir 100% de reconhecimento pelo kernel do Xbox 360.
+    *   **Preservação de Rótulos**: Armazena nomes de dispositivos e estruturas de pastas originais.
 
-#### 🏞️ x360 Landscape (Gestão de STFS)
-*   **Injeção de Conteúdo**: Transfira DLCs, Title Updates (TUs) e Gamesaves com facilidade.
-*   **Customização de Perfil**: Injete fotos de perfil (Gamerpics) personalizadas.
-*   **Explorador USB**: Navegue e extraia conteúdo de pendrives formatados para o Xbox.
+#### 🏞️ x360 Landscape (STFS & Identidade)
+*   **Injeção de Gamerpics**: Acesse um armazém de milhares de fotos de perfil originais e customizadas para seu avatar.
+*   **Poder STFS**: Gerencie DLCs, Jogos Arcade e TUs com simples arrastar e soltar ou seleção automática.
+*   **Gestão de Saves**: Faça backup e transfira seu progresso sem complicações.
 
-#### 🔄 x360 Converter
-*   **ISO para GOD**: Converta ISOs de 360 para o formato "Games on Demand" (RGH/JTAG).
-*   **Suporte Clássico**: Tratamento especial para ISOs de Xbox Clássico (extração automática).
-*   **Instalação Automática**: Converta e instale no dispositivo em um único clique.
+#### ⚡ Gerenciador de Downloads Avançado
+*   **Motor Multi-Fase**: Monitora cada passo do processo: `Baixando` -> `Extraindo` -> `Convertendo` -> `Instalando`.
+*   **Operações Simultâneas**: Processamento multi-threaded rápido e estável.
 
-#### 🧙‍♂️ Assistente de Instalação Inteligente (Wizard)
-*   **Ideal para Iniciantes**: Guia passo a passo para preparar seu console.
-*   **Conhecimento de Hardware**: Seleciona automaticamente os payloads para RGH/JTAG ou LT+/Original.
-*   **Preparação de Dispositivo**: Formatação FAT32 e deploy de sistemas (Aurora, Freestyle, XeXMenu).
-
-### 🛠️ Detalhes Técnicos
-*   **Frontend**: Flutter v2.0 com tipografia **Segoe UI** e animações fluidas.
-*   **Backend**: Python 3.x utilizando uma bridge de processos para operações assíncronas.
-*   **Integração Nativa**: Uso de `xdg-open` e `pyudev` para detecção confiável de hardware.
+#### 🔄 x360 Converter & Assistente (Wizard)
+*   **ISO para GOD (Games on Demand)**: O padrão ouro para usuários de RGH/JTAG.
+*   **Legado Xbox Clássico**: Extração e conversão automatizada para jogos do Xbox original.
+*   **O Wizard**: Configuração guiada que cuida da formatação FAT32 e deploy de Aurora/FSD do zero ao play.
 
 ---
 
 <a name="español"></a>
-## 🇪🇸 Español: La Central Definitiva para Xbox 360 en Linux
+## 🇪🇸 Español: El Ecosistema Definitivo para Xbox 360 en Linux
 
-**x360 Tools for Linux** es una suite de código abierto de nivel profesional diseñada para entusiastas de Xbox 360 y Xbox Clásico. Conecta las distribuciones modernas de Linux con el hardware de consola heredado, proporcionando una interfaz **Flutter v2.0** impresionante con el respaldo de un motor **Python** de alto rendimiento.
+**x360 Tools for Linux** no es solo una herramienta, es un ecosistema completo para el entusiasta moderno de Xbox 360 y Xbox Clásico. Construido con una impresionante interfaz **Flutter v2.0** y un motor **Python asíncrono**, ofrece la experiencia de gestión de consolas más profesional en Linux.
 
-### 🌟 Características Exclusivas
+### 🌟 Características Exclusivas y Destacadas
 
-#### 🛒 x360 Freemarket (Tienda Premium)
-*   **Biblioteca Masiva**: Acceso instantáneo a miles de títulos desde Internet Archive.
-*   **Búsqueda Inteligente**: Búsqueda ultra rápida con SQLite, filtros regionales y agrupación de DLC.
-*   **Flujo Automatizado**: Encuentra un juego, haz clic en "Instalar" y deja que la aplicación se encargue del resto.
+#### 🛒 x360 Freemarket (El Gran Almacén)
+*   **Más de 10,000 ítems disponibles**: Un catálogo unificado que agrega metadados de más de 14 bases de datos de Internet Archive.
+*   **Biblioteca Masiva**: Miles de juegos completos, DLC y actualizaciones de títulos (TU) listos para una implementación automatizada e instantánea.
+*   **Búsqueda SQLite**: Indexación ultra rápida que garantiza búsquedas sin lag incluso en catálogos gigantes.
 
-#### ⚡ Gestor de Descargas Avanzado (NUEVO)
-*   **Seguimiento Multifase**: A diferencia de los descargadores simples, este gestor rastrea:
-    1.  **Descargando**: Progreso en tiempo real con velocidad y tiempo estimado (ETA).
-    2.  **Extrayendo**: Descompresión automática de archivos.
-    3.  **Convirtiendo**: Conversión sobre la marcha de ISO o archivos raw.
-    4.  **Instalando**: Transferencia segura a dispositivos FAT32 de Xbox.
-*   **Tareas Concurrentes**: Gestiona múltiples instalaciones simultáneamente con control de cancelación independiente.
-*   **Acceso con un Clic**: Abre la carpeta de instalación directamente usando el explorador de archivos nativo de Linux.
+#### 🛡️ Sistema de Backup Avanzado (Formato Exclusivo `.x360b`)
+*   **Seguridad Profesional**: Crea imágenes completas del dispositivo comprimidas en nuestro propio formato `.x360b`.
+*   **Lo más destacado**:
+    *   **Alta compresión**: Ahorra espacio manteniendo todos los metadados específicos de Xbox.
+    *   **Restauración inteligente**: Maneja automáticamente el formato del dispositivo para asegurar el 100% de reconocimiento por el Xbox 360.
+    *   **Preservación de metadados**: Almacena las etiquetas originales del dispositivo y las estructuras de carpetas.
 
-#### 🏞️ x360 Landscape (Gestión STFS)
-*   **Inyección de Contenido**: Transfiere DLC, actualizaciones de títulos (TU) y partidas guardadas fácilmente.
-*   **Personalizador de Perfil**: Inyecta imágenes de jugador (Gamerpics) personalizadas.
-*   **Explorador USB**: Navega y extrae contenido de tus unidades USB con formato Xbox.
-
-#### 🔄 x360 Converter
-*   **ISO a GOD**: Convierte ISO de 360 al formato "Games on Demand" (RGH/JTAG).
-*   **Soporte Clásico**: Manejo especial para ISO de Xbox Original, convirtiéndolas a carpetas extraídas.
-*   **Auto-Instalación**: Opción para convertir e instalar directamente en la unidad seleccionada en un solo paso.
-
-#### 🧙‍♂️ Asistente de Instalación Inteligente (Wizard)
-*   **Fácil para Principiantes**: Guía paso a paso para preparar su consola.
-*   **Detección de Hardware**: Selecciona automáticamente los paquetes adecuados para RGH/JTAG vs LT+ u Original.
-*   **Preparación de Dispositivos**: Formateo FAT32 e instalación de archivos del sistema (Aurora, Freestyle, XeXMenu).
+#### 🏞️ x360 Landscape (STFS e Identidad)
+*   **Inyección de Gamerpics**: Accede a un almacén de miles de imágenes de jugador originales y personalizadas.
+*   **Potencia STFS**: Gestiona DLC, Arcade Games y actualizaciones de títulos con facilidad.
+*   **Gestor de Partidas**: Respalda y transfiere tu progreso fácilmente.
 
 ---
-**x360 Tools** - *The premium way to manage your legacy console on modern Linux.*
+**x360 Tools** - *Powered by Linux, Designed for Xbox Legends.*
