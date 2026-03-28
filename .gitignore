@@ -1,0 +1,37 @@
+# Flutter/Dart
+.dart_tool/
+.packages
+.pub-cache/
+.pub/
+build/
+x360_tools_flutter/build/
+x360_tools_flutter/.dart_tool/
+x360_tools_flutter/.packages
+x360_tools_flutter/.flutter-plugins
+x360_tools_flutter/.flutter-plugins-dependencies
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.env
+temp/
+debug/
+
+# OS/IDE
+.DS_Store
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Project specific
+releases/
+release-final/
+*.deb
+*.AppImage
+x360_tools
+output_classic.json
+output_360.json
+scripts/freemarket_db.sqlite
