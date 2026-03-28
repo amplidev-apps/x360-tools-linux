@@ -236,7 +236,7 @@ class FreemarketEngine:
         dest_path = os.path.join(tu_dir, tu_name)
         
         try:
-            if progress_cb: progress_cb(f"Status: Baixando Title Update {tu_name}...")
+            if progress_cb: progress_cb(f"PHASE:Baixando Title Update {tu_name}...")
             headers = {'User-Agent': 'Mozilla/5.0'}
             req = urllib.request.Request(tu_url, headers=headers)
             with urllib.request.urlopen(req, timeout=15) as response:
@@ -252,11 +252,70 @@ class FreemarketEngine:
                             percent = int(downloaded * 100 / total_size)
                             progress_cb(f"Progress: {percent}%")
             
-            if progress_cb: progress_cb("Status: Title Update instalado com sucesso!")
+            if progress_cb: progress_cb("PHASE:Title Update instalado com sucesso!")
             return True
         except Exception as e:
             if progress_cb: progress_cb(f"Error: {e}")
             return False
+
+    def install_dlc(self, dlc_url, dlc_name, title_id, dest_drive, progress_cb=None):
+        if not title_id or title_id == "Desconhecido":
+             if progress_cb: progress_cb("Error: Title ID inválido para instalação de DLC.")
+             return False
+
+        dlc_dest_dir = os.path.join(dest_drive, "Content", "0000000000000000", title_id, "00000002")
+        os.makedirs(dlc_dest_dir, exist_ok=True)
+        
+        temp_dir = os.path.join(self.cache_dir, "dlc_temp")
+        os.makedirs(temp_dir, exist_ok=True)
+        temp_archive = os.path.join(temp_dir, dlc_name)
+
+        try:
+            # 1. Download
+            if progress_cb: progress_cb(f"PHASE:Baixando DLC {dlc_name}...")
+            headers = {'User-Agent': 'Mozilla/5.0'}
+            req = urllib.request.Request(dlc_url, headers=headers)
+            with urllib.request.urlopen(req, timeout=20) as response:
+                total_size = int(response.info().get('Content-Length', 0))
+                downloaded = 0
+                with open(temp_archive, 'wb') as f:
+                    while True:
+                        chunk = response.read(1024*1024)
+                        if not chunk: break
+                        f.write(chunk)
+                        downloaded += len(chunk)
+                        if progress_cb and total_size > 0:
+                            percent = int(downloaded * 100 / total_size)
+                            progress_cb(f"Progress: {percent}%")
+            
+            # 2. Check if it's an archive or raw file
+            if dlc_name.lower().endswith(('.zip', '.rar', '.7z')):
+                if progress_cb: progress_cb("PHASE:Extraindo DLC...")
+                converter = GameConverter()
+                extract_path = os.path.join(temp_dir, "extracted")
+                os.makedirs(extract_path, exist_ok=True)
+                converter.extract_archive(temp_archive, extract_path, progress_cb=progress_cb)
+                
+                if progress_cb: progress_cb("PHASE:Copiando arquivos da DLC...")
+                # Move all files to Content/.../00000002/
+                for root, dirs, files in os.walk(extract_path):
+                    for f in files:
+                        src = os.path.join(root, f)
+                        dst = os.path.join(dlc_dest_dir, f)
+                        shutil.copy2(src, dst)
+            else:
+                # Direct file copy
+                if progress_cb: progress_cb("PHASE:Instalando arquivo de DLC...")
+                shutil.copy2(temp_archive, os.path.join(dlc_dest_dir, dlc_name))
+
+            if progress_cb: progress_cb("PHASE:DLC instalada com sucesso!")
+            return True
+        except Exception as e:
+            if progress_cb: progress_cb(f"Error: {e}")
+            return False
+        finally:
+            if os.path.exists(temp_dir):
+                shutil.rmtree(temp_dir)
 
     def download_cover(self, game_name, dest_path):
         try:

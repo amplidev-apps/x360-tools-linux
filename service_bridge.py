@@ -18,6 +18,8 @@ from core.converter import GameConverter
 from core.utils import extract_zip, download_file
 from core.gamerpics import get_manager
 from core.backup import BackupManager
+from core.library import LibraryScanner
+from core.dashlaunch import DashLaunchEditor
 
 def main():
     parser = argparse.ArgumentParser(description="x360 Tools Service Bridge")
@@ -40,6 +42,7 @@ def main():
     parser.add_argument("--on-device", help="Install directly to device (True/False)")
     parser.add_argument("--refresh", action="store_true", help="Force refresh game list cache")
     parser.add_argument("--lang", default="pt", help="Language for translation")
+    parser.add_argument("--title-id", help="Title ID for TU/DLC installation")
     
     args = parser.parse_args()
     
@@ -112,20 +115,48 @@ def main():
                 details = service.search_unity_by_name(args.name, args.platform, lang=args.lang)
                 result = {"status": "success", "data": details}
         
-        elif args.cmd == "install_tu":
-            engine = FreemarketEngine(os.path.join(os.path.dirname(__file__), "temp", "freemarket"))
-            
-            def progress_callback(msg):
-                print(msg, flush=True)
-
-            success = engine.install_title_update(
-                args.url, 
-                args.name, 
-                args.title_id, 
-                args.dest, 
-                progress_cb=progress_callback
-            )
             result = {"status": "success" if success else "error", "message": "Instalação da TU concluída" if success else "Falha na instalação da TU"}
+
+        elif args.cmd == "install_dlc":
+            if not args.url or not args.name or not args.title_id or not args.device:
+                result = {"status": "error", "message": "Missing arguments for DLC installation"}
+            else:
+                engine = FreemarketEngine()
+                def progress_callback(msg):
+                    print(msg, flush=True)
+
+                success = engine.install_dlc(
+                    args.url, 
+                    args.name, 
+                    args.title_id, 
+                    args.device, 
+                    progress_cb=progress_callback
+                )
+                result = {"status": "success" if success else "error", "message": "Instalação da DLC concluída" if success else "Falha na instalação da DLC"}
+
+        elif args.cmd == "scan_library":
+            if not args.device:
+                result = {"status": "error", "message": "Missing device for library scan"}
+            else:
+                scanner = LibraryScanner()
+                data = scanner.scan_drive(args.device)
+                result = {"status": "success", "data": data}
+
+        elif args.cmd == "get_dashlaunch":
+            if not args.src:
+                result = {"status": "error", "message": "Missing path for launch.ini"}
+            else:
+                editor = DashLaunchEditor()
+                result = editor.read_ini(args.src)
+
+        elif args.cmd == "update_dashlaunch":
+            if not args.dest or not args.arg: # args.arg as JSON data
+                result = {"status": "error", "message": "Missing path or data for launch.ini update"}
+            else:
+                import json
+                editor = DashLaunchEditor()
+                data = json.loads(args.arg)
+                result = editor.write_ini(args.dest, data)
 
         elif args.cmd == "install":
             if not args.packages or not args.device:

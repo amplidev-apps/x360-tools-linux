@@ -248,6 +248,46 @@ class PythonBridge {
     return {"status": "error", "message": err.isNotEmpty ? err : "No response from bridge"};
   }
 
+  static Future<Map<String, dynamic>> installDLC(
+    String id,
+    String url, 
+    String name, 
+    String titleId, 
+    String device, 
+    {Function(String)? onProgress}
+  ) async {
+    final List<String> args = [
+      'python3', 
+      bridgeScript, 
+      '--cmd', 'install_dlc', 
+      '--url', url, 
+      '--name', name, 
+      '--title-id', titleId, 
+      '--device', device
+    ];
+
+    final process = await Process.start(args[0], args.sublist(1));
+    _activeProcesses[id] = process;
+    
+    String? lastLine;
+    await for (final line in process.stdout.transform(utf8.decoder).transform(const LineSplitter())) {
+      final trimmed = line.trim();
+      if (trimmed.isEmpty) continue;
+      
+      if (trimmed.startsWith('{')) {
+        lastLine = trimmed;
+      } else {
+        onProgress?.call(trimmed);
+      }
+    }
+    
+    _activeProcesses.remove(id);
+    
+    if (lastLine != null) return json.decode(lastLine);
+    final err = await process.stderr.transform(utf8.decoder).join();
+    return {"status": "error", "message": err.isNotEmpty ? err : "No response from bridge"};
+  }
+
   static Future<Map<String, dynamic>> getBackupSummary(String srcPath) async {
     return await _runCommand("get_backup_summary", src: srcPath);
   }
@@ -304,8 +344,8 @@ class PythonBridge {
       '--cmd', 'install_tu',
       '--url', url,
       '--name', name,
-      '--title_id', titleId,
-      '--dest', dest,
+      '--title-id', titleId,
+      '--device', dest,
     ]);
 
     await for (final line in process.stdout.transform(utf8.decoder).transform(const LineSplitter())) {
@@ -313,6 +353,18 @@ class PythonBridge {
         yield line;
       }
     }
+  }
+
+  static Future<Map<String, dynamic>> scanLibrary(String device) async {
+    return await _runCommand("scan_library", device: device);
+  }
+
+  static Future<Map<String, dynamic>> getDashLaunch(String path) async {
+    return await _runCommand("get_dashlaunch", src: path);
+  }
+
+  static Future<Map<String, dynamic>> updateDashLaunch(String path, Map<String, dynamic> data) async {
+    return await _runCommand("update_dashlaunch", dest: path, arg: jsonEncode(data));
   }
 
   static Future<Map<String, dynamic>> openFolder(String path) async {

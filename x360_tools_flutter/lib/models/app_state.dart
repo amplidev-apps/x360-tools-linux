@@ -28,6 +28,7 @@ class DownloadItem {
   DateTime startTime;
   String? speed;
   String? eta;
+  final String type; // "game", "tu", or "dlc"
 
   DownloadItem({
     required this.id,
@@ -35,6 +36,7 @@ class DownloadItem {
     required this.url,
     required this.platform,
     required this.destPath,
+    this.type = "game",
     this.phase = DownloadPhase.waiting,
     this.statusMessage = "Aguardando...",
     this.progress = 0.0,
@@ -149,6 +151,13 @@ class AppState extends ChangeNotifier {
   List<DownloadItem> downloads = [];
   List<dynamic> games = [];
   bool isLoadingGames = false;
+  bool isScanningLibrary = false;
+  Map<String, List<dynamic>> libraryGames = {
+    "360": [],
+    "OG": [],
+    "DLC": [],
+    "TU": []
+  };
 
   AppState() {
     _init();
@@ -204,6 +213,7 @@ class AppState extends ChangeNotifier {
       url: game['url'] ?? "",
       platform: game['platform'] ?? "360",
       destPath: destPath,
+      type: "game",
     );
     
     downloads.add(item);
@@ -285,37 +295,123 @@ class AppState extends ChangeNotifier {
       return;
     }
 
+    final downloadId = "TU_${DateTime.now().millisecondsSinceEpoch}";
+    final item = DownloadItem(
+      id: downloadId,
+      name: "Title Update (${tu['Version'] ?? 'vN/A'})",
+      url: tu['DownloadUrl'] ?? "",
+      platform: "360",
+      destPath: selectedDrive!['device'],
+      type: "tu",
+      phase: DownloadPhase.downloading,
+      statusMessage: "Iniciando download da TU...",
+    );
+    
+    downloads.add(item);
     isInstalling = true;
-    statusMessage = "Baixando Title Update...";
-    progress = 0.0;
     notifyListeners();
 
     try {
       final stream = PythonBridge.installTU(
-        url: tu['DownloadUrl'] ?? "",
+        url: item.url,
         name: "TU_Update.bin", 
         titleId: titleId,
-        dest: selectedDrive!['device'],
+        dest: item.destPath,
       );
 
       await for (final line in stream) {
         if (line.startsWith("Progress:")) {
           final pStr = line.replaceFirst("Progress:", "").replaceAll("%", "").trim();
           final p = double.tryParse(pStr);
-          if (p != null) progress = p / 100.0;
-        } else if (line.startsWith("Status:")) {
-          statusMessage = line.replaceFirst("Status:", "").trim();
+          if (p != null) item.progress = p / 100.0;
+        } else if (line.startsWith("PHASE:")) {
+          item.statusMessage = line.replaceFirst("PHASE:", "").trim();
+          final status = item.statusMessage.toLowerCase();
+          if (status.contains("concluído") || status.contains("sucesso")) {
+             item.phase = DownloadPhase.completed;
+             item.progress = 1.0;
+          }
         }
         notifyListeners();
       }
-
-      statusMessage = "TU Instalada com sucesso!";
-      progress = 1.0;
+      
+      if (item.phase != DownloadPhase.completed) {
+         item.phase = DownloadPhase.completed;
+         item.progress = 1.0;
+      }
+      item.localPath = "${item.destPath}/Content/0000000000000000/$titleId/000B0000";
     } catch (e) {
-      statusMessage = "Erro ao instalar TU: $e";
+      item.phase = DownloadPhase.failed;
+      item.statusMessage = "Erro: $e";
     }
 
-    isInstalling = false;
+    isInstalling = downloads.any((d) => d.phase != DownloadPhase.completed && d.phase != DownloadPhase.failed && d.phase != DownloadPhase.canceled);
+    notifyListeners();
+  }
+
+  Future<void> installDLC(Map<String, dynamic> dlc, String titleId) async {
+    if (selectedDrive == null) {
+      statusMessage = "Aviso: Selecione um dispositivo para instalar a DLC.";
+      notifyListeners();
+      return;
+    }
+
+    final downloadId = "DLC_${DateTime.now().millisecondsSinceEpoch}";
+    final item = DownloadItem(
+      id: downloadId,
+      name: dlc['name'] ?? "DLC Content",
+      url: dlc['url'] ?? "",
+      platform: "360",
+      destPath: selectedDrive!['device'],
+      type: "dlc",
+      phase: DownloadPhase.downloading,
+      statusMessage: "Iniciando download da DLC...",
+    );
+    
+    downloads.add(item);
+    isInstalling = true;
+    notifyListeners();
+
+    try {
+      final res = await PythonBridge.installDLC(
+        item.id,
+        item.url,
+        item.name,
+        titleId,
+        item.destPath,
+        onProgress: (line) {
+          if (line.startsWith("Progress:")) {
+            final pStr = line.replaceFirst("Progress:", "").replaceAll("%", "").trim();
+            final p = double.tryParse(pStr);
+            if (p != null) item.progress = p / 100.0;
+          } else if (line.startsWith("PHASE:")) {
+            item.statusMessage = line.replaceFirst("PHASE:", "").trim();
+            final status = item.statusMessage.toLowerCase();
+            if (status.contains("extraindo")) item.phase = DownloadPhase.extracting;
+            else if (status.contains("instalando")) item.phase = DownloadPhase.installing;
+            else if (status.contains("concluída")) {
+               item.phase = DownloadPhase.completed;
+               item.progress = 1.0;
+            }
+          }
+          notifyListeners();
+        },
+      );
+
+      if (res["status"] == "success") {
+        item.phase = DownloadPhase.completed;
+        item.progress = 1.0;
+        item.localPath = "${item.destPath}/Content/0000000000000000/$titleId/00000002";
+      } else {
+        item.phase = DownloadPhase.failed;
+        item.statusMessage = "Falha: ${res["message"]}";
+      }
+    } catch (e) {
+      item.phase = DownloadPhase.failed;
+      item.statusMessage = "Erro: $e";
+    }
+
+    isInstalling = downloads.any((d) => d.phase != DownloadPhase.completed && d.phase != DownloadPhase.failed && d.phase != DownloadPhase.canceled);
     notifyListeners();
   }
 
@@ -362,6 +458,45 @@ class AppState extends ChangeNotifier {
     pluginSelections[key] = !pluginSelections[key]!;
     notifyListeners();
   }
+
+  Future<void> scanLibrary() async {
+    if (selectedDrive == null) return;
+    isScanningLibrary = true;
+    notifyListeners();
+
+    try {
+      final res = await PythonBridge.scanLibrary(selectedDrive!['device']);
+      if (res["status"] == "success") {
+        final data = res["data"] as Map<String, dynamic>;
+        libraryGames = {
+          "360": data["360"] as List,
+          "OG": data["OG"] as List,
+          "DLC": data["DLC"] as List,
+          "TU": data["TU"] as List,
+        };
+      }
+    } catch (e) {
+      print("Error scanning library: $e");
+    } finally {
+      isScanningLibrary = false;
+      notifyListeners();
+    }
+  }
+
+  Future<Map<String, dynamic>> getDashLaunch(String path) async {
+    return await PythonBridge.getDashLaunch(path);
+  }
+
+  Future<void> updateDashLaunch(String path, Map<String, dynamic> data) async {
+    final res = await PythonBridge.updateDashLaunch(path, data);
+    if (res["status"] == "success") {
+       statusMessage = "DashLaunch atualizado com sucesso!";
+    } else {
+       statusMessage = "Erro ao atualizar DashLaunch: ${res["message"]}";
+    }
+    notifyListeners();
+  }
+
 
   void toggleCustom(String key) {
     customSelections[key] = !customSelections[key]!;

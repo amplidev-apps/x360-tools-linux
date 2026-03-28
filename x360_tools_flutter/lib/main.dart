@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:window_manager/window_manager.dart';
 import 'models/app_state.dart';
 import 'views/home_view.dart';
 import 'views/installation_view.dart';
@@ -14,8 +15,26 @@ import 'views/horizon_injector_view.dart';
 import 'views/profile_pics_view.dart';
 import 'views/convert_view.dart';
 import 'views/backup_view.dart';
+import 'views/library_view.dart';
+import 'views/dashlaunch_view.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await windowManager.ensureInitialized();
+
+  WindowOptions windowOptions = const WindowOptions(
+    size: Size(1280, 800),
+    center: true,
+    backgroundColor: Colors.transparent,
+    skipTaskbar: false,
+    titleBarStyle: TitleBarStyle.hidden,
+  );
+  
+  windowManager.waitUntilReadyToShow(windowOptions, () async {
+    await windowManager.show();
+    await windowManager.focus();
+  });
+
   runApp(
     ChangeNotifierProvider(
       create: (context) => AppState(),
@@ -72,6 +91,8 @@ class _MainShellState extends State<MainShell> {
       const ConvertView(),
       const ProfilePicsView(),
       const BackupView(),
+      const LibraryView(), // [NEW]
+      const DashLaunchView(), // [NEW]
       const SettingsView(),
     ];
   }
@@ -88,6 +109,8 @@ class _MainShellState extends State<MainShell> {
     {"name": "x360 Converter", "icon": Icons.transform_rounded, "key": "x360 Converter"},
     {"name": "Profile Pics", "icon": Icons.photo_library_rounded, "key": "Profile Pics"},
     {"name": "Backup e Restauro", "icon": Icons.settings_backup_restore, "key": "Backup e Restauro"},
+    {"name": "Minha Biblioteca", "icon": Icons.library_books_rounded, "key": "Minha Biblioteca"},
+    {"name": "DashLaunch Pro", "icon": Icons.tune_rounded, "key": "DashLaunch Pro"},
     {"name": "Configurações", "icon": Icons.settings_rounded, "key": "Configurações"},
   ];
 
@@ -113,7 +136,7 @@ class _MainShellState extends State<MainShell> {
                     color: Colors.black,
                     child: Column(
                       children: [
-                        const SizedBox(height: 40),
+                        const SizedBox(height: 20),
                         // Logo/Header
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -135,7 +158,7 @@ class _MainShellState extends State<MainShell> {
                             ],
                           ),
                         ),
-                        const SizedBox(height: 40),
+                        const SizedBox(height: 30),
                         
                         // Nav Items
                         Expanded(
@@ -145,18 +168,7 @@ class _MainShellState extends State<MainShell> {
                           ),
                         ),
                         
-                        // Window Controls at bottom of sidebar
-                        Padding(
-                          padding: const EdgeInsets.all(24.0),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              _buildWindowControl(Colors.yellow, Icons.minimize),
-                              _buildWindowControl(Colors.green, Icons.crop_square),
-                              _buildWindowControl(Colors.red, Icons.close),
-                            ],
-                          ),
-                        ),
+                        const SizedBox(height: 20),
                       ],
                     ),
                   ),
@@ -166,6 +178,32 @@ class _MainShellState extends State<MainShell> {
                 Expanded(
                   child: Column(
                     children: [
+                      // 1. Custom Title Bar / Window Draggable Area
+                      GestureDetector(
+                        onPanStart: (details) {
+                          windowManager.startDragging();
+                        },
+                        child: Container(
+                          height: 50,
+                          color: const Color(0xFF0A0A0A),
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          child: Row(
+                            children: [
+                              const Spacer(),
+                              _buildWindowControl(Colors.yellow, Icons.remove, () => windowManager.minimize()),
+                              _buildWindowControl(Colors.green, Icons.crop_square, () async {
+                                if (await windowManager.isMaximized()) {
+                                  windowManager.unmaximize();
+                                } else {
+                                  windowManager.maximize();
+                                }
+                              }),
+                              _buildWindowControl(Colors.red, Icons.close, () => windowManager.close()),
+                            ],
+                          ),
+                        ),
+                      ),
+
                       // Main Content
                       Expanded(
                         child: IndexedStack(
@@ -260,13 +298,17 @@ class _MainShellState extends State<MainShell> {
     );
   }
 
-  Widget _buildWindowControl(Color color, IconData icon) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 4),
-      width: 28,
-      height: 28,
-      decoration: BoxDecoration(color: color.withOpacity(0.8), borderRadius: BorderRadius.circular(14)),
-      child: Icon(icon, size: 14, color: Colors.black),
+  Widget _buildWindowControl(Color color, IconData icon, VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 4),
+        width: 28,
+        height: 28,
+        decoration: BoxDecoration(color: color.withOpacity(0.8), borderRadius: BorderRadius.circular(14)),
+        child: Icon(icon, size: 14, color: Colors.black),
+      ),
     );
   }
 

@@ -803,12 +803,12 @@ class _FreemarketViewState extends State<FreemarketView> {
           ),
           ElevatedButton(
             onPressed: () {
-              final version = (dlc['versions'] as List).isNotEmpty ? dlc['versions'][0] : dlc;
-              state.installFromFreemarket(
-                version, 
-                state.selectedDrive?['path'] ?? "", 
-                true
-              );
+              final titleId = _selectedGameDetails?['title_id'];
+              if (titleId != null) {
+                state.installDLC(dlc, titleId);
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Erro: Title ID não resolvido.")));
+              }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF107C10).withOpacity(0.1),
@@ -1305,7 +1305,12 @@ class _FreemarketViewState extends State<FreemarketView> {
             children: [
               Text("${(item.progress * 100).toInt()}%", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.white24)),
               if (isActive)
-                Text(item.platform == "360" ? "XBOX 360 GOD" : "XBOX CLASSIC", style: const TextStyle(fontSize: 11, color: Colors.white12, letterSpacing: 1.1, fontWeight: FontWeight.bold)),
+                Text(
+                  item.type == "tu" ? "TITLE UPDATE" :
+                  item.type == "dlc" ? "DLC CONTENT" :
+                  (item.platform == "360" ? "XBOX 360 GOD" : "XBOX CLASSIC"),
+                  style: const TextStyle(fontSize: 11, color: Colors.white12, letterSpacing: 1.1, fontWeight: FontWeight.bold),
+                ),
             ],
           ),
         ],

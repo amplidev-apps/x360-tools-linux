@@ -52,6 +52,18 @@
 *   **Xbox Classic Legacy**: Automated extraction and conversion for original Xbox games.
 *   **The Wizard**: Guided setup from FAT32 formatting to Aurora/FSD dashboard deploy in minutes.
 
+#### 📚 Local Library Manager (Scanner & Grid)
+*   **Automatic Drive Scanning**: Instantly identifies Xbox 360 GOD games, Xbox Classic titles, Title Updates, and DLCs installed on your external drives.
+*   **STFS Identity Extraction**: Automatically extracts official game names and high-quality icons directly from the STFS metadata.
+*   **Smart Categorization**: Organizes your local library into separate tabs for Games, DLCs, and Updates.
+*   **Missing Cover Fallback**: Uses a default high-quality cover for games without embedded icons to maintain visual consistency.
+
+#### ⚙️ DashLaunch Pro Editor
+*   **Visual INI Configuration**: Edit `launch.ini` without any text editors via a premium, responsive interface.
+*   **Network Patches**: Toggle `pingpatch`, `liveblock`, `livestrong`, and other DashLaunch options with simple switches.
+*   **Boot Path Management**: Easily configure your default dashboard boot path (e.g., Aurora).
+*   **RGH Templates**: Automatically generates an optimized `launch.ini` template if a USB drive does not have one.
+
 ---
 
 ### 🚀 Installation & Running
@@ -134,6 +146,19 @@ O **x360 Tools for Linux** não é apenas uma ferramenta — é um ecossistema c
 *   **Legado Xbox Clássico**: Conversão automatizada para jogos do Xbox original.
 *   **O Wizard**: Configuração guiada do zero ao play.
 
+
+#### 📚 Gestor de Biblioteca Local (Scanner & Grid)
+*   **Varredura Automática**: Identifica instantaneamente jogos Xbox 360 GOD, Xbox Clássico, Title Updates e DLCs instalados no seu pen drive/HD.
+*   **Extração STFS**: Recupera automaticamente os nomes oficiais e ícones de alta qualidade diretamente dos metadados STFS.
+*   **Categorização Inteligente**: Organiza sua biblioteca local em abas separadas para Jogos, DLCs e Updates.
+*   **Capas Padrão**: Utiliza uma capa padrão de alta qualidade para jogos sem ícone interno, mantendo a consistência visual.
+
+#### ⚙️ DashLaunch Pro Editor
+*   **Configuração Visual de INI**: Edite o `launch.ini` sem editores de texto, usando uma interface premium e responsiva.
+*   **Patches de Rede**: Ligue e desligue `pingpatch`, `liveblock`, `livestrong` e outros com um simples clique.
+*   **Gestão de Boot**: Configure facilmente o caminho de inicialização padrão (ex: Aurora).
+*   **Templates RGH**: Gera um template otimizado de `launch.ini` automaticamente caso o dispositivo não possua um.
+
 ---
 
 ### 🚀 Instalação e Execução
@@ -206,6 +231,18 @@ pip install deep-translator requests
 *   **Inyección de Gamerpics**: Accede a miles de imágenes de jugador originales y personalizadas.
 *   **Potencia STFS**: Gestiona DLC, Arcade y TU con facilidad.
 *   **Gestor de Partidas**: Respalda y transfiere tu progreso.
+
+#### 📚 Gestor de Biblioteca Local (Escáner y Cuadrícula)
+*   **Escaneo Automático**: Identifica instantáneamente juegos Xbox 360 GOD, Xbox Clásico, Title Updates y DLCs instalados en tus unidades.
+*   **Extracción STFS**: Recupera nombres oficiales e íconos de alta calidad directamente de los metadatos STFS.
+*   **Categorización Inteligente**: Organiza tu biblioteca local en pestañas separadas para Juegos, DLCs y Actualizaciones.
+*   **Portadas Predeterminadas**: Utiliza una portada predeterminada de alta calidad para juegos sin ícono, manteniendo la consistencia visual.
+
+#### ⚙️ DashLaunch Pro Editor
+*   **Configuración Visual de INI**: Edita el `launch.ini` sin editores de texto, usando una interfaz premium y receptiva.
+*   **Parches de Red**: Activa `pingpatch`, `liveblock`, `livestrong` y otras configuraciones con interruptores simples.
+*   **Gestión de Arranque**: Configura fácilmente tu ruta de inicio predeterminada (ej. Aurora).
+*   **Plantillas RGH**: Genera automáticamente una plantilla `launch.ini` optimizada si la unidad USB no tiene una.
 
 ### 🚀 Instalación y Ejecución
 
