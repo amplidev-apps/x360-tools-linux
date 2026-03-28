@@ -7,7 +7,10 @@ class TranslationService {
     "Plugins e Outros": {"pt": "Plugins e Outros", "es": "Plugins y Otros", "en": "Plugins / Other"},
     "Configurações": {"pt": "Configurações", "es": "Configuración", "en": "Settings"},
     "Início": {"en": "Home", "es": "Inicio", "pt": "Início"},
-    "Injetor Horizon": {"pt": "Injetor Horizon", "en": "Horizon Injector", "es": "Inyector Horizon"},
+    "x360 Landscape": {"pt": "x360 Landscape", "en": "x360 Landscape", "es": "x360 Landscape"},
+    "x360 Converter": {"pt": "x360 Converter", "en": "x360 Converter", "es": "x360 Converter"},
+    "INICIAR CONVERSÃO": {"pt": "INICIAR CONVERSÃO", "en": "START CONVERSION", "es": "INICIAR CONVERSIÓN"},
+    "INICIAR CONVERSÃO": {"pt": "INICIAR CONVERSÃO", "en": "START CONVERSION", "es": "INICIAR CONVERSIÓN"},
 
     // Home Banners
     "Instalação Completa": {"pt": "Instalação Completa", "en": "Full Installation", "es": "Instalación Completa"},
@@ -21,15 +24,15 @@ class TranslationService {
     "BEM-VINDO AO": {"pt": "BEM-VINDO AO", "en": "WELCOME TO", "es": "BIENVENIDO A"},
     "A central definitiva para o seu Xbox 360 no Linux.": {"pt": "A central definitiva para o seu Xbox 360 no Linux.", "en": "The ultimate hub for your Xbox 360 on Linux.", "es": "El centro definitivo para tu Xbox 360 en Linux."},
 
-    // Horizon Injector
-    "INJETOR": {"pt": "INJETOR", "en": "INJECTOR", "es": "INYECTOR"},
+    // x360 Landscape
+    "INJETOR": {"pt": "LANDSCAPE", "en": "LANDSCAPE", "es": "LANDSCAPE"},
     "EXPLORADOR": {"pt": "EXPLORADOR", "en": "EXPLORER", "es": "EXPLORADOR"},
     "Explore e extraia conteúdo do seu dispositivo USB.": {"pt": "Explore e extraia conteúdo do seu dispositivo USB.", "en": "Explore and extract content from your USB device.", "es": "Explora y extrae contenido de tu dispositivo USB."},
-    "Injete DLCs, TUs e Saves diretamente no seu Xbox 360.": {"pt": "Injete DLCs, TUs e Saves diretamente no seu Xbox 360.", "en": "Inject DLCs, TUs, and Saves directly to your Xbox 360.", "es": "Inyecta DLCs, TUs y Saves directamente en tu Xbox 360."},
+    "Injete DLCs, TUs e Saves diretamente no seu Xbox 360.": {"pt": "Gerencie DLCs, TUs e Saves diretamente no seu Xbox 360.", "en": "Manage DLCs, TUs, and Saves directly to your Xbox 360.", "es": "Gestiona DLCs, TUs y Saves directamente en tu Xbox 360."},
     "Clique para selecionar um arquivo STFS": {"pt": "Clique para selecionar um arquivo STFS", "en": "Click to select an STFS file", "es": "Haz clic para seleccionar un arquivo STFS"},
-    "OPÇÕES DE INJEÇÃO": {"pt": "OPÇÕES DE INJEÇÃO", "en": "INJECTION OPTIONS", "es": "OPCIONES DE INYECCIÓN"},
+    "OPÇÕES DE INJEÇÃO": {"pt": "OPÇÕES DE GERENCIAMENTO", "en": "MANAGEMENT OPTIONS", "es": "OPCIONES DE GESTIÓN"},
     "Dispositivo Destino:": {"pt": "Dispositivo Destino:", "en": "Target Device:", "es": "Dispositivo de Destino:"},
-    "INJETAR NO DISPOSITIVO": {"pt": "INJETAR NO DISPOSITIVO", "en": "INJECT TO DEVICE", "es": "INYECTAR EN DISPOSITIVO"},
+    "INJETAR NO DISPOSITIVO": {"pt": "TRANSFERIR PARA O DISPOSITIVO", "en": "TRANSFER TO DEVICE", "es": "TRANSFERIR AL DISPOSITIVO"},
     "PACKAGE DETAILS": {"pt": "DETALHES DO PACOTE", "en": "PACKAGE DETAILS", "es": "DETALLES DEL PAQUETE"},
     "Nenhum conteúdo encontrado no dispositivo.": {"pt": "Nenhum conteúdo encontrado no dispositivo.", "en": "No content found on the device.", "es": "No se encontró contenido en el dispositivo."},
     "itens no pacote": {"pt": "itens no pacote", "en": "items in package", "es": "ítems en el paquete"},

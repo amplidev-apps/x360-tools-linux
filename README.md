@@ -35,8 +35,8 @@
 *   **Loja Freemarket Premium**: Navegue e baixe milhares de títulos de Xbox 360 e Clássico.
 *   **Gerenciador de Downloads Avançado**: Acompanhamento em tempo real de múltiplas fases (Baixando, Extraindo, Convertendo, Instalando).
 *   **Injetor Horizon**: Injeção de conteúdo STFS, fotos de perfil e gerenciamento de arquivos do console.
-*   **Suporte Xbox Clássico**: Conversão automática de ISO para o formato de instalação.
-*   **Gerenciador de TUs**: Encontre e instale facilmente as últimas atualizações (Title Updates).
+*   **x360 Landscape**: Gerencie DLCs, TUs e Saves com facilidade.
+*   **x360 Converter**: Conversão automática de ISO para o formato de instalação.
 *   **Performance Nativa Linux**: Otimizado para distribuições modernas com integração `xdg-open`.
 
 ### Como Executar

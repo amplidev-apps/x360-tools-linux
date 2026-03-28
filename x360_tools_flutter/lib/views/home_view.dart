@@ -88,7 +88,7 @@ class HomeView extends StatelessWidget {
           const SizedBox(height: 20),
 
           _buildBanner(
-            title: state.tr("Injetor Horizon"),
+            title: state.tr("x360 Landscape"),
             subtitle: state.tr("Gerencie DLCs, TUs e Saves com facilidade."),
             icon: Icons.send_to_mobile,
             color: const Color(0xFF107C10),
@@ -97,7 +97,7 @@ class HomeView extends StatelessWidget {
           const SizedBox(height: 20),
 
           _buildBanner(
-            title: state.tr("Conversor de Jogos"),
+            title: state.tr("x360 Converter"),
             subtitle: state.tr("Transforme ISOs em GOD (360) ou Extraia (Clássico)."),
             icon: Icons.transform,
             color: Colors.blueGrey,

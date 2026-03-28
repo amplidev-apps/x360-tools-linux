@@ -84,7 +84,7 @@ class _ConvertViewState extends State<ConvertView> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(state.tr("Conversor de Jogos"), style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold)),
+                  Text(state.tr("x360 Converter"), style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold)),
                   Text(
                     state.tr("Prepare seus jogos para rodar no console."),
                     style: TextStyle(fontSize: 16, color: Colors.white.withOpacity(0.5)),
