@@ -38,6 +38,26 @@
 *   **Xbox Classic Legacy**: Automated extraction and conversion for original Xbox games.
 *   **The Wizard**: A guided setup that handles FAT32 formatting and system file deploy (Aurora/FSD) from zero to play.
 
+### 🚀 Installation & Running
+
+#### Prerequisites
+- **Git**
+- **Python 3.10+** (with global `gi` and `requests`)
+- **Flutter SDK** (must be installed in `~/flutter_sdk`)
+
+#### Setup
+```bash
+# Clone the repository
+gh repo clone amplidev-apps/x360-tools-linux
+cd "x360 Tools"
+
+# Run the Flutter UI Native Interface
+./run_flutter.sh
+
+# Or run the legacy GTK3 Interface
+./run.sh
+```
+
 ### 🛠️ Technical Prowess
 *   **UI/UX**: Premium **Segoe UI** typography with a bespoke Xbox-inspired dark theme.
 *   **Architecture**: Decoupled Python/Flutter bridge for maximum stability and speed.
@@ -78,6 +98,26 @@ O **x360 Tools for Linux** não é apenas uma ferramenta—é um ecossistema com
 *   **Legado Xbox Clássico**: Extração e conversão automatizada para jogos do Xbox original.
 *   **O Wizard**: Configuração guiada que cuida da formatação FAT32 e deploy de Aurora/FSD do zero ao play.
 
+### 🚀 Instalação e Execução
+
+#### Pré-requisitos
+- **Git**
+- **Python 3.10+** (com dependências globais `gi` e `requests` instaladas)
+- **Flutter SDK** (deve ser instalado em `~/flutter_sdk`)
+
+#### Setup
+```bash
+# Clonar o repositório
+gh repo clone amplidev-apps/x360-tools-linux
+cd "x360 Tools"
+
+# Iniciar a Interface Premium em Flutter
+./run_flutter.sh
+
+# Ou iniciar a Interface Nativa em GTK3
+./run.sh
+```
+
 ---
 
 <a name="español"></a>
@@ -104,6 +144,26 @@ O **x360 Tools for Linux** não é apenas uma ferramenta—é um ecossistema com
 *   **Inyección de Gamerpics**: Accede a un almacén de miles de imágenes de jugador originales y personalizadas.
 *   **Potencia STFS**: Gestiona DLC, Arcade Games y actualizaciones de títulos con facilidad.
 *   **Gestor de Partidas**: Respalda y transfiere tu progreso fácilmente.
+
+### 🚀 Instalación y Ejecución
+
+#### Requisitos
+- **Git**
+- **Python 3.10+** (con dependencias globales `gi` y `requests`)
+- **Flutter SDK** (debe instalarse en `~/flutter_sdk`)
+
+#### Setup
+```bash
+# Clonar el repositorio
+gh repo clone amplidev-apps/x360-tools-linux
+cd "x360 Tools"
+
+# Iniciar la interfaz Premium en Flutter
+./run_flutter.sh
+
+# O iniciar la interfaz original GTK3
+./run.sh
+```
 
 ---
 **x360 Tools** - *Powered by Linux, Designed for Xbox Legends.*
