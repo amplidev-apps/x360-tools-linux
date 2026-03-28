@@ -36,6 +36,7 @@ class PythonBridge {
       bool gallery = false,
       bool cleanup = false,
       bool refresh = false,
+      String? lang,
   }) async {
     final List<String> args = ['python3', bridgeScript, '--cmd', cmd];
     if (arg != null) args.addAll(['--arg', arg]);
@@ -52,25 +53,50 @@ class PythonBridge {
     if (name != null) args.addAll(['--name', name]);
     if (crop != null) args.addAll(['--crop', crop]);
     if (gallery) args.add('--gallery');
+    if (lang != null) args.addAll(['--lang', lang]);
 
     try {
-      final ProcessResult result = await Process.run(args[0], args.sublist(1));
-      if (result.exitCode == 0) {
-        // Parse large JSON in a background isolate
-        final String output = result.stdout as String;
-        if (output.length > 5000) {
-          return await compute(_decodeJson, output);
+      final Process process = await Process.start(args[0], args.sublist(1));
+      
+      final StringBuffer stdoutBuffer = StringBuffer();
+      final StringBuffer stderrBuffer = StringBuffer();
+      
+      // Collect stdout and stderr concurrently
+      final stdoutCollector = process.stdout.transform(utf8.decoder).forEach(stdoutBuffer.write);
+      final stderrCollector = process.stderr.transform(utf8.decoder).forEach(stderrBuffer.write);
+          
+      final int exitCode = await process.exitCode.timeout(const Duration(seconds: 45));
+      await Future.wait([stdoutCollector, stderrCollector]);
+
+      if (exitCode == 0) {
+        final String output = stdoutBuffer.toString().trim();
+        // The bridge may output warnings before the actual JSON result.
+        // We find the first '{' to extract the JSON payload.
+        int firstBrace = output.indexOf('{');
+        if (firstBrace == -1) {
+             return {"status": "error", "message": "No valid JSON response from bridge. Raw output was: $output"};
+        }
+        String cleanJson = output.substring(firstBrace).trim();
+        
+        // Final sanity check: find the last '}'
+        int lastBrace = cleanJson.lastIndexOf('}');
+        if (lastBrace != -1) {
+          cleanJson = cleanJson.substring(0, lastBrace + 1);
+        }
+
+        if (cleanJson.length > 10000) {
+          return await compute(_decodeJson, cleanJson);
         } else {
-          return json.decode(output) as Map<String, dynamic>;
+          return json.decode(cleanJson) as Map<String, dynamic>;
         }
       } else {
         return {
           "status": "error",
-          "message": "Process failed: ${result.stderr}"
+          "message": "Process failed (Code $exitCode): ${stderrBuffer.toString()}"
         };
       }
     } catch (e) {
-      return {"status": "error", "message": "Failed to run bridge: $e"};
+      return {"status": "error", "message": "Failed to run bridge or timeout: $e"};
     }
   }
 
@@ -177,8 +203,8 @@ class PythonBridge {
     return await _runCommand("get_device_summary", device: device);
   }
 
-  static Future<Map<String, dynamic>> getGameDetails(String name, {String platform = "360"}) async {
-    return await _runCommand("get_game_details", name: name, platform: platform);
+  static Future<Map<String, dynamic>> getGameDetails(String name, {String platform = "360", String lang = "pt"}) async {
+    return await _runCommand("get_game_details", name: name, platform: platform, lang: lang);
   }
 
   static Future<Map<String, dynamic>> installGame(

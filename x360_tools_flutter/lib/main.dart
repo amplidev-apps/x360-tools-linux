@@ -198,7 +198,7 @@ class _MainShellState extends State<MainShell> {
                             const SizedBox(width: 10),
                             _buildFooterButton(state.tr("Modo Escuro"), Icons.nightlight_round, Colors.yellow.shade800, () {}),
                             const SizedBox(width: 10),
-                            _buildFooterButton("INI Configuration", Icons.settings_applications, Colors.green.shade800, () {}),
+                            _buildFooterButton(state.tr("Configuração INI"), Icons.settings_applications, Colors.green.shade800, () {}),
                             const SizedBox(width: 10),
                             const Text("v1.0", style: TextStyle(color: Colors.white38, fontSize: 12)),
                           ],

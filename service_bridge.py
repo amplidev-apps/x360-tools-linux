@@ -39,6 +39,7 @@ def main():
     parser.add_argument("--url", help="URL for game download")
     parser.add_argument("--on-device", help="Install directly to device (True/False)")
     parser.add_argument("--refresh", action="store_true", help="Force refresh game list cache")
+    parser.add_argument("--lang", default="pt", help="Language for translation")
     
     args = parser.parse_args()
     
@@ -105,11 +106,10 @@ def main():
                 result = {"status": "success" if success else "error", "message": "Instalação concluída" if success else "Falha na instalação"}
 
         elif args.cmd == "get_game_details":
-            if not args.name:
-                result = {"status": "error", "message": "Missing game name"}
-            else:
-                engine = FreemarketEngine()
-                details = engine.search_metadata(args.name, platform=args.platform or "360")
+            if args.name:
+                from core.metadata_service import MetadataService
+                service = MetadataService()
+                details = service.search_unity_by_name(args.name, args.platform, lang=args.lang)
                 result = {"status": "success", "data": details}
         
         elif args.cmd == "install_tu":

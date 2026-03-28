@@ -7,215 +7,23 @@ import 'dart:convert';
 import 'dart:ui';
 import '../services/python_bridge.dart';
 
-class XboxUnityApi {
-  static final Map<String, String> _cache = {};
-
-  // DLC keywords to strip so we look up the base game cover
-  static const _dlcKeywords = [
-    ' - dlc', ' dlc', ' - season pass', ' season pass',
-    ' - bundle', ' bundle pack', ' - pack', ' - expansion',
-    ' - add-on', ' add-on', ' - addon', ' addon',
-    ' - content pack', ' content pack', ' - map pack',
-  ];
-
-  // Edition tags to strip
-  static const _editionTags = [
-    'game of the year edition', 'goty edition', 'goty',
-    'complete edition', 'ultimate edition', 'platinum hits',
-    'greatest hits', 'classic edition', 'special edition',
-    'definitive edition', 'enhanced edition', 'gold edition',
-    'premium edition', 'anniversary edition', 'remastered',
-  ];
-
-  static const _romanMap = {
-    'v': '5',
-    'ii': '2', 'iii': '3', 'iv': '4', 'vi': '6',
-    'vii': '7', 'viii': '8', 'ix': '9', 'xi': '11',
-    'xii': '12',
-  };
-
-  static const _numWordMap = {
-    'zero': '0', 'one': '1', 'two': '2', 'three': '3',
-    'four': '4', 'five': '5', 'six': '6', 'seven': '7',
-    'eight': '8', 'nine': '9', 'ten': '10',
-  };
-
-  /// Build an ordered, deduplicated list of search query variations from a raw name.
-  static List<String> _buildVariations(String raw) {
-    // Normalise: strip parens/brackets, disc tags, lower-case
-    String name = raw
-        .replaceAll(RegExp(r'\s*[\(\[].*?[\)\]]'), '')
-        .replaceAll(RegExp(r'\s+Disc\s+\d+', caseSensitive: false), '')
-        .toLowerCase()
-        .trim();
-    if (name.startsWith('- ')) name = name.substring(2).trim();
-
-    final seen = <String>[];
-    void add(String v) {
-      v = v.trim();
-      if (v.isNotEmpty && !seen.contains(v)) seen.add(v);
-    }
-
-    // 1. Colon substitution
-    final colon = name.replaceAll(' - ', ': ');
-    add(colon);
-
-    // 2. No dash
-    add(name.replaceAll(' - ', ' '));
-
-    // 3. Segments around first ' - '
-    if (name.contains(' - ')) {
-      final parts = name.split(' - ');
-      add(parts[0]);
-      if (parts.length > 1) add(parts.sublist(1).join(' - '));
-      add(parts[0].replaceAll(' - ', ': '));
-    }
-
-    // 4. DLC suffix stripping → base game name
-    String baseDlc = name;
-    for (final kw in _dlcKeywords) {
-      final idx = baseDlc.toLowerCase().indexOf(kw);
-      if (idx > 0) {
-        baseDlc = baseDlc.substring(0, idx).replaceAll(RegExp(r'[ \-:]+$'), '').trim();
-        break;
-      }
-    }
-    if (baseDlc != name) {
-      add(baseDlc);
-      add(baseDlc.replaceAll(' - ', ': '));
-      add(baseDlc.replaceAll(' - ', ' '));
-      if (baseDlc.contains(' - ')) add(baseDlc.split(' - ')[0].trim());
-    }
-
-    // 5. Edition tag stripping
-    String edStripped = name;
-    for (final tag in _editionTags) {
-      edStripped = edStripped
-          .replaceAll(RegExp(',?\\s*${RegExp.escape(tag)}', caseSensitive: false), '')
-          .trim();
-    }
-    if (edStripped != name) {
-      add(edStripped);
-      add(edStripped.replaceAll(' - ', ': '));
-    }
-
-    // 6. Roman numeral ↔ digit
-    _romanMap.forEach((roman, digit) {
-      final vr = colon.replaceAll(RegExp('\\b$roman\\b', caseSensitive: false), digit);
-      if (vr != colon) add(vr);
-      final vd = colon.replaceAll(RegExp('\\b${RegExp.escape(digit)}\\b'), roman);
-      if (vd != colon) add(vd);
-    });
-
-    // 7. Written numbers ↔ digit
-    _numWordMap.forEach((word, digit) {
-      final vw = colon.replaceAll(RegExp('\\b${RegExp.escape(word)}\\b', caseSensitive: false), digit);
-      if (vw != colon) add(vw);
-      final vd = colon.replaceAll(RegExp('\\b${RegExp.escape(digit)}\\b'), word);
-      if (vd != colon) add(vd);
-    });
-
-    // 8. Strip leading numeric year/number (e.g. "2006 FIFA World Cup" → "FIFA World Cup")
-    final strippedPrefix = colon.replaceFirst(RegExp(r'^\d+\s+'), '').trim();
-    if (strippedPrefix != colon) add(strippedPrefix);
-
-    // 9. Bare subtitle after colon
-    if (colon.contains(': ')) add(colon.split(': ').sublist(1).join(': ').trim());
-
-    // 10. & ↔ and
-    if (colon.contains(' & ')) {
-      add(colon.replaceAll(' & ', ' and '));
-    } else if (colon.contains(' and ')) {
-      add(colon.replaceAll(' and ', ' & '));
-    }
-
-    return seen;
-  }
-
-  static Future<String?> getCoverUrl(String name) async {
-    final variations = _buildVariations(name);
-
-    for (final searchName in variations) {
-      // Only return a cached positive hit; skip negative sentinels
-      if (_cache.containsKey(searchName) && _cache[searchName]!.isNotEmpty) {
-        return _cache[searchName];
-      }
-      if (_cache.containsKey(searchName) && _cache[searchName]!.isEmpty) {
-        continue; // known miss for this variation — try next
-      }
-
-      final client = HttpClient();
-      client.connectionTimeout = const Duration(seconds: 5);
-      try {
-        final uri = Uri.parse(
-          "https://xboxunity.net/Resources/Lib/TitleList.php"
-          "?page=0&count=10&search=${Uri.encodeComponent(searchName)}"
-          "&sort=0&direction=1&category=0&filter=0",
-        );
-        final request = await client.getUrl(uri);
-        request.headers.set("X-Requested-With", "XMLHttpRequest");
-        request.headers.set("Referer", "https://xboxunity.net/");
-        final response = await request.close();
-        if (response.statusCode == 200) {
-          final respBody = await response.transform(utf8.decoder).join();
-          final data = jsonDecode(respBody);
-          final items = data['Items'] as List?;
-          if (items != null && items.isNotEmpty) {
-            // Find the best match among results
-            var bestItem = items[0];
-            final cleanSearch = searchName.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
-            
-            for (var item in items) {
-              final itemName = item['Name'].toString().toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
-              if (itemName == cleanSearch) {
-                bestItem = item;
-                break;
-              }
-              // Fallback to "contains" if it starts with the name
-              if (itemName.startsWith(cleanSearch)) {
-                bestItem = item;
-              }
-            }
-
-            final titleId = bestItem['TitleID'];
-            final coversCount = int.tryParse(bestItem['Covers'].toString()) ?? 0;
-            if (coversCount > 0) {
-              final cUri = Uri.parse(
-                  "https://xboxunity.net/Resources/Lib/CoverInfo.php?titleid=$titleId");
-              final cReq = await client.getUrl(cUri);
-              cReq.headers.set("X-Requested-With", "XMLHttpRequest");
-              final cResp = await cReq.close();
-              if (cResp.statusCode == 200) {
-                final cBody = await cResp.transform(utf8.decoder).join();
-                final cData = jsonDecode(cBody);
-                final covers = cData['Covers'] as List?;
-                if (covers != null && covers.isNotEmpty) {
-                  final cid = covers[0]['CoverID'];
-                  final url = "https://xboxunity.net/Resources/Lib/Cover.php?size=large&cid=$cid";
-                  // Cache the canonical name and all variations tried so far
-                  _cache[searchName] = url;
-                  return url;
-                }
-              }
-            }
-          }
-        }
-        // Mark this specific variation as a known miss
-        _cache[searchName] = '';
-      } catch (_) {
-        // Network error — don't cache, may succeed later
-      } finally {
-        client.close();
-      }
-    }
-
-    return null;
-  }
-}
+// Removed redundant XboxUnityApi class. High-accuracy mapping is now handled by the Python backend.
 
 class AsyncCoverImage extends StatefulWidget {
   final String gameName;
-  const AsyncCoverImage({super.key, required this.gameName});
+  final String platform;
+  final String? initialCoverUrl;
+  final String? initialLocalPath;
+  final String? titleId;
+  
+  const AsyncCoverImage({
+    super.key, 
+    required this.gameName, 
+    this.platform = "360",
+    this.initialCoverUrl,
+    this.initialLocalPath,
+    this.titleId,
+  });
 
   @override
   State<AsyncCoverImage> createState() => _AsyncCoverImageState();
@@ -223,6 +31,9 @@ class AsyncCoverImage extends StatefulWidget {
 
 class _AsyncCoverImageState extends State<AsyncCoverImage> {
   String? coverUrl;
+  String? localPath;
+  String? tid;
+  String? localRes; // Helper for _load
 
   @override
   void initState() {
@@ -231,41 +42,112 @@ class _AsyncCoverImageState extends State<AsyncCoverImage> {
   }
 
   void _load() async {
-    // Add a random delay to stagger requests and avoid overwhelming the API
-    await Future.delayed(Duration(milliseconds: 100 + (widget.gameName.length * 10) % 1000));
-    
-    int retries = 2;
+    // If we already have data from the batch load, use it immediately!
+    if (widget.initialCoverUrl != null || widget.initialLocalPath != null || widget.titleId != null) {
+      if (mounted) {
+        setState(() {
+          coverUrl = widget.initialCoverUrl;
+          localPath = widget.initialLocalPath;
+          tid = widget.titleId;
+        });
+      }
+      return; 
+    }
+
+    // Fallback: If for some reason the batch metadata is missing, fetch it.
+    // Stagger requests to avoid overwhelming the bridge
+    await Future.delayed(Duration(milliseconds: 200 + (widget.gameName.length * 15) % 800));
+    if (!mounted) return;
+
+    final state = Provider.of<AppState>(context, listen: false);
     String? res;
-    while (retries > 0) {
-      if (!mounted) return;
-      res = await XboxUnityApi.getCoverUrl(widget.gameName);
-      if (res != null && res.isNotEmpty) break;
-      retries--;
-      if (retries > 0) await Future.delayed(const Duration(seconds: 2));
+    Map<String, dynamic>? details;
+    try {
+      details = await state.fetchGameDetails(widget.gameName, widget.platform);
+      if (details['status'] == 'success' && details['data'] != null) {
+        res = details['data']['CoverUrl'];
+        localRes = details['data']['LocalPath'];
+      }
+    } catch (e) {
+      debugPrint("Error loading core cover for ${widget.gameName}: $e");
     }
 
     if (mounted) {
       setState(() {
         coverUrl = res;
+        localPath = localRes;
+        tid = details?['data']?['TitleID'] ?? details?['data']?['title_id'];
       });
     }
   }
 
+
   @override
   Widget build(BuildContext context) {
+    // 1. Try BUNDLED ASSET (Highest priority, ultra-fast)
+    if (tid != null && tid != "Desconhecido") {
+      return Image.asset(
+        'assets/gamecovers/$tid.jpg',
+        width: double.infinity,
+        height: double.infinity,
+        fit: BoxFit.cover,
+        alignment: Alignment.centerRight,
+        errorBuilder: (context, error, stackTrace) {
+           // 2. Try LOCAL CACHE (If asset is missing for new games)
+           if (localPath != null && localPath!.isNotEmpty && File(localPath!).existsSync()) {
+              return Image.file(
+                File(localPath!),
+                width: double.infinity,
+                height: double.infinity,
+                fit: BoxFit.cover,
+                alignment: Alignment.centerRight,
+                errorBuilder: (context, error, stackTrace) => _buildNetworkFallback(),
+              );
+           }
+           return _buildNetworkFallback();
+        },
+      );
+    }
+
+    return _buildNetworkFallback();
+  }
+
+  Widget _buildNetworkFallback() {
     final cvr = (coverUrl != null && coverUrl!.isNotEmpty)
         ? coverUrl!
-        : "https://raw.githubusercontent.com/antigravity-org/assets/main/covers/generic_360.jpg";
+        : "https://xboxunity.net/Resources/Lib/Images/Covers/4D5707E1.jpg";
+    
     return Image.network(
       cvr,
       width: double.infinity,
       height: double.infinity,
       fit: BoxFit.cover,
       alignment: Alignment.centerRight,
-      errorBuilder: (context, error, stackTrace) => Container(
-        color: Colors.black26,
-        child: const Center(
-          child: Icon(Icons.image_outlined, color: Colors.white12, size: 32),
+      errorBuilder: (context, error, stackTrace) => _buildFallback(),
+    );
+  }
+
+  Widget _buildFallback() {
+    // Attempt to load the user's preferred placeholder locally first (V41)
+    final fallbackPath = "../applib/cache/covers/4D5707E1.jpg";
+    if (File(fallbackPath).existsSync()) {
+      return Image.file(
+        File(fallbackPath),
+        fit: BoxFit.cover,
+        alignment: Alignment.centerRight,
+      );
+    }
+
+    return Container(
+      color: Colors.black26,
+      child: const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.broken_image_outlined, color: Colors.white12, size: 32),
+            SizedBox(height: 8),
+            Text("NO COVER", style: TextStyle(color: Colors.white10, fontSize: 10, fontWeight: FontWeight.bold)),
+          ],
         ),
       ),
     );
@@ -470,7 +352,7 @@ class _FreemarketViewState extends State<FreemarketView> {
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
-              child: _buildHeroSection(),
+              child: _buildHeroSection(state),
             ),
           ),
         
@@ -481,13 +363,13 @@ class _FreemarketViewState extends State<FreemarketView> {
             child: Row(
               children: [
                 Text(
-                  _selectedPlatform == "360" ? "Xbox 360 Library" : "Xbox Classic Library",
+                  _selectedPlatform == "360" ? state.tr("Xbox 360 Library") : state.tr("Xbox Classic Library"),
                   style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                 ),
                 const Spacer(),
-                _buildPlatformChip("360", "Xbox 360"),
+                _buildPlatformChip("360", state.tr("Xbox 360")),
                 const SizedBox(width: 12),
-                _buildPlatformChip("classic", "Original Xbox"),
+                _buildPlatformChip("classic", state.tr("Original Xbox")),
               ],
             ),
           ),
@@ -501,7 +383,7 @@ class _FreemarketViewState extends State<FreemarketView> {
               ),
             )
           : filteredGames.isEmpty
-              ? SliverFillRemaining(child: _buildEmptyState())
+              ? SliverFillRemaining(child: _buildEmptyState(state))
               : SliverPadding(
                   padding: const EdgeInsets.symmetric(horizontal: 40),
                   sliver: SliverGrid(
@@ -523,7 +405,7 @@ class _FreemarketViewState extends State<FreemarketView> {
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(AppState state) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -531,7 +413,7 @@ class _FreemarketViewState extends State<FreemarketView> {
           const SizedBox(height: 100),
           Icon(Icons.search_off_rounded, size: 64, color: Colors.white.withOpacity(0.1)),
           const SizedBox(height: 24),
-          const Text("No games found for this platform.", style: TextStyle(color: Colors.white38, fontSize: 18)),
+          const Text("Nenhuma sinopse disponível.", style: TextStyle(color: Colors.white38, fontSize: 18)),
           const SizedBox(height: 8),
           const Text("Try changing the search query or platform category.", style: TextStyle(color: Colors.white12, fontSize: 14)),
         ],
@@ -545,7 +427,7 @@ class _FreemarketViewState extends State<FreemarketView> {
       child: Column(
         children: [
           // Sub-header with Back Button
-          _buildDetailHeader(),
+          _buildDetailHeader(state),
 
           Expanded(
             child: _isLoadingDetails 
@@ -556,7 +438,7 @@ class _FreemarketViewState extends State<FreemarketView> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Left: Large Cover & Technical Info
-                      _buildDetailSidebar(),
+                      _buildDetailSidebar(state),
 
                       const SizedBox(width: 60),
 
@@ -571,7 +453,7 @@ class _FreemarketViewState extends State<FreemarketView> {
     );
   }
 
-  Widget _buildDetailHeader() {
+  Widget _buildDetailHeader(AppState state) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
       decoration: const BoxDecoration(
@@ -583,7 +465,7 @@ class _FreemarketViewState extends State<FreemarketView> {
           IconButton(
             onPressed: () => setState(() => _selectedGame = null),
             icon: const Icon(Icons.arrow_back, color: Color(0xFF107C10)),
-            tooltip: "Back to Catalog",
+            tooltip: state.tr("Back to Catalog"),
           ),
           const SizedBox(width: 12),
           Text(
@@ -595,9 +477,14 @@ class _FreemarketViewState extends State<FreemarketView> {
     );
   }
 
-  Widget _buildDetailSidebar() {
-    final coverUrl = _selectedGameDetails?['cover_url'] ?? "https://raw.githubusercontent.com/antigravity-org/assets/main/covers/generic_360.jpg";
+  Widget _buildDetailSidebar(AppState state) {
+    // Priority: 1. Detail Search (Highest) 2. Pre-loaded Game List (Medium) 3. Generic Placeholder (Low)
+    final coverUrl = _selectedGameDetails?['CoverUrl'] ?? 
+                     _selectedGame?['coverUrl'] ??
+                     "https://raw.githubusercontent.com/antigravity-org/assets/main/covers/generic_360.jpg";
     
+    final localPath = _selectedGameDetails?['LocalPath'] ?? _selectedGame?['localPath'];
+
     return SizedBox(
       width: 300,
       child: Column(
@@ -613,26 +500,23 @@ class _FreemarketViewState extends State<FreemarketView> {
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(16),
-              child: Image.network(
-                coverUrl,
-                width: double.infinity,
-                height: double.infinity,
-                fit: BoxFit.cover,
-                alignment: Alignment.centerRight,
-                errorBuilder: (context, error, stackTrace) => Container(
-                  color: const Color(0xFF1A1A1A),
-                  child: const Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.image_not_supported, color: Colors.white10, size: 60),
-                        const SizedBox(height: 16),
-                        Text("Capa Indisponível", style: TextStyle(color: Colors.white24, fontSize: 12)),
-                      ],
+              child: (localPath != null && File(localPath).existsSync())
+                ? Image.file(
+                    File(localPath),
+                    width: double.infinity,
+                    height: double.infinity,
+                    fit: BoxFit.contain,
+                    errorBuilder: (context, error, stackTrace) => AsyncCoverImage(
+                      gameName: _selectedGame!['name'],
+                      platform: _selectedPlatform,
+                      titleId: _selectedGameDetails?['TitleID'] ?? _selectedGame?['titleId'],
                     ),
+                  )
+                : AsyncCoverImage(
+                    gameName: _selectedGame!['name'],
+                    platform: _selectedPlatform,
+                    titleId: _selectedGameDetails?['TitleID'] ?? _selectedGame?['titleId'],
                   ),
-                ),
-              ),
             ),
           ),
           const SizedBox(height: 32),
@@ -650,10 +534,14 @@ class _FreemarketViewState extends State<FreemarketView> {
               children: [
                 const Text("FICHA TÉCNICA", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF107C10))),
                 const SizedBox(height: 16),
-                _buildInfoRow(Icons.laptop, "Sistema", _selectedPlatform == "360" ? "Xbox 360" : "Xbox Classic"),
-                _buildInfoRow(Icons.public, "Região", _selectedGameDetails?['region'] ?? "Region-Free"),
-                _buildInfoRow(Icons.storage, "Tamanho", _selectedGameDetails?['size_formatted'] ?? "Sob-Demanda"),
-                _buildInfoRow(Icons.numbers, "Title ID", _selectedGameDetails?['title_id'] ?? "Detectando..."),
+                _buildInfoRow(Icons.laptop, state.tr("Sistema"), _selectedPlatform == "360" ? "Xbox 360" : "Xbox Classic"),
+                _buildInfoRow(Icons.public, state.tr("Região"), _selectedGameDetails?['Region'] ?? "Region-Free"),
+                _buildInfoRow(Icons.code, state.tr("GÊNERO"), _selectedGameDetails?['Genre'] ?? "Ação e Aventura"),
+                _buildInfoRow(Icons.calendar_today, state.tr("LANÇAMENTO"), _selectedGameDetails?['ReleaseDate'] ?? "2010"),
+                _buildInfoRow(Icons.business, state.tr("DESENVOLVEDOR"), _selectedGameDetails?['Developer'] ?? "Microsoft Studios"),
+                _buildInfoRow(Icons.store, state.tr("DISTRIBUIDORA"), _selectedGameDetails?['Publisher'] ?? "Microsoft"),
+                _buildInfoRow(Icons.numbers, state.tr("TITLE ID"), _selectedGameDetails?['TitleID'] ?? _selectedGame?['titleId'] ?? "Detectando..."),
+                _buildInfoRow(Icons.storage, state.tr("Tamanho"), _selectedGameDetails?['SizeFormatted'] ?? state.tr("Sob-Demanda")),
               ],
             ),
           ),
@@ -670,25 +558,52 @@ class _FreemarketViewState extends State<FreemarketView> {
           Icon(icon, size: 14, color: Colors.white38),
           const SizedBox(width: 12),
           Text("$label:", style: const TextStyle(fontSize: 13, color: Colors.white38)),
-          const Spacer(),
-          Text(value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white70)),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              value,
+              textAlign: TextAlign.right,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white70),
+            ),
+          ),
         ],
       ),
     );
   }
 
   Widget _buildDetailMain(AppState state) {
-    final tus = (_selectedGameDetails?['title_updates'] as List?) ?? [];
-    final desc = _selectedGameDetails?['description'] ?? "Este título está disponível para transferência direta via x360 Tools Library...";
+    final tus = (_selectedGameDetails?['TitleUpdates'] as List?) ?? (_selectedGameDetails?['title_updates'] as List?) ?? [];
+    final desc = _selectedGameDetails?['Description'] ?? _selectedGameDetails?['description'] ?? "Este título está disponível para transferência direta via x360 Tools Library...";
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          _selectedGame!['name'],
-          style: const TextStyle(fontSize: 38, fontWeight: FontWeight.w900, letterSpacing: -1),
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                _selectedGame!['name'],
+                style: const TextStyle(fontSize: 38, fontWeight: FontWeight.w900, letterSpacing: -1),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            if (_selectedGameDetails?['Genre'] != null)
+              Container(
+                margin: const EdgeInsets.only(left: 16),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF107C10).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFF107C10).withOpacity(0.3)),
+                ),
+                child: Text(
+                  _selectedGameDetails!['Genre'].toString().toUpperCase(),
+                  style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF107C10)),
+                ),
+              ),
+          ],
         ),
         const SizedBox(height: 12),
         Row(
@@ -699,15 +614,18 @@ class _FreemarketViewState extends State<FreemarketView> {
             const Icon(Icons.star, color: Colors.orange, size: 16),
             const Icon(Icons.star_half, color: Colors.orange, size: 16),
             const SizedBox(width: 12),
-            Text("Avaliação: ${_selectedGameDetails?['rating'] ?? '4.8'}/5.0", style: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 13)),
+            Text("${state.tr("Avaliação")}: ${_selectedGameDetails?['Rating'] ?? '4.8'}/5.0", style: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 13)),
+            const SizedBox(width: 16),
+            if (_selectedGameDetails?['Source'] != null)
+              Text("${state.tr("ORIGEM")}: ${_selectedGameDetails!['Source']}", style: const TextStyle(color: Colors.orange, fontSize: 10, fontWeight: FontWeight.bold)),
           ],
         ),
         const SizedBox(height: 40),
 
         if (tus.isNotEmpty) ...[
-          const Text(
-            "TITLE UPDATES (TU) DISPONÍVEIS",
-            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.orangeAccent),
+          Text(
+            state.tr("TITLE UPDATES (TU) DISPONÍVEIS"),
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.orangeAccent),
           ),
           const SizedBox(height: 16),
           Container(
@@ -728,9 +646,9 @@ class _FreemarketViewState extends State<FreemarketView> {
 
         // Region / Version Selector
         if (_selectedGame != null && _selectedGame!['versions'] != null && (_selectedGame!['versions'] as List).length > 1) ...[
-          const Text(
-            "REGIÃO / VERSÃO",
-            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white54),
+          Text(
+            state.tr("REGIÃO / VERSÃO"),
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white54),
           ),
           const SizedBox(height: 16),
           Container(
@@ -765,9 +683,9 @@ class _FreemarketViewState extends State<FreemarketView> {
           const SizedBox(height: 40),
         ],
 
-        const Text(
-          "DESCRIÇÃO DO JOGO",
-          style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF107C10)),
+        Text(
+          state.tr("DESCRIÇÃO DO JOGO"),
+          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF107C10)),
         ),
         const SizedBox(height: 16),
         Text(
@@ -788,14 +706,14 @@ class _FreemarketViewState extends State<FreemarketView> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text("AÇÕES DE INSTALAÇÃO", style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+              Text(state.tr("AÇÕES DE INSTALAÇÃO"), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
               const SizedBox(height: 24),
               Row(
                 children: [
                   Expanded(
                     child: _buildDetailActionButton(
-                      "INSTALAR NO DISPOSITIVO",
-                      "Converter e enviar para USB",
+                      state.tr("INSTALAR NO DISPOSITIVO"),
+                      state.tr("Converter e enviar para USB"),
                       Icons.usb,
                       () => _handleGameInstall(state, true),
                     ),
@@ -803,8 +721,8 @@ class _FreemarketViewState extends State<FreemarketView> {
                   const SizedBox(width: 16),
                   Expanded(
                     child: _buildDetailActionButton(
-                      "BAIXAR E CONVERTER",
-                      "Salvar em uma pasta local",
+                      state.tr("BAIXAR E CONVERTER"),
+                      state.tr("Salvar em uma pasta local"),
                       Icons.folder_open,
                       () => _handleGameInstall(state, false),
                       isSecondary: true,
@@ -820,24 +738,29 @@ class _FreemarketViewState extends State<FreemarketView> {
   }
 
   Widget _buildDLCSection(AppState state) {
-    final dlcs = state.games.where((g) {
-      if (g['is_dlc'] != true) return false;
-      
-      final base = g['base_game_name'].toString().toLowerCase().trim();
-      final current = _selectedGame!['name'].toString().toLowerCase().trim();
-      
-      // Attempt exact or partial match
-      return base == current || current.contains(base) || base.contains(current);
-    }).toList();
+    List dlcs = (_selectedGameDetails?['DLCs'] as List?) ?? [];
+    
+    // Fallback to legacy filtering if no persistent DLCs found yet
+    if (dlcs.isEmpty) {
+      dlcs = state.games.where((g) {
+        if (g['is_dlc'] != true) return false;
+        
+        final base = g['base_game_name'].toString().toLowerCase().trim();
+        final current = _selectedGame!['name'].toString().toLowerCase().trim();
+        
+        // Attempt exact or partial match
+        return base == current || current.contains(base) || base.contains(current);
+      }).toList();
+    }
 
     if (dlcs.isEmpty) return const SizedBox.shrink();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          "DLCS & CONTEÚDOS ADICIONAIS",
-          style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF107C10)),
+        Text(
+          state.tr("DLCS & CONTEÚDOS ADICIONAIS"),
+          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF107C10)),
         ),
         const SizedBox(height: 16),
         Container(
@@ -847,7 +770,7 @@ class _FreemarketViewState extends State<FreemarketView> {
             border: Border.all(color: Colors.white10),
           ),
           child: Column(
-            children: dlcs.map((dlc) => _buildDLCRow(state, dlc)).toList(),
+            children: dlcs.map((dlc) => _buildDLCRow(state, dlc as Map<String, dynamic>)).toList(),
           ),
         ),
         const SizedBox(height: 40),
@@ -870,12 +793,12 @@ class _FreemarketViewState extends State<FreemarketView> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  dlc['name'],
+                  dlc['Name'] ?? dlc['name'] ?? "Unknown DLC",
                   style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
                 ),
-                const Text(
-                  "Download via Internet Archive",
-                  style: TextStyle(fontSize: 12, color: Colors.white30),
+                Text(
+                  dlc['DownloadUrl'] != null ? "Download via Internet Archive" : (dlc['description'] ?? "Conteúdo Adicional"),
+                  style: const TextStyle(fontSize: 12, color: Colors.white30),
                 ),
               ],
             ),
@@ -899,7 +822,7 @@ class _FreemarketViewState extends State<FreemarketView> {
                 side: const BorderSide(color: Color(0xFF107C10), width: 1),
               ),
             ),
-            child: const Text("INSTALAR DLC", style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+            child: Text(state.tr("INSTALAR DLC"), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -937,7 +860,7 @@ class _FreemarketViewState extends State<FreemarketView> {
               padding: const EdgeInsets.symmetric(horizontal: 16),
             ),
             icon: const Icon(Icons.download, size: 14),
-            label: const Text("BAIXAR E INSTALAR"),
+            label: Text(state.tr("BAIXAR E INSTALAR")),
           ),
         ],
       ),
@@ -997,19 +920,19 @@ class _FreemarketViewState extends State<FreemarketView> {
           ),
           child: Row(
             children: [
-              const Column(
+              Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text("x360 FREEMARKET", style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, letterSpacing: 1.2, color: Color(0xFF107C10))),
-                  Text("The ultimate Xbox marketplace", style: TextStyle(fontSize: 12, color: Colors.white38)),
+                  Text(state.tr("x360 FREEMARKET"), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, letterSpacing: 1.2, color: Color(0xFF107C10))),
+                  Text(state.tr("The ultimate Xbox marketplace"), style: const TextStyle(fontSize: 12, color: Colors.white38)),
                 ],
               ),
               const Spacer(),
               
               // Tabs navigation
-              _buildTabButton("CATÁLOGO", FreemarketTab.catalog),
+              _buildTabButton(state.tr("CATÁLOGO"), FreemarketTab.catalog),
               const SizedBox(width: 8),
-              _buildTabButton("DOWNLOADS", FreemarketTab.downloads, badge: state.downloads.where((d) => d.phase != DownloadPhase.completed && d.phase != DownloadPhase.failed && d.phase != DownloadPhase.canceled).length),
+              _buildTabButton(state.tr("DOWNLOADS"), FreemarketTab.downloads, badge: state.downloads.where((d) => d.phase != DownloadPhase.completed && d.phase != DownloadPhase.failed && d.phase != DownloadPhase.canceled).length),
               
               const SizedBox(width: 32),
 
@@ -1032,9 +955,9 @@ class _FreemarketViewState extends State<FreemarketView> {
                     });
                   },
                   style: const TextStyle(color: Colors.white, fontSize: 13),
-                  decoration: const InputDecoration(
-                    hintText: "Search Games, DLCs & Apps...",
-                    hintStyle: TextStyle(color: Colors.white24, fontSize: 13),
+                  decoration: InputDecoration(
+                    hintText: state.tr("Search Games, DLCs & Apps..."),
+                    hintStyle: const TextStyle(color: Colors.white24, fontSize: 13),
                     prefixIcon: Icon(Icons.search, color: Colors.white38, size: 18),
                     border: InputBorder.none,
                     contentPadding: EdgeInsets.symmetric(vertical: 10),
@@ -1048,7 +971,7 @@ class _FreemarketViewState extends State<FreemarketView> {
               IconButton(
                 onPressed: () => state.fetchGames(platform: _selectedPlatform, refresh: true),
                 icon: const Icon(Icons.refresh, color: Colors.white54),
-                tooltip: "Refresh Catalog (Force)",
+                tooltip: state.tr("Refresh Catalog (Force)"),
               ),
             ],
           ),
@@ -1057,7 +980,7 @@ class _FreemarketViewState extends State<FreemarketView> {
     );
   }
 
-  Widget _buildHeroSection() {
+  Widget _buildHeroSection(AppState state) {
     return Container(
       height: 420,
       width: double.infinity,
@@ -1122,7 +1045,7 @@ class _FreemarketViewState extends State<FreemarketView> {
                     color: const Color(0xFF107C10),
                     borderRadius: BorderRadius.circular(4),
                   ),
-                  child: const Text("FEATURED", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white)),
+                  child: Text(state.tr("FEATURED"), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white)),
                 ),
                 const SizedBox(height: 16),
                 const Text(
@@ -1146,12 +1069,12 @@ class _FreemarketViewState extends State<FreemarketView> {
                     padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 20),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
-                  child: const Row(
+                  child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.download, size: 20),
-                      SizedBox(width: 12),
-                      Text("INSTALL NOW", style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.1)),
+                      const Icon(Icons.download, size: 20),
+                      const SizedBox(width: 12),
+                      Text(state.tr("INSTALL NOW"), style: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.1)),
                     ],
                   ),
                 ),
@@ -1209,7 +1132,13 @@ class _FreemarketViewState extends State<FreemarketView> {
                   child: Stack(
                     children: [
                       Positioned.fill(
-                        child: AsyncCoverImage(gameName: game['name'] ?? ""),
+                        child: AsyncCoverImage(
+                          gameName: game['name'] ?? "",
+                          platform: game['platform'] ?? "360",
+                          initialCoverUrl: game['coverUrl'],
+                          initialLocalPath: game['localPath'],
+                          titleId: game['titleId'],
+                        ),
                       ),
                       Positioned(
                         bottom: 0,

@@ -653,7 +653,11 @@ class AppState extends ChangeNotifier {
   }
 
   Future<Map<String, dynamic>> fetchGameDetails(String gameName, String platform) async {
-    return await PythonBridge.getGameDetails(gameName, platform: platform);
+    String langCode = "pt";
+    if (currentLanguage == "English") langCode = "en";
+    if (currentLanguage == "Español") langCode = "es";
+    
+    return await PythonBridge.getGameDetails(gameName, platform: platform, lang: langCode);
   }
 
   Future<bool> deleteDeviceGamerpic(String filePath) async {

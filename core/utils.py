@@ -65,3 +65,40 @@ def format_size(size_bytes):
             return f"{size_bytes:.2f} {unit}"
         size_bytes /= 1024.0
     return f"{size_bytes:.2f} PB"
+def normalize_for_map(name):
+    """Normalize names for static map lookup (consistent with builder v5)."""
+    import re
+    if not name: return ""
+    name = name.lower()
+    
+    # Synonyms and common Scene/Archive noise
+    name = name.replace("_", " ")
+    name = name.replace(" - ", " ")
+    name = re.sub(r'\bwm\b', 'world cup', name)
+    name = re.sub(r'\bhx\b', '', name)
+    name = re.sub(r'\bmajor league baseball\b', 'mlb', name)
+    name = re.sub(r'\bxbox360\b', '', name)
+    name = re.sub(r'\b360\b', '', name)
+    name = re.sub(r'\bredump\b', '', name)
+    name = re.sub(r'\bntsc\b', '', name)
+    name = re.sub(r'\bpal\b', '', name)
+    name = re.sub(r'\bjtag\b', '', name)
+    name = re.sub(r'\brgh\b', '', name)
+    name = re.sub(r'\bgod\b', '', name)
+    
+    replacements = {
+        r'\b1\b': 'i', r'\b2\b': 'ii', r'\b3\b': 'iii',
+        r'\b4\b': 'iv', r'\b5\b': 'v', r'\b6\b': 'vi',
+        r'\b7\b': 'vii', r'\b8\b': 'viii', r'\b9\b': 'ix',
+        r'\b10\b': 'x'
+    }
+    for arabic, roman in replacements.items():
+        name = re.sub(arabic, roman, name)
+    
+    # Remove metadata tags
+    name = re.sub(r'\(.*?\)', '', name)
+    name = re.sub(r'\[.*?\]', '', name)
+    
+    # Strip non-alphanumeric
+    name = re.sub(r'[^a-z0-9]', '', name)
+    return name

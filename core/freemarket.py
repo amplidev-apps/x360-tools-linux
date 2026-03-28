@@ -90,7 +90,7 @@ class FreemarketEngine:
                     print(f"Downloading IA DB: {ia_id}...", file=sys.stderr)
                     try:
                         req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
-                        with urllib.request.urlopen(req) as response:
+                        with urllib.request.urlopen(req, timeout=15) as response:
                             with open(db_path, "wb") as f:
                                 f.write(response.read())
                     except Exception as e:
@@ -108,7 +108,7 @@ class FreemarketEngine:
                 db_path = os.path.join(self.ia_dbs_dir, f"{ia_id}_meta.sqlite")
                 if not os.path.exists(db_path): continue
                 try:
-                    conn = sqlite3.connect(db_path)
+                    conn = sqlite3.connect(db_path, timeout=10)
                     cur = conn.cursor()
                     cur.execute("SELECT s3key FROM s3api_per_key_metadata WHERE s3key LIKE '%.zip' OR s3key LIKE '%.iso' OR s3key LIKE '%.rar' OR s3key LIKE '%.7z'")
                     for row in cur.fetchall():
@@ -168,40 +168,62 @@ class FreemarketEngine:
         
         result_list = list(grouped.values())
         result_list.sort(key=lambda x: x['name'])
+
+        # --- BATCH METADATA RESOLUTION (V27) ---
+        # Resolve TitleID and Covers for all games in ONE GO to prevent process spam in the grid.
+        from core.metadata_service import get_service
+        meta_service = get_service()
+        
+        for item in result_list:
+            # OPTIMIZED: Use fast_batch_lookup for the grid (V35)
+            # This handles all fallbacks (including 4D5707E1.jpg) in the MetadataService (V41).
+            meta = meta_service.fast_batch_lookup(item['name'])
+            item['titleId'] = meta['TitleID']
+            item['coverUrl'] = meta['CoverUrl']
+            item['localPath'] = meta['LocalPath']
+            item['region'] = meta.get("Region", "Region-Free")
+            item['rating'] = meta.get("Rating", "4.8")
+
         return result_list
 
     def search_metadata(self, game_name, platform="360"):
         from core.metadata_service import get_service
         meta_service = get_service()
         search_name = self._clean_name(game_name)
-        unity_info = meta_service.search_unity_by_name(search_name)
-        title_id = unity_info.get("TitleID") if unity_info else "Desconhecido"
         
-        cover_url = None
-        if unity_info and "CoverUrl" in unity_info:
-            cover_url = unity_info["CoverUrl"]
-            if not cover_url.startswith("http"):
-                cover_url = f"http://xboxunity.net/{cover_url.lstrip('/')}"
+        # Deep resolution (V43/V47 handles Persistent DB + Scraper Fallback)
+        info = meta_service.search_unity_by_name(search_name)
         
-        if not cover_url and title_id != "Desconhecido":
-             cover_url = f"http://xboxunity.net/Resources/Lib/Images/Covers/{title_id}.jpg"
+        # Standardize for Flutter bridge
+        title_id = info.get("TitleID", "Desconhecido")
+        cover_url = info.get("CoverUrl")
         
-        if not cover_url:
-            cover_url = "https://raw.githubusercontent.com/antigravity-org/assets/main/covers/generic_360.jpg"
-            if platform != "360":
-                cover_url = "https://raw.githubusercontent.com/antigravity-org/assets/main/covers/generic_classic.jpg"
+        # Build technical description for legacy UI fallback
+        tech_sheet = f"DESENVOLVEDOR: {info.get('Developer', 'Microsoft')}\n"
+        tech_sheet += f"DISTRIBUIDORA: {info.get('Publisher', 'Microsoft')}\n"
+        tech_sheet += f"GÊNERO: {info.get('Genre', 'Ação e Aventura')}\n"
+        tech_sheet += f"LANÇAMENTO: {info.get('ReleaseDate', '2010')}\n\n"
+        tech_sheet += info.get("Description", f"Game: {game_name}\nPlataforma: {'Xbox 360' if platform == '360' else 'Xbox Classic'}")
 
-        tus = meta_service.get_title_updates(title_id) if title_id != "Desconhecido" else []
-        platform_label = "Xbox 360" if platform == "360" else "Xbox Classic"
+        # Ensure DLCs are passed through
+        dlcs = info.get("DLCs", [])
+        tus = info.get("TitleUpdates", [])
 
         return {
-            "cover_url": cover_url,
-            "description": f"Game: {game_name}\nPlataforma: {platform_label}\nOrigem: x360 Tools Library",
-            "title_id": title_id,
-            "region": unity_info.get("Region", "Region-Free") if unity_info else "RF",
-            "size_formatted": "Cálculo pendente...",
-            "rating": unity_info.get("Rating", "4.8") if unity_info else "4.8",
-            "title_updates": tus
+            "version": "v48-PREMIUM-OFFLINE",
+            "CoverUrl": cover_url or "https://raw.githubusercontent.com/antigravity-org/assets/main/covers/generic_360.jpg",
+            "Description": tech_sheet,
+            "TitleID": title_id,
+            "Region": info.get("Region", "Region-Free"),
+            "SizeFormatted": "Verifique o dispositivo",
+            "Rating": info.get("Rating", "4.8"),
+            "TitleUpdates": tus,
+            "DLCs": dlcs,
+            # Forward individual fields for Flutter rich text (V45)
+            "Developer": info.get("Developer"),
+            "Publisher": info.get("Publisher"),
+            "Genre": info.get("Genre"),
+            "ReleaseDate": info.get("ReleaseDate")
         }
 
     def install_title_update(self, tu_url, tu_name, title_id, dest_drive, progress_cb=None):
@@ -217,7 +239,7 @@ class FreemarketEngine:
             if progress_cb: progress_cb(f"Status: Baixando Title Update {tu_name}...")
             headers = {'User-Agent': 'Mozilla/5.0'}
             req = urllib.request.Request(tu_url, headers=headers)
-            with urllib.request.urlopen(req) as response:
+            with urllib.request.urlopen(req, timeout=15) as response:
                 total_size = int(response.info().get('Content-Length', 0))
                 downloaded = 0
                 with open(dest_path, 'wb') as f:

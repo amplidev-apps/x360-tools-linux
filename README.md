@@ -7,42 +7,58 @@
 <a name="english"></a>
 ## 🇬🇧 English: The Ultimate Xbox 360 Ecosystem for Linux
 
-**x360 Tools for Linux** is not just a tool—it's a complete ecosystem for the modern Xbox 360 and Xbox Classic enthusiast. Built with a stunning **Flutter v2.0** interface and a high-performance **Python asynchronous engine**, it provides the most professional experience available for console management on Linux.
+**x360 Tools for Linux** is not just a tool — it's a complete ecosystem for the modern Xbox 360 and Xbox Classic enthusiast. Built with a stunning **Flutter v2.0** interface and a high-performance **Python asynchronous engine**, it delivers the most professional console management experience available on Linux.
+
+---
 
 ### 🌟 Exclusive Features & Highlights
 
-#### 🛒 x360 Freemarket (The Massive Warehouse)
+#### 🛒 x360 Freemarket (The World's Biggest Xbox Catalog)
 *   **10,000+ Items Available**: A unified catalog aggregating over 14 Internet Archive metadata databases.
 *   **Hype-Level Library**: Thousands of Full Games, DLCs, and Title Updates ready for instant, automated deployment.
 *   **Smart Ingestion**: High-speed SQLite indexing ensures zero-lag searching even within the massive catalog.
+*   **Offline-First Game Metadata**: A pre-loaded local database containing synopses, genres, release dates, developers, publishers, ratings, and Title IDs — fetched without any internet connection.
+*   **Offline Game Covers**: Over **1,000+ game cover images** bundled directly in the app's `assets/gamecovers/` directory, sourced from the open-source x360db (Xenia) project.
+*   **Full Technical Sheet (`FICHA TÉCNICA`)**: Every game shows a detailed panel with System, Region, Genre, Release Date, Developer, Publisher, and Title ID.
+*   **Title Updates (TU) Browser**: All available TUs for each game are listed inside the game page for direct download.
+*   **DLC Manager**: Integrated DLC listing and installation within each game's detail page.
+*   **Region/Version Selector**: Multi-region builds (NTSC-U, PAL, NTSC-J) are selectable directly from the game detail view.
+
+#### 🌍 100% Localization System (NEW)
+*   **3 Languages**: Full UI localization in **Portuguese 🇧🇷**, **English 🇬🇧**, and **Spanish 🇪🇸**.
+*   **Dynamic Synopsis Translation**: Game descriptions are automatically translated to the user's preferred language using an AI-powered translation engine (`deep-translator`).
+*   **Automatic Language Detection**: The system detects the source language (including Japanese 🇯🇵) and translates on-the-fly.
+*   **Offline-First Translations**: UI strings are stored in a static lookup table (`TranslationService`) — no internet required.
+*   **Backend Propagation**: The Flutter frontend sends the language preference via CLI argument to the Python backend (`--lang pt/en/es`), which returns pre-translated metadata.
 
 #### 🛡️ Advanced Backup System (Exclusive `.x360b` Format)
-*   **Complete Device Imaging**: Unlike simple file copying, the `.x360b` engine captures the entire structure of the device (Content, Games, Profiles).
-*   **Format Highlights**:
-    *   **High-Ratio Compression**: Uses advanced algorithms to shrink partition images, making full backups manageable and portable.
-    *   **Smart Metadata Embedding**: Includes the original device label, date, and console-specific hardware identifiers (Title IDs) inside a single package.
-    *   **Automated Recovery Flow**: The system handles low-level formatting of the destination USB drive to be natively compliant with the Xbox 360 FAT32 filesystem (recognizing exact cluster sizes).
-    *   **Label Management**: Allows renaming your device during the restore process, ensuring easy organization between different consoles/pendrives.
+*   **Complete Device Imaging**: Unlike simple file copying, the `.x360b` engine captures the entire device structure (Content, Games, Profiles).
+*   **High-Ratio Compression**: Uses advanced algorithms to shrink partition images.
+*   **Smart Metadata Embedding**: Includes original device label, date, and Title IDs inside a single portable package.
+*   **Automated Recovery Flow**: Handles low-level FAT32 formatting with Xbox 360-native cluster size precision.
+*   **Label Management**: Rename your device during restore for easy organization.
 
 #### 🏞️ x360 Landscape (STFS & Identity)
-*   **Gamerpic Injection**: Access a warehouse of thousands of Original and Custom Gamerpics to personalize your profile.
-*   **STFS Powerhouse**: Manage DLCs, Arcade Games, and Title Updates with simple drag-and-drop or automated selection.
-*   **Saves Management**: Backup and transfer your progress with ease.
+*   **Gamerpic Injection**: Access thousands of Original and Custom Gamerpics for your profile.
+*   **STFS Powerhouse**: Manage DLCs, Arcade Games, and Title Updates with simple drag-and-drop.
+*   **Saves Management**: Backup and transfer your save files.
 
-#### ⚡ Advanced Downloads Manager
-*   **Multi-Phase Engine**: Tracks each step from `Downloading` -> `Extracting` -> `Converting` -> `Installing`.
-*   **Concurrent Operations**: Fast, stable, and multi-threaded processing.
+#### ⚡ Advanced Download Manager
+*   **Multi-Phase Engine**: `Downloading` → `Extracting` → `Converting` → `Installing`
+*   **Concurrent Operations**: Fast, stable, multi-threaded operations.
 
 #### 🔄 x360 Converter & Wizard
 *   **ISO to GOD (Games on Demand)**: The gold standard for RGH/JTAG users.
 *   **Xbox Classic Legacy**: Automated extraction and conversion for original Xbox games.
-*   **The Wizard**: A guided setup that handles FAT32 formatting and system file deploy (Aurora/FSD) from zero to play.
+*   **The Wizard**: Guided setup from FAT32 formatting to Aurora/FSD dashboard deploy in minutes.
+
+---
 
 ### 🚀 Installation & Running
 
 #### Prerequisites
 - **Git**
-- **Python 3.10+** (with global `gi` and `requests`)
+- **Python 3.10+** with pip packages: `requests`, `deep-translator`
 - **Flutter SDK** (must be installed in `~/flutter_sdk`)
 
 #### Setup
@@ -51,65 +67,90 @@
 gh repo clone amplidev-apps/x360-tools-linux
 cd "x360 Tools"
 
-# Run the Flutter UI Native Interface
+# Install Python dependencies
+pip install deep-translator requests
+
+# Run the Flutter Premium UI
 ./run_flutter.sh
 
 # Or run the legacy GTK3 Interface
 ./run.sh
 ```
 
-### 🛠️ Technical Prowess
-*   **UI/UX**: Premium **Segoe UI** typography with a bespoke Xbox-inspired dark theme.
-*   **Architecture**: Decoupled Python/Flutter bridge for maximum stability and speed.
+### 🛠️ Technical Architecture
+*   **UI/UX**: Premium **Segoe UI** typography with a bespoke Xbox-inspired dark theme and micro-animations.
+*   **Architecture**: Decoupled Python/Flutter bridge (`service_bridge.py`) for maximum stability.
+*   **Database**: SQLite WAL mode for zero-conflict concurrent reads during catalog browsing.
+*   **Cover System**: Local asset lookup with async URL fallback (`AsyncCoverImage`).
+*   **Translation Pipeline**: `AppState (lang) → PythonBridge (--lang) → MetadataService → deep-translator → Flutter UI`
 
 ---
 
 <a name="português"></a>
 ## 🇧🇷 Português: O Ecossistema Definitivo para Xbox 360 no Linux
 
-O **x360 Tools for Linux** não é apenas uma ferramenta—é um ecossistema completo para o entusiasta moderno de Xbox 360 e Xbox Clássico. Desenvolvido com uma interface **Flutter v2.0** deslumbrante e um motor **Python assíncrono**, é a solução mais profissional para gestão de console disponível no Linux.
+O **x360 Tools for Linux** não é apenas uma ferramenta — é um ecossistema completo para o entusiasta moderno de Xbox 360 e Xbox Clássico. Desenvolvido com uma interface **Flutter v2.0** deslumbrante e um motor **Python assíncrono**, é a solução mais profissional para gestão de console disponível no Linux.
+
+---
 
 ### 🌟 Funcionalidades Exclusivas e Novidades
 
-#### 🛒 x360 Freemarket (O Maior Cátalogo do Mundo)
-*   **Mais de 10.000 Itens**: Um catálogo unificado que agrega metadados de 14 bases de dados oficiais do Internet Archive.
-*   **Biblioteca Gigante**: Milhares de Jogos Completos, DLCs e Title Updates prontos para instalação automatizada instantânea.
-*   **Busca SQLite**: Indexação de alta velocidade que garante pesquisa instantânea mesmo em uma base massiva.
+#### 🛒 x360 Freemarket (O Maior Catálogo do Mundo)
+*   **Mais de 10.000 Itens**: Catálogo unificado com metadados de 14 bases de dados do Internet Archive.
+*   **Biblioteca Gigante**: Jogos Completos, DLCs e Title Updates prontos para instalação automática.
+*   **Busca SQLite**: Indexação de alta velocidade com pesquisa instantânea.
+*   **Fichas Técnicas Offline**: Banco de dados local pré-carregado com sinopses, gêneros, datas, desenvolvedoras, publicadoras, avaliações e Title IDs — sem precisar de internet.
+*   **Capas Offline**: Mais de **1.000 capas de jogos** embutidas diretamente nos assets do app (`assets/gamecovers/`), obtidas do projeto open-source x360db.
+*   **Ficha Técnica Completa**: Painel com Sistema, Região, Gênero, Lançamento, Desenvolvedor, Distribuidora e Title ID.
+*   **Navegador de Title Updates (TU)**: Todos os TUs disponíveis de cada jogo listados para download direto.
+*   **Gerenciador de DLCs**: Listagem e instalação de DLCs integradas na página de cada jogo.
+*   **Seletor de Região/Versão**: Múltiplas versões regionais (NTSC-U, PAL, NTSC-J) selecionáveis diretamente na ficha do jogo.
+
+#### 🌍 Sistema de Localização 100% (NOVO)
+*   **3 Idiomas**: Localização completa em **Português 🇧🇷**, **Inglês 🇬🇧** e **Espanhol 🇪🇸**.
+*   **Tradução Dinâmica de Sinopses**: As descrições dos jogos são traduzidas automaticamente para o idioma preferido do usuário usando o motor `deep-translator`.
+*   **Detecção Automática de Idioma**: O sistema detecta o idioma original (inclusive japonês 🇯🇵) e traduz em tempo real.
+*   **Traduções Offline-First**: Strings de interface armazenadas em tabela estática (`TranslationService`) — sem internet necessária.
+*   **Propagação pelo Backend**: O frontend Flutter envia a preferência de idioma via argumento CLI (`--lang pt/en/es`) ao backend Python.
 
 #### 🛡️ Sistema de Backup Avançado (Formato Exclusivo `.x360b`)
-*   **Imagem Completa do Dispositivo**: Diferente de uma simples cópia de arquivos, o motor `.x360b` captura toda a estrutura do dispositivo (Content, Games, Perfis).
-*   **Destaques do Formato**:
-    *   **Alta Taxa de Compressão**: Usa algoritmos avançados para reduzir imagens de partição, tornando backups completos portáteis e fáceis de gerenciar.
-    *   **Metadados Inteligentes**: Inclui rótulo original, data e identificadores de console (Title IDs) dentro de um único pacote.
-    *   **Fluxo de Recuperação Automatizado**: Sistema cuida da formatação de baixo nível do USB para ser nativamente compatível com o sistema de arquivos FAT32 do Xbox 360 (ajuste exato de clusters).
-    *   **Gestão de Rótulos**: Permite renomear o dispositivo durante a restauração para organização fácil.
+*   **Imagem Completa do Dispositivo**: Captura toda a estrutura (Content, Games, Perfis).
+*   **Alta Compressão**: Algoritmos avançados para backups portáteis e gerenciáveis.
+*   **Metadados Inteligentes**: Inclui rótulo, data e Title IDs em um único pacote.
+*   **Recuperação Automatizada**: Formatação FAT32 com precisão de cluster nativo do Xbox 360.
+*   **Gestão de Rótulos**: Renomeie o dispositivo durante a restauração.
 
 #### 🏞️ x360 Landscape (STFS & Identidade)
-*   **Injeção de Gamerpics**: Acesse um armazém de milhares de fotos de perfil originais e customizadas para seu avatar.
-*   **Poder STFS**: Gerencie DLCs, Jogos Arcade e TUs com simples arrastar e soltar ou seleção automática.
-*   **Gestão de Saves**: Faça backup e transfira seu progresso sem complicações.
+*   **Injeção de Gamerpics**: Acesse milhares de fotos de perfil originais e customizadas.
+*   **Poder STFS**: Gerencie DLCs, Jogos Arcade e TUs com facilidade.
+*   **Gestão de Saves**: Faça backup e transfira seu progresso.
 
 #### ⚡ Gerenciador de Downloads Avançado
-*   **Motor Multi-Fase**: Monitora cada passo do processo: `Baixando` -> `Extraindo` -> `Convertendo` -> `Instalando`.
-*   **Operações Simultâneas**: Processamento multi-threaded rápido e estável.
+*   **Motor Multi-Fase**: `Baixando` → `Extraindo` → `Convertendo` → `Instalando`
+*   **Operações Simultâneas**: Rápido e multi-threaded.
 
 #### 🔄 x360 Converter & Assistente (Wizard)
-*   **ISO para GOD (Games on Demand)**: O padrão ouro para usuários de RGH/JTAG.
-*   **Legado Xbox Clássico**: Extração e conversão automatizada para jogos do Xbox original.
-*   **O Wizard**: Configuração guiada que cuida da formatação FAT32 e deploy de Aurora/FSD do zero ao play.
+*   **ISO para GOD**: Padrão ouro para usuários de RGH/JTAG.
+*   **Legado Xbox Clássico**: Conversão automatizada para jogos do Xbox original.
+*   **O Wizard**: Configuração guiada do zero ao play.
+
+---
 
 ### 🚀 Instalação e Execução
 
 #### Pré-requisitos
 - **Git**
-- **Python 3.10+** (com dependências globais `gi` e `requests` instaladas)
-- **Flutter SDK** (deve ser instalado em `~/flutter_sdk`)
+- **Python 3.10+** com pacotes pip: `requests`, `deep-translator`
+- **Flutter SDK** (instalado em `~/flutter_sdk`)
 
 #### Setup
 ```bash
 # Clonar o repositório
 gh repo clone amplidev-apps/x360-tools-linux
 cd "x360 Tools"
+
+# Instalar dependências Python
+pip install deep-translator requests
 
 # Iniciar a Interface Premium em Flutter
 ./run_flutter.sh
@@ -118,45 +159,69 @@ cd "x360 Tools"
 ./run.sh
 ```
 
+### 🛠️ Arquitetura Técnica
+*   **UI/UX**: Tipografia **Segoe UI** premium com tema escuro inspirado no Xbox e micro-animações.
+*   **Arquitetura**: Bridge Python/Flutter desacoplada (`service_bridge.py`) para máxima estabilidade.
+*   **Banco de Dados**: SQLite no modo WAL para leituras concorrentes sem conflito.
+*   **Sistema de Capas**: Busca local em assets com fallback assíncrono de URL (`AsyncCoverImage`).
+*   **Pipeline de Tradução**: `AppState (idioma) → PythonBridge (--lang) → MetadataService → deep-translator → UI Flutter`
+
 ---
 
 <a name="español"></a>
 ## 🇪🇸 Español: El Ecosistema Definitivo para Xbox 360 en Linux
 
-**x360 Tools for Linux** no es solo una herramienta, es un ecosistema completo para el entusiasta moderno de Xbox 360 y Xbox Clásico. Construido con una impresionante interfaz **Flutter v2.0** y un motor **Python asíncrono**, ofrece la experiencia de gestión de consolas más profesional en Linux.
+**x360 Tools for Linux** no es solo una herramienta — es un ecosistema completo para el entusiasta moderno de Xbox 360 y Xbox Clásico. Construido con una impresionante interfaz **Flutter v2.0** y un motor **Python asíncrono**, ofrece la experiencia de gestión de consolas más profesional en Linux.
+
+---
 
 ### 🌟 Características Exclusivas y Destacadas
 
-#### 🛒 x360 Freemarket (El Gran Almacén)
-*   **Más de 10,000 ítems disponibles**: Un catálogo unificado que agrega metadados de más de 14 bases de datos de Internet Archive.
-*   **Biblioteca Masiva**: Miles de juegos completos, DLC y actualizaciones de títulos (TU) listos para una implementación automatizada e instantánea.
-*   **Búsqueda SQLite**: Indexación ultra rápida que garantiza búsquedas sin lag incluso en catálogos gigantes.
+#### 🛒 x360 Freemarket (El Mayor Catálogo del Mundo)
+*   **Más de 10,000 ítems disponibles**: Catálogo unificado con metadatos de 14 bases de datos de Internet Archive.
+*   **Biblioteca Masiva**: Juegos completos, DLC y Title Updates listos para implementación automatizada.
+*   **Búsqueda SQLite**: Indexación ultrarrápida sin lag incluso en catálogos gigantes.
+*   **Fichas Técnicas Offline**: Base de datos local con sinopsis, géneros, fechas de lanzamiento, desarrolladores, editores, calificaciones y Title IDs — sin conexión a internet.
+*   **Portadas Offline**: Más de **1,000 portadas de juegos** incluidas en los assets (`assets/gamecovers/`), del proyecto open-source x360db.
+*   **Ficha Técnica Completa**: Panel con Sistema, Región, Género, Lanzamiento, Desarrollador, Distribuidora y Title ID.
+*   **Explorador de Title Updates (TU)**: Todos los TU disponibles se listan para descarga directa.
+*   **Gestor de DLCs**: Listado e instalación de DLC integrados en la página de cada juego.
+*   **Selector de Región/Versión**: Múltiples versiones regionales (NTSC-U, PAL, NTSC-J) disponibles desde la ficha del juego.
+
+#### 🌍 Sistema de Localización 100% (NUEVO)
+*   **3 Idiomas**: Localización completa en **Portugués 🇧🇷**, **Inglés 🇬🇧** y **Español 🇪🇸**.
+*   **Traducción Dinámica de Sinopsis**: Las descripciones de los juegos se traducen automáticamente al idioma preferido del usuario usando `deep-translator`.
+*   **Detección Automática de Idioma**: El sistema detecta el idioma fuente (incluso japonés 🇯🇵) y traduce en tiempo real.
+*   **Traducciones Offline-First**: Cadenas de interfaz almacenadas en tabla estática (`TranslationService`) — sin internet requerido.
+*   **Propagación por Backend**: El frontend Flutter envía la preferencia de idioma vía argumento CLI (`--lang pt/en/es`) al backend Python.
 
 #### 🛡️ Sistema de Backup Avanzado (Formato Exclusivo `.x360b`)
-*   **Imagen Completa del Dispositivo**: A diferencia de una simple copia, el motor `.x360b` captura toda la estructura (Content, Games, Perfiles).
-*   **Lo más destacado**:
-    *   **Alta Compresión**: Utiliza algoritmos avanzados para reducir imágenes, facilitando su transporte y gestión.
-    *   **Metadatos Inteligentes**: Incluye etiqueta original, fecha e identificadores de consola (Title IDs).
-    *   **Recuperación Automatizada**: El sistema gestiona el formato FAT32 nativo del Xbox 360 (ajuste exacto de clusters).
-    *   **Gestión de Etiquetas**: Permite renombrar el dispositivo durante la restauración.
+*   **Imagen Completa del Dispositivo**: Captura toda la estructura (Content, Games, Perfiles).
+*   **Alta Compresión**: Algoritmos avanzados para backups portátiles.
+*   **Metadatos Inteligentes**: Incluye etiqueta, fecha y Title IDs en un solo paquete.
+*   **Recuperación Automatizada**: Formato FAT32 con precisión de cluster nativo del Xbox 360.
+*   **Gestión de Etiquetas**: Renombra el dispositivo durante la restauración.
 
-#### 🏞️ x360 Landscape (STFS e Identidad)
-*   **Inyección de Gamerpics**: Accede a un almacén de miles de imágenes de jugador originales y personalizadas.
-*   **Potencia STFS**: Gestiona DLC, Arcade Games y actualizaciones de títulos con facilidad.
-*   **Gestor de Partidas**: Respalda y transfiere tu progreso fácilmente.
+#### 🏞️ x360 Landscape (STFS & Identidad)
+*   **Inyección de Gamerpics**: Accede a miles de imágenes de jugador originales y personalizadas.
+*   **Potencia STFS**: Gestiona DLC, Arcade y TU con facilidad.
+*   **Gestor de Partidas**: Respalda y transfiere tu progreso.
 
 ### 🚀 Instalación y Ejecución
 
 #### Requisitos
 - **Git**
-- **Python 3.10+** (con dependencias globales `gi` y `requests`)
-- **Flutter SDK** (debe instalarse en `~/flutter_sdk`)
+- **Python 3.10+** con paquetes pip: `requests`, `deep-translator`
+- **Flutter SDK** (instalado en `~/flutter_sdk`)
 
 #### Setup
 ```bash
 # Clonar el repositorio
 gh repo clone amplidev-apps/x360-tools-linux
 cd "x360 Tools"
+
+# Instalar dependencias Python
+pip install deep-translator requests
 
 # Iniciar la interfaz Premium en Flutter
 ./run_flutter.sh
@@ -166,4 +231,4 @@ cd "x360 Tools"
 ```
 
 ---
-**x360 Tools** - *Powered by Linux, Designed for Xbox Legends.*
+**x360 Tools** - *Powered by Linux, Designed for Xbox Legends.* 🎮🟩
