@@ -115,7 +115,7 @@ class _AsyncCoverImageState extends State<AsyncCoverImage> {
   Widget _buildNetworkFallback() {
     final cvr = (coverUrl != null && coverUrl!.isNotEmpty)
         ? coverUrl!
-        : "https://xboxunity.net/Resources/Lib/Images/Covers/4D5707E1.jpg";
+        : "https://xboxunity.net/Resources/Lib/Images/Covers/4B4D07E2.jpg";
     
     return Image.network(
       cvr,
@@ -128,26 +128,24 @@ class _AsyncCoverImageState extends State<AsyncCoverImage> {
   }
 
   Widget _buildFallback() {
-    // Attempt to load the user's preferred placeholder locally first (V41)
-    final fallbackPath = "../applib/cache/covers/4D5707E1.jpg";
-    if (File(fallbackPath).existsSync()) {
-      return Image.file(
-        File(fallbackPath),
-        fit: BoxFit.cover,
-        alignment: Alignment.centerRight,
-      );
-    }
-
-    return Container(
-      color: Colors.black26,
-      child: const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.broken_image_outlined, color: Colors.white12, size: 32),
-            SizedBox(height: 8),
-            Text("NO COVER", style: TextStyle(color: Colors.white10, fontSize: 10, fontWeight: FontWeight.bold)),
-          ],
+    // Attempt to load the user's preferred placeholder from BUNDLED ASSETS (Highest reliability)
+    return Image.asset(
+      'assets/gamecovers/4B4D07E2.jpg',
+      width: double.infinity,
+      height: double.infinity,
+      fit: BoxFit.cover,
+      alignment: Alignment.centerRight,
+      errorBuilder: (context, error, stackTrace) => Container(
+        color: Colors.black26,
+        child: const Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.broken_image_outlined, color: Colors.white12, size: 32),
+              SizedBox(height: 8),
+              Text("NO COVER", style: TextStyle(color: Colors.white10, fontSize: 10, fontWeight: FontWeight.bold)),
+            ],
+          ),
         ),
       ),
     );
