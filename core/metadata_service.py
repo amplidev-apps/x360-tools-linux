@@ -110,7 +110,7 @@ class MetadataService:
         if tid != "Desconhecido":
             url = f"https://raw.githubusercontent.com/xenia-manager/x360db/main/titles/{tid.upper()}/artwork/boxart.jpg"
         else:
-            url = "https://xboxunity.net/Resources/Lib/Images/Covers/4D5707E1.jpg"
+            url = "https://xboxunity.net/Resources/Lib/Images/Covers/4B4D07E2.jpg"
 
         # Simple path reconstruction without checking file existence (MUCH faster)
         local_path = None
@@ -182,11 +182,11 @@ class MetadataService:
                 print(f"[!] SQLite Error: {e}")
 
         # PHASE 2: Unity Scraping Fallback (Online)
-        # Final Fallback: use 4D5707E1.jpg (V41)
-        fallback_path = os.path.join(self.cache_dir, "applib", "cache", "covers", "4D5707E1.jpg")
+        # Final Fallback: use 4B4D07E2.jpg (V41)
+        fallback_path = os.path.join(self.cache_dir, "assets", "gamecovers", "4B4D07E2.jpg")
         fallback_res = {
             "TitleID": "Desconhecido",
-            "CoverUrl": "https://raw.githubusercontent.com/antigravity-org/assets/main/covers/generic_360.jpg",
+            "CoverUrl": "https://xboxunity.net/Resources/Lib/Images/Covers/4B4D07E2.jpg",
             "LocalPath": fallback_path if os.path.exists(fallback_path) else None,
             "Name": name,
             "Region": "Region-Free",
