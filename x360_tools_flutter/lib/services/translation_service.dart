@@ -10,7 +10,6 @@ class TranslationService {
     "x360 Landscape": {"pt": "x360 Landscape", "en": "x360 Landscape", "es": "x360 Landscape"},
     "x360 Converter": {"pt": "x360 Converter", "en": "x360 Converter", "es": "x360 Converter"},
     "INICIAR CONVERSÃO": {"pt": "INICIAR CONVERSÃO", "en": "START CONVERSION", "es": "INICIAR CONVERSIÓN"},
-    "INICIAR CONVERSÃO": {"pt": "INICIAR CONVERSÃO", "en": "START CONVERSION", "es": "INICIAR CONVERSIÓN"},
 
     // Home Banners
     "Instalação Completa": {"pt": "Instalação Completa", "en": "Full Installation", "es": "Instalación Completa"},
