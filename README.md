@@ -59,6 +59,7 @@
 *   **Inyector Horizon**: Inyecta contenido STFS, imágenes de perfil y gestiona archivos de la consola.
 *   **Soporte Xbox Clásico**: Conversión automática de ISO al formato de instalación.
 *   **Gestor de TUs**: Encuentra e instala fácilmente las últimas actualizaciones (Title Updates).
+*   **Tipografía Premium**: Utiliza "Segoe UI" para un aspecto limpio y profesional inspirado en Xbox.
 *   **Rendimiento Nativo en Linux**: Optimizado para distribuciones modernas con integración de `xdg-open`.
 
 ### Cómo Ejecutar
