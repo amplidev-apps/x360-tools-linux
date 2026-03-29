@@ -663,6 +663,7 @@ class _FreemarketViewState extends State<FreemarketView> {
                 children: [
                   Expanded(
                     child: _buildDetailActionButton(
+                      state,
                       state.tr("INSTALAR NO DISPOSITIVO"),
                       state.tr("Converter e enviar para USB"),
                       Icons.usb,
@@ -672,6 +673,7 @@ class _FreemarketViewState extends State<FreemarketView> {
                   const SizedBox(width: 16),
                   Expanded(
                     child: _buildDetailActionButton(
+                      state,
                       state.tr("ENVIAR VIA FTP (Sem Fio)"),
                       state.tr("Requer conexão ativa no FTP Manager"),
                       Icons.wifi_tethering,
@@ -682,6 +684,7 @@ class _FreemarketViewState extends State<FreemarketView> {
                   const SizedBox(width: 16),
                   Expanded(
                     child: _buildDetailActionButton(
+                      state,
                       state.tr("BAIXAR E CONVERTER"),
                       state.tr("Salvar em uma pasta local"),
                       Icons.folder_open,
@@ -916,7 +919,7 @@ class _FreemarketViewState extends State<FreemarketView> {
     );
   }
 
-  Widget _buildDetailActionButton(String title, String subtitle, IconData icon, VoidCallback onTap, {bool isSecondary = false}) {
+  Widget _buildDetailActionButton(AppState state, String title, String subtitle, IconData icon, VoidCallback onTap, {bool isSecondary = false}) {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
