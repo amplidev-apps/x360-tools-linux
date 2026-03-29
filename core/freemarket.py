@@ -493,14 +493,25 @@ class FreemarketEngine:
             else:
                 progress_cb(msg)
 
+        # Derive real filename and extension from the download URL (display name has no extension)
+        from urllib.parse import urlparse, unquote
+        url_path = unquote(urlparse(dlc_url).path)
+        url_filename = os.path.basename(url_path)  # e.g. "London Map Pack (World) (Addon).zip"
+        _, url_ext = os.path.splitext(url_filename)  # e.g. ".zip"
+
+        # Use the URL filename as the temp archive name (preserves extension for extraction)
+        if url_filename:
+            temp_archive = os.path.join(temp_dir, url_filename)
+        # else temp_archive already set above (fallback)
+
         try:
             # 1. Download
             if progress_cb: progress_cb(f"PHASE:Baixando DLC {dlc_name}...")
             headers = self._get_headers(dlc_url)
             self._download_threaded(dlc_url, temp_archive, headers, dlc_wrapped_cb, num_threads=32)
             
-            # 2. Check if it's an archive or raw file
-            if dlc_name.lower().endswith(('.zip', '.rar', '.7z')):
+            # 2. Check if it's an archive — use URL extension, NOT dlc_name
+            if url_ext.lower() in ('.zip', '.rar', '.7z'):
                 if progress_cb: progress_cb("PHASE:Extraindo DLC...")
                 if progress_cb: progress_cb("Progress: 90.0%|I/O|--:--")
                 converter = GameConverter()
@@ -516,9 +527,11 @@ class FreemarketEngine:
                         dst = os.path.join(dlc_dest_dir, f)
                         shutil.copy2(src, dst)
             else:
-                # Direct file copy
+                # Direct file copy (raw STFS or unknown format)
                 if progress_cb: progress_cb("PHASE:Instalando arquivo de DLC...")
-                shutil.copy2(temp_archive, os.path.join(dlc_dest_dir, dlc_name))
+                dest_filename = url_filename if url_filename else dlc_name
+                shutil.copy2(temp_archive, os.path.join(dlc_dest_dir, dest_filename))
+
 
             if progress_cb: progress_cb("PHASE:DLC instalada com sucesso!")
             return True
