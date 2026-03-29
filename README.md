@@ -71,10 +71,10 @@ Se você já possui seus próprios arquivos `.iso` no PC:
 O editor de `launch.ini` permite controlar o coração do console:
 - **Pingpatch:** Mantenha ativado para evitar banimentos.
 - **Default Path:** Define qual dashboard abrirá quando o console ligar (ex: `Hdd1:\Aurora\Aurora.xex`).
-- **Geração de Template:** Se seu console for virgem, clique em "Gerar Template Seguro" para criar um arquivo `launch.ini` com as melhores práticas de 2026.
+- **Geração de Template:** Se seu console for virgem, clique em "Carregar INI" e ele também irá criar um arquivo `launch.ini` com as melhores práticas de 2026.
 
 #### 7. Backup e Restauração (.x360b)
-- **Criando Backup:** Selecione seu drive, vá em **Backup e Restauro**, e gere um arquivo `.x360b`. Este arquivo contém TUDO do seu drive em estado bruto.
+- **Criando Backup:** Selecione seu drive, vá em **x360 Recovery**, e gere um arquivo `.x360b`. Este arquivo contém TUDO do seu drive em estado bruto.
 - **Restaurando:** Selecione um drive novo (deve ser igual ou maior que o original), escolha o arquivo `.x360b` e aguarde. O sistema formatará e recriará a estrutura de arquivos perfeitamente.
 
 ---
