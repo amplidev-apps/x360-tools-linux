@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:window_manager/window_manager.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'models/app_state.dart';
 import 'views/home_view.dart';
 import 'views/installation_view.dart';
@@ -17,6 +18,9 @@ import 'views/convert_view.dart';
 import 'views/backup_view.dart';
 import 'views/library_view.dart';
 import 'views/dashlaunch_view.dart';
+import 'views/ftp_view.dart';
+import 'views/saves_view.dart';
+import 'services/translation_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -83,6 +87,7 @@ class _MainShellState extends State<MainShell> {
       HomeView(onNavigate: _onNavigate),
       const InstallationView(),
       const FreemarketView(),
+      const LibraryView(),
       const DashboardsView(),
       const HomebrewView(),
       const StealthView(),
@@ -91,8 +96,9 @@ class _MainShellState extends State<MainShell> {
       const ConvertView(),
       const ProfilePicsView(),
       const BackupView(),
-      const LibraryView(), // [NEW]
-      const DashLaunchView(), // [NEW]
+      const DashLaunchView(),
+      const FtpView(),
+      const SavesView(),
       const SettingsView(),
     ];
   }
@@ -101,6 +107,7 @@ class _MainShellState extends State<MainShell> {
     {"name": "Início", "icon": Icons.home_rounded, "key": "Início"},
     {"name": "Instalação", "icon": Icons.install_desktop_rounded, "key": "Instalação"},
     {"name": "x360 Freemarket", "icon": Icons.shopping_bag_rounded, "key": "x360 Freemarket"},
+    {"name": "Minha Biblioteca", "icon": Icons.library_books_rounded, "key": "Minha Biblioteca"},
     {"name": "Dashboards", "icon": Icons.dashboard_rounded, "key": "Dashboards"},
     {"name": "Homebrews", "icon": Icons.apps_rounded, "key": "Homebrews"},
     {"name": "Stealth e Bypass", "icon": Icons.security_rounded, "key": "Stealth e Bypass"},
@@ -109,8 +116,9 @@ class _MainShellState extends State<MainShell> {
     {"name": "x360 Converter", "icon": Icons.transform_rounded, "key": "x360 Converter"},
     {"name": "Profile Pics", "icon": Icons.photo_library_rounded, "key": "Profile Pics"},
     {"name": "Backup e Restauro", "icon": Icons.settings_backup_restore, "key": "Backup e Restauro"},
-    {"name": "Minha Biblioteca", "icon": Icons.library_books_rounded, "key": "Minha Biblioteca"},
     {"name": "DashLaunch Pro", "icon": Icons.tune_rounded, "key": "DashLaunch Pro"},
+    {"name": "FTP Manager", "icon": Icons.wifi_tethering, "key": "FTP Manager"},
+    {"name": "Save Manager", "icon": Icons.sd_storage, "key": "Save Manager"},
     {"name": "Configurações", "icon": Icons.settings_rounded, "key": "Configurações"},
   ];
 
@@ -137,25 +145,16 @@ class _MainShellState extends State<MainShell> {
                     child: Column(
                       children: [
                         const SizedBox(height: 20),
-                        // Logo/Header
+                        // Logo/Header (Modern Vector Identity)
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 24),
-                          child: Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF107C10),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: const Icon(Icons.videogame_asset, color: Colors.white, size: 24),
-                              ),
-                              const SizedBox(width: 12),
-                              const Text(
-                                "x360 Tools",
-                                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Colors.white),
-                              ),
-                            ],
+                          child: Align(
+                            alignment: Alignment.centerLeft,
+                            child: SvgPicture.asset(
+                              'assets/x360_new_logo_white.svg',
+                              height: 48,
+                              fit: BoxFit.contain,
+                            ),
                           ),
                         ),
                         const SizedBox(height: 30),
@@ -235,8 +234,6 @@ class _MainShellState extends State<MainShell> {
                             ),
                             const SizedBox(width: 10),
                             _buildFooterButton(state.tr("Modo Escuro"), Icons.nightlight_round, Colors.yellow.shade800, () {}),
-                            const SizedBox(width: 10),
-                            _buildFooterButton(state.tr("Configuração INI"), Icons.settings_applications, Colors.green.shade800, () {}),
                             const SizedBox(width: 10),
                             const Text("v1.0", style: TextStyle(color: Colors.white38, fontSize: 12)),
                           ],

@@ -15,6 +15,9 @@ OFFSET_THUMBNAIL_DATA = 0x171A
 CONTENT_TYPES = {
     0x00000001: "Game Save",
     0x00000002: "DLC / Marketplace",
+    0x00001000: "Video",
+    0x00002000: "Game Demo",
+    0x00007000: "Games on Demand (GoD)",
     0x00010000: "Installed Game",
     0x00020000: "Xbox 360 Original Game",
     0x00030000: "Avatar Item",
@@ -76,11 +79,21 @@ def get_stfs_metadata(path, extract_icon=False):
                 if 0 < icon_size < 0x8000: # Sanity check
                     f.seek(OFFSET_THUMBNAIL_DATA)
                     icon_data = f.read(icon_size)
-                    # Save to temp file
-                    temp_dir = tempfile.gettempdir()
-                    icon_path = os.path.join(temp_dir, f"x360_icon_{title_id}.png")
-                    with open(icon_path, "wb") as icon_f:
-                        icon_f.write(icon_data)
+                    
+                    # 🛡️ Icon Validation (V107): Ensure we have valid image data
+                    # Check for common magic bytes: PNG (\x89PNG), JPEG (\xFF\xD8), BMP (BM)
+                    is_valid = False
+                    if icon_data.startswith(b"\x89PNG") or icon_data.startswith(b"\xff\xd8") or icon_data.startswith(b"BM"):
+                        is_valid = True
+                    
+                    if is_valid:
+                        # Save to temp file
+                        temp_dir = tempfile.gettempdir()
+                        icon_path = os.path.join(temp_dir, f"x360_icon_{title_id}.png")
+                        with open(icon_path, "wb") as icon_f:
+                            icon_f.write(icon_data)
+                    else:
+                        icon_path = None # Return None if data is not a recognizable image
 
             return {
                 "title_id": title_id,

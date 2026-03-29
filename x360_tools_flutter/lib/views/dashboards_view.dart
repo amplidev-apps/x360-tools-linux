@@ -13,47 +13,71 @@ class DashboardsView extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.all(40.0),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch, // Fill entire height
         children: [
-          // 1. Preview Image (Literal Parity)
+          // 1. Preview Images Column
           Expanded(
             flex: 1,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: Image.asset("assets/Captura de tela de 2026-03-24 13-05-51.png", fit: BoxFit.contain),
+            child: Column(
+              children: [
+                Expanded(
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Image.asset(
+                      "assets/aurora_preview.png", 
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Expanded(
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Image.asset(
+                      "assets/fsd3_preview.jpg", 
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
           const SizedBox(width: 40),
 
-          // 2. Checklist Group
+          // 2. Checklist Group (Scrollable to fix pixel overflow)
           Expanded(
             flex: 1,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(state.tr("Dashboards / Launchers"), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 20),
-                ...state.dashboardSelections.keys.map((key) => Padding(
-                  padding: const EdgeInsets.only(bottom: 4.0),
-                  child: CheckboxListTile(
-                    title: Text(key, style: const TextStyle(fontSize: 13, color: Colors.white, fontWeight: FontWeight.w600)),
-                    subtitle: Text(state.tr("${key}_desc"), style: const TextStyle(fontSize: 10, color: Colors.white54)),
-                    value: state.dashboardSelections[key],
-                    onChanged: (_) => state.toggleDashboard(key),
-                    controlAffinity: ListTileControlAffinity.leading,
-                    contentPadding: EdgeInsets.zero,
-                    dense: true,
-                    activeColor: Colors.green,
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(state.tr("Dashboards / Launchers"), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+                  const SizedBox(height: 24),
+                  ...state.dashboardSelections.keys.map((key) => Padding(
+                    padding: const EdgeInsets.only(bottom: 2.0),
+                    child: CheckboxListTile(
+                      title: Text(key, style: const TextStyle(fontSize: 13, color: Colors.white, fontWeight: FontWeight.w600)),
+                      subtitle: Text(state.tr("${key}_desc"), style: const TextStyle(fontSize: 10, color: Colors.white54)),
+                      value: state.dashboardSelections[key],
+                      onChanged: (_) => state.toggleDashboard(key),
+                      controlAffinity: ListTileControlAffinity.leading,
+                      contentPadding: EdgeInsets.zero,
+                      dense: true,
+                      activeColor: Colors.green,
+                    ),
+                  )),
+                  const SizedBox(height: 20),
+                  Text(
+                    state.tr("* XeXMenu 1.2 is installed by default (via X330 Tools)"),
+                    style: const TextStyle(color: Colors.redAccent, fontSize: 11, fontWeight: FontWeight.bold),
                   ),
-                )),
-                const SizedBox(height: 20),
-                Text(
-                  state.tr("* XeXMenu 1.2 is installed by default"),
-                  style: const TextStyle(color: Colors.red, fontSize: 11, fontWeight: FontWeight.bold),
-                ),
-                const Spacer(),
-                const PartialInstallFooter(category: "Dashboards"),
-              ],
+                  const SizedBox(height: 40),
+                  const PartialInstallFooter(category: "Dashboards"),
+                ],
+              ),
             ),
           ),
         ],

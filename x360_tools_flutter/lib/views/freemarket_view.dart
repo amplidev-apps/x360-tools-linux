@@ -65,8 +65,8 @@ class _AsyncCoverImageState extends State<AsyncCoverImage> {
     try {
       details = await state.fetchGameDetails(widget.gameName, widget.platform);
       if (details['status'] == 'success' && details['data'] != null) {
-        res = details['data']['CoverUrl'];
-        localRes = details['data']['LocalPath'];
+        res = details['data']['coverUrl'];
+        localRes = details['data']['localPath'];
       }
     } catch (e) {
       debugPrint("Error loading core cover for ${widget.gameName}: $e");
@@ -76,7 +76,7 @@ class _AsyncCoverImageState extends State<AsyncCoverImage> {
       setState(() {
         coverUrl = res;
         localPath = localRes;
-        tid = details?['data']?['TitleID'] ?? details?['data']?['title_id'];
+        tid = details?['data']?['titleId'];
       });
     }
   }
@@ -84,8 +84,23 @@ class _AsyncCoverImageState extends State<AsyncCoverImage> {
 
   @override
   Widget build(BuildContext context) {
-    // 1. Try BUNDLED ASSET (Highest priority, ultra-fast)
+    // 1. Try LOCAL CACHE (Highest priority if path provided by backend)
+    if (localPath != null && localPath!.isNotEmpty && File(localPath!).existsSync()) {
+      return Image.file(
+        File(localPath!),
+        width: double.infinity,
+        height: double.infinity,
+        fit: BoxFit.cover,
+        alignment: Alignment.centerRight,
+        errorBuilder: (context, error, stackTrace) => _buildAssetFallback(),
+      );
+    }
+    return _buildAssetFallback();
+  }
+
+  Widget _buildAssetFallback() {
     if (tid != null && tid != "Desconhecido") {
+      // Try JPG then PNG
       return Image.asset(
         'assets/gamecovers/$tid.jpg',
         width: double.infinity,
@@ -93,22 +108,17 @@ class _AsyncCoverImageState extends State<AsyncCoverImage> {
         fit: BoxFit.cover,
         alignment: Alignment.centerRight,
         errorBuilder: (context, error, stackTrace) {
-           // 2. Try LOCAL CACHE (If asset is missing for new games)
-           if (localPath != null && localPath!.isNotEmpty && File(localPath!).existsSync()) {
-              return Image.file(
-                File(localPath!),
-                width: double.infinity,
-                height: double.infinity,
-                fit: BoxFit.cover,
-                alignment: Alignment.centerRight,
-                errorBuilder: (context, error, stackTrace) => _buildNetworkFallback(),
-              );
-           }
-           return _buildNetworkFallback();
+           return Image.asset(
+             'assets/gamecovers/$tid.png',
+             width: double.infinity,
+             height: double.infinity,
+             fit: BoxFit.cover,
+             alignment: Alignment.centerRight,
+             errorBuilder: (context, error, stackTrace) => _buildNetworkFallback(),
+           );
         },
       );
     }
-
     return _buildNetworkFallback();
   }
 
@@ -166,6 +176,7 @@ class _FreemarketViewState extends State<FreemarketView> {
   String _selectedPlatform = "360";
   String _searchQuery = "";
   final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
   Timer? _debounce;
 
   Map<String, dynamic>? _selectedGame;
@@ -207,6 +218,7 @@ class _FreemarketViewState extends State<FreemarketView> {
   @override
   void dispose() {
     _searchController.dispose();
+    _searchFocusNode.dispose();
     _debounce?.cancel();
     super.dispose();
   }
@@ -228,67 +240,7 @@ class _FreemarketViewState extends State<FreemarketView> {
           body: _selectedGame == null ? _buildMainGallery(state) : _buildGameDetailView(state),
         ),
         
-        // Installation Overlay (Global)
-        if (state.isInstalling)
-          Positioned.fill(
-            child: Container(
-              color: Colors.black87,
-              child: Center(
-                child: Container(
-                  width: 450,
-                  padding: const EdgeInsets.all(40),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF1A1A1A),
-                    borderRadius: BorderRadius.circular(24),
-                    border: Border.all(color: Colors.white10),
-                    boxShadow: [
-                      BoxShadow(color: Colors.black.withOpacity(0.5), blurRadius: 40, offset: const Offset(0, 20)),
-                    ],
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.downloading_rounded, color: Color(0xFF107C10), size: 64),
-                      const SizedBox(height: 24),
-                      Text(
-                        state.statusMessage,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-                      ),
-                      const SizedBox(height: 40),
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(6),
-                        child: LinearProgressIndicator(
-                          value: state.progress,
-                          backgroundColor: Colors.white10,
-                          valueColor: const AlwaysStoppedAnimation(Color(0xFF107C10)),
-                          minHeight: 10,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      Text("${(state.progress * 100).toInt()}% Concluído", style: const TextStyle(color: Colors.white38, fontSize: 13)),
-                      const SizedBox(height: 40),
-                      SizedBox(
-                        width: double.infinity,
-                        child: TextButton(
-                          onPressed: () => state.cancelInstallation(),
-                          style: TextButton.styleFrom(
-                            foregroundColor: Colors.redAccent.withOpacity(0.8),
-                            padding: const EdgeInsets.symmetric(vertical: 20),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              side: BorderSide(color: Colors.redAccent.withOpacity(0.2)),
-                            ),
-                          ),
-                          child: const Text("CANCELAR INSTALAÇÃO", style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.1)),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
+        // No blocking overlay — downloads run in background and show in Downloads tab
       ],
     );
   }
@@ -477,11 +429,12 @@ class _FreemarketViewState extends State<FreemarketView> {
 
   Widget _buildDetailSidebar(AppState state) {
     // Priority: 1. Detail Search (Highest) 2. Pre-loaded Game List (Medium) 3. Generic Placeholder (Low)
-    final coverUrl = _selectedGameDetails?['CoverUrl'] ?? 
+    final coverUrl = _selectedGameDetails?['coverUrl'] ?? 
+                     _selectedVersion?['coverUrl'] ?? 
                      _selectedGame?['coverUrl'] ??
                      "https://raw.githubusercontent.com/antigravity-org/assets/main/covers/generic_360.jpg";
     
-    final localPath = _selectedGameDetails?['LocalPath'] ?? _selectedGame?['localPath'];
+    final localPath = _selectedGameDetails?['localPath'] ?? _selectedGame?['localPath'];
 
     return SizedBox(
       width: 300,
@@ -507,13 +460,13 @@ class _FreemarketViewState extends State<FreemarketView> {
                     errorBuilder: (context, error, stackTrace) => AsyncCoverImage(
                       gameName: _selectedGame!['name'],
                       platform: _selectedPlatform,
-                      titleId: _selectedGameDetails?['TitleID'] ?? _selectedGame?['titleId'],
+                      titleId: _selectedGameDetails?['titleId'] ?? _selectedGame?['titleId'],
                     ),
                   )
                 : AsyncCoverImage(
                     gameName: _selectedGame!['name'],
                     platform: _selectedPlatform,
-                    titleId: _selectedGameDetails?['TitleID'] ?? _selectedGame?['titleId'],
+                    titleId: _selectedGameDetails?['titleId'] ?? _selectedGame?['titleId'],
                   ),
             ),
           ),
@@ -533,13 +486,13 @@ class _FreemarketViewState extends State<FreemarketView> {
                 const Text("FICHA TÉCNICA", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF107C10))),
                 const SizedBox(height: 16),
                 _buildInfoRow(Icons.laptop, state.tr("Sistema"), _selectedPlatform == "360" ? "Xbox 360" : "Xbox Classic"),
-                _buildInfoRow(Icons.public, state.tr("Região"), _selectedGameDetails?['Region'] ?? "Region-Free"),
-                _buildInfoRow(Icons.code, state.tr("GÊNERO"), _selectedGameDetails?['Genre'] ?? "Ação e Aventura"),
-                _buildInfoRow(Icons.calendar_today, state.tr("LANÇAMENTO"), _selectedGameDetails?['ReleaseDate'] ?? "2010"),
-                _buildInfoRow(Icons.business, state.tr("DESENVOLVEDOR"), _selectedGameDetails?['Developer'] ?? "Microsoft Studios"),
-                _buildInfoRow(Icons.store, state.tr("DISTRIBUIDORA"), _selectedGameDetails?['Publisher'] ?? "Microsoft"),
-                _buildInfoRow(Icons.numbers, state.tr("TITLE ID"), _selectedGameDetails?['TitleID'] ?? _selectedGame?['titleId'] ?? "Detectando..."),
-                _buildInfoRow(Icons.storage, state.tr("Tamanho"), _selectedGameDetails?['SizeFormatted'] ?? state.tr("Sob-Demanda")),
+                _buildInfoRow(Icons.public, state.tr("Região"), _selectedGameDetails?['region'] ?? "Region-Free"),
+                _buildInfoRow(Icons.code, state.tr("GÊNERO"), _selectedGameDetails?['genre'] ?? "Ação e Aventura"),
+                _buildInfoRow(Icons.calendar_today, state.tr("LANÇAMENTO"), _selectedGameDetails?['releaseDate'] ?? "2010"),
+                _buildInfoRow(Icons.business, state.tr("DESENVOLVEDOR"), _selectedGameDetails?['developer'] ?? "Microsoft Studios"),
+                _buildInfoRow(Icons.store, state.tr("DISTRIBUIDORA"), _selectedGameDetails?['publisher'] ?? "Microsoft"),
+                _buildInfoRow(Icons.numbers, state.tr("TITLE ID"), _selectedGameDetails?['titleId'] ?? _selectedGame?['titleId'] ?? "Detectando..."),
+                _buildInfoRow(Icons.storage, state.tr("Tamanho"), _selectedGameDetails?['sizeFormatted'] ?? state.tr("Sob-Demanda")),
               ],
             ),
           ),
@@ -597,7 +550,7 @@ class _FreemarketViewState extends State<FreemarketView> {
                   border: Border.all(color: const Color(0xFF107C10).withOpacity(0.3)),
                 ),
                 child: Text(
-                  _selectedGameDetails!['Genre'].toString().toUpperCase(),
+                  _selectedGameDetails!['genre'].toString().toUpperCase(),
                   style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF107C10)),
                 ),
               ),
@@ -612,10 +565,10 @@ class _FreemarketViewState extends State<FreemarketView> {
             const Icon(Icons.star, color: Colors.orange, size: 16),
             const Icon(Icons.star_half, color: Colors.orange, size: 16),
             const SizedBox(width: 12),
-            Text("${state.tr("Avaliação")}: ${_selectedGameDetails?['Rating'] ?? '4.8'}/5.0", style: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 13)),
+            Text("${state.tr("Avaliação")}: ${_selectedGameDetails?['rating'] ?? '4.8'}/5.0", style: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 13)),
             const SizedBox(width: 16),
-            if (_selectedGameDetails?['Source'] != null)
-              Text("${state.tr("ORIGEM")}: ${_selectedGameDetails!['Source']}", style: const TextStyle(color: Colors.orange, fontSize: 10, fontWeight: FontWeight.bold)),
+            if (_selectedGameDetails?['source'] != null)
+              Text("${state.tr("ORIGEM")}: ${_selectedGameDetails!['source']}", style: const TextStyle(color: Colors.orange, fontSize: 10, fontWeight: FontWeight.bold)),
           ],
         ),
         const SizedBox(height: 40),
@@ -719,6 +672,16 @@ class _FreemarketViewState extends State<FreemarketView> {
                   const SizedBox(width: 16),
                   Expanded(
                     child: _buildDetailActionButton(
+                      state.tr("ENVIAR VIA FTP (Sem Fio)"),
+                      state.tr("Requer conexão ativa no FTP Manager"),
+                      Icons.wifi_tethering,
+                      () => _handleFtpInstall(state),
+                      isSecondary: false,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: _buildDetailActionButton(
                       state.tr("BAIXAR E CONVERTER"),
                       state.tr("Salvar em uma pasta local"),
                       Icons.folder_open,
@@ -734,6 +697,58 @@ class _FreemarketViewState extends State<FreemarketView> {
       ],
     );
   }
+
+  Future<void> _handleFtpInstall(AppState state) async {
+    if (!state.isFtpConnected) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Conecte-se ao Xbox no FTP Manager primeiro.")));
+      return;
+    }
+
+    final game = _selectedGame!;
+    final gameName = game['name'] as String? ?? 'Jogo';
+
+    // Navigate back to Downloads tab immediately
+    setState(() {
+      _selectedGame = null;
+      _currentTab = FreemarketTab.downloads;
+    });
+
+    // Show non-blocking confirmation
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          duration: const Duration(seconds: 5),
+          backgroundColor: const Color(0xFF1A1A1A),
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.only(bottom: 24, left: 24, right: 24),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: const BorderSide(color: Color(0xFF107C10), width: 1),
+          ),
+          content: Row(
+            children: [
+              const Icon(Icons.wifi_tethering, color: Color(0xFF107C10), size: 24),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text('Envio FTP Iniciado!', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 14)),
+                    Text('$gameName está sendo enviado ao Xbox. Acompanhe na aba DOWNLOADS.', style: const TextStyle(color: Colors.white60, fontSize: 12)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // Fire in background
+    state.installFromFreemarket(game, "ftp://${state.ftpHost}", false);
+  }
+
 
   Widget _buildDLCSection(AppState state) {
     List dlcs = (_selectedGameDetails?['DLCs'] as List?) ?? [];
@@ -803,9 +818,26 @@ class _FreemarketViewState extends State<FreemarketView> {
           ),
           ElevatedButton(
             onPressed: () {
-              final titleId = _selectedGameDetails?['title_id'];
-              if (titleId != null) {
-                state.installDLC(dlc, titleId);
+              // Prefer parent game TitleID, fall back to DLC's own titleId (from IA metadata)
+              final parentTitleId = _selectedGameDetails?['title_id'] ?? _selectedGameDetails?['TitleID'];
+              final dlcTitleId = dlc['titleId'] ?? dlc['title_id'] ?? dlc['TitleID'];
+              final titleId = (parentTitleId != null && parentTitleId.toString() != 'Desconhecido')
+                  ? parentTitleId
+                  : dlcTitleId;
+              if (titleId != null && titleId.toString() != 'Desconhecido') {
+                state.installDLC(dlc, titleId.toString());
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                  content: Row(children: [
+                    const Icon(Icons.download_rounded, color: Colors.white, size: 16),
+                    const SizedBox(width: 10),
+                    Expanded(child: Text("Download iniciado: ${dlc['name'] ?? dlc['Name'] ?? 'DLC'}", style: const TextStyle(fontWeight: FontWeight.bold))),
+                  ]),
+                  backgroundColor: const Color(0xFF107C10),
+                  behavior: SnackBarBehavior.floating,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  duration: const Duration(seconds: 3),
+                ));
+                setState(() => _currentTab = FreemarketTab.downloads);
               } else {
                 ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Erro: Title ID não resolvido.")));
               }
@@ -850,7 +882,26 @@ class _FreemarketViewState extends State<FreemarketView> {
             ),
           ),
           ElevatedButton.icon(
-            onPressed: () => state.installTitleUpdate(tu, _selectedGameDetails!['title_id']),
+            onPressed: () {
+              final titleId = _selectedGameDetails?['title_id'] ?? _selectedGameDetails?['TitleID'];
+              if (titleId != null) {
+                state.installTitleUpdate(tu, titleId.toString());
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                  content: Row(children: [
+                    const Icon(Icons.system_update_rounded, color: Colors.white, size: 16),
+                    const SizedBox(width: 10),
+                    const Expanded(child: Text("Title Update em download...", style: TextStyle(fontWeight: FontWeight.bold))),
+                  ]),
+                  backgroundColor: const Color(0xFF0078D4),
+                  behavior: SnackBarBehavior.floating,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  duration: const Duration(seconds: 3),
+                ));
+                setState(() => _currentTab = FreemarketTab.downloads);
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Erro: Title ID não resolvido.")));
+              }
+            },
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF107C10),
               foregroundColor: Colors.white,
@@ -895,14 +946,61 @@ class _FreemarketViewState extends State<FreemarketView> {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Erro: Nenhum dispositivo selecionado.")));
         return;
       }
-      destPath = state.selectedDrive!['device'];
+      destPath = state.selectedDrive!['mount'];
     } else {
       destPath = await state.pickDirectory(title: "Selecione onde salvar o jogo");
     }
 
     if (destPath != null) {
-       final gameToInstall = _selectedVersion ?? _selectedGame!;
-       await state.installFromFreemarket(gameToInstall, destPath, onDevice);
+      final gameToInstall = _selectedVersion ?? _selectedGame!;
+      final gameName = gameToInstall['name'] as String? ?? 'Jogo';
+
+      // 1. Go back to the catalog immediately
+      setState(() {
+        _selectedGame = null;
+        _currentTab = FreemarketTab.downloads;
+      });
+
+      // 2. Show a non-blocking confirmation snackbar
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            duration: const Duration(seconds: 5),
+            backgroundColor: const Color(0xFF1A1A1A),
+            behavior: SnackBarBehavior.floating,
+            margin: const EdgeInsets.only(bottom: 24, left: 24, right: 24),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: const BorderSide(color: Color(0xFF107C10), width: 1),
+            ),
+            content: Row(
+              children: [
+                const Icon(Icons.download_for_offline_rounded, color: Color(0xFF107C10), size: 24),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Download Iniciado!',
+                        style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 14),
+                      ),
+                      Text(
+                        '$gameName está sendo baixado. Acompanhe o progresso na aba DOWNLOADS.',
+                        style: const TextStyle(color: Colors.white60, fontSize: 12),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }
+
+      // 3. Fire the actual download in background (no await — non-blocking)
+      state.installFromFreemarket(gameToInstall, destPath, onDevice);
     }
   }
 
@@ -945,6 +1043,7 @@ class _FreemarketViewState extends State<FreemarketView> {
                   border: Border.all(color: Colors.white10),
                 ),
                 child: TextField(
+                  focusNode: _searchFocusNode,
                   controller: _searchController,
                   onChanged: (v) {
                     if (_debounce?.isActive ?? false) _debounce!.cancel();
@@ -1005,8 +1104,8 @@ class _FreemarketViewState extends State<FreemarketView> {
               borderRadius: BorderRadius.circular(24),
               child: Opacity(
                 opacity: 0.3,
-                child: Image.network(
-                  "https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=2070&auto=format&fit=crop", // Generic gaming background
+                child: Image.asset(
+                  "assets/header_fm.png", 
                   fit: BoxFit.cover,
                 ),
               ),
@@ -1047,20 +1146,22 @@ class _FreemarketViewState extends State<FreemarketView> {
                 ),
                 const SizedBox(height: 16),
                 const Text(
-                  "AETHERBOUND\nLEGACY OF THE VOID",
+                  "EXPLORE O MELHOR\nDO XBOX SEM DIFICULDADES",
                   style: TextStyle(fontSize: 48, fontWeight: FontWeight.w900, height: 1.0, letterSpacing: -1.5),
                 ),
                 const SizedBox(height: 16),
                 const SizedBox(
                   width: 400,
                   child: Text(
-                    "Explore the forgotten sectors of the galaxy in this stunning RPG masterpiece. Now available for download in various regions.",
+                    "Milhares de títulos de Xbox 360 e Original Xbox a um clique de distância. A maior biblioteca retrô no seu PC.",
                     style: TextStyle(fontSize: 16, color: Colors.white54),
                   ),
                 ),
                 const SizedBox(height: 32),
                 ElevatedButton(
-                  onPressed: () {},
+                  onPressed: () {
+                    _searchFocusNode.requestFocus();
+                  },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF107C10),
                     foregroundColor: Colors.white,
@@ -1070,9 +1171,9 @@ class _FreemarketViewState extends State<FreemarketView> {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.download, size: 20),
+                      const Icon(Icons.search, size: 20),
                       const SizedBox(width: 12),
-                      Text(state.tr("INSTALL NOW"), style: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.1)),
+                      Text(state.tr("Explorar x360 Freemarket"), style: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.1)),
                     ],
                   ),
                 ),
@@ -1209,6 +1310,73 @@ class _FreemarketViewState extends State<FreemarketView> {
     );
   }
 
+  void _showLoginDialog(AppState state) {
+    final emailController = TextEditingController();
+    final passwordController = TextEditingController();
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1E1E1E),
+        title: const Text("Archive.org Login"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text("Insira seu E-mail e Senha do Archive.org para habilitar downloads restritos.", 
+              style: TextStyle(fontSize: 12, color: Colors.white70)),
+            const SizedBox(height: 16),
+            
+            _buildDialogField("E-mail:", emailController, "seu@email.com"),
+            const SizedBox(height: 12),
+            _buildDialogField("Senha:", passwordController, "sua senha", isPassword: true),
+            
+            const SizedBox(height: 12),
+            const Text("Suas credenciais são usadas apenas para autenticar diretamente no Archive.org.", 
+              style: TextStyle(fontSize: 10, color: Colors.white38)),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("CANCELAR")),
+          ElevatedButton(
+            onPressed: () {
+              if (emailController.text.isNotEmpty && passwordController.text.isNotEmpty) {
+                state.loginIA(emailController.text.trim(), passwordController.text);
+                Navigator.pop(context);
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF107C10)),
+            child: const Text("ENTRAR"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDialogField(String label, TextEditingController controller, String hint, {bool isPassword = false}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: const TextStyle(fontSize: 11, color: Colors.white60, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 4),
+        TextField(
+          controller: controller,
+          obscureText: isPassword,
+          style: const TextStyle(color: Colors.white, fontSize: 13),
+          decoration: InputDecoration(
+            hintText: hint,
+            hintStyle: const TextStyle(color: Colors.white10),
+            fillColor: Colors.black26,
+            filled: true,
+            isDense: true,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+            border: const OutlineInputBorder(),
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildDownloadsTab(AppState state) {
     if (state.downloads.isEmpty) {
       return Center(
@@ -1218,18 +1386,67 @@ class _FreemarketViewState extends State<FreemarketView> {
             Icon(Icons.download_for_offline_outlined, size: 80, color: Colors.white.withOpacity(0.05)),
             const SizedBox(height: 24),
             Text("Nenhum download ativo ou concluído", style: TextStyle(color: Colors.white.withOpacity(0.2), fontSize: 16)),
+            const SizedBox(height: 24),
+            TextButton.icon(
+              onPressed: () => _showLoginDialog(state),
+              icon: Icon(state.isLoggedInIA ? Icons.check_circle : Icons.login, size: 16, color: state.isLoggedInIA ? const Color(0xFF107C10) : Colors.white38),
+              label: Text(state.isLoggedInIA ? "Archive.org: Conectado" : "Archive.org Login"),
+              style: TextButton.styleFrom(foregroundColor: state.isLoggedInIA ? const Color(0xFF107C10) : Colors.white38),
+            ),
           ],
         ),
       );
     }
     
-    return ListView.builder(
-      padding: const EdgeInsets.all(40),
-      itemCount: state.downloads.length,
-      itemBuilder: (context, index) {
-        final item = state.downloads[state.downloads.length - 1 - index]; // Newest first
-        return _buildDownloadCard(state, item);
-      },
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
+          child: Row(
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text("GERENCIADOR DE DOWNLOADS", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: Colors.white.withOpacity(0.9), letterSpacing: 1.2)),
+                  Text("${state.downloads.length} itens na lista", style: TextStyle(color: Colors.white38, fontSize: 12)),
+                ],
+              ),
+              const Spacer(),
+              ElevatedButton.icon(
+                onPressed: state.downloads.any((d) => d.phase == DownloadPhase.completed || d.phase == DownloadPhase.failed)
+                  ? () => state.clearCompletedDownloads()
+                  : null,
+                icon: const Icon(Icons.cleaning_services_rounded, size: 16),
+                label: const Text("LIMPAR CONCLUÍDOS", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white.withOpacity(0.05),
+                  foregroundColor: Colors.white70,
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8), side: BorderSide(color: Colors.white.withOpacity(0.1))),
+                ),
+              ),
+              const SizedBox(width: 12),
+              TextButton.icon(
+                onPressed: () => _showLoginDialog(state),
+                icon: Icon(state.isLoggedInIA ? Icons.check_circle : Icons.login, size: 16, color: state.isLoggedInIA ? const Color(0xFF107C10) : Colors.white38),
+                label: Text(state.isLoggedInIA ? "Archive.org: CONECTADO" : "Archive.org LOGIN"),
+                style: TextButton.styleFrom(foregroundColor: state.isLoggedInIA ? const Color(0xFF107C10) : Colors.white38),
+              ),
+            ],
+          ),
+        ),
+        Expanded(
+          child: ListView.builder(
+            padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
+            itemCount: state.downloads.length,
+            itemBuilder: (context, index) {
+              final item = state.downloads[state.downloads.length - 1 - index]; // Newest first
+              return _buildDownloadCard(state, item);
+            },
+          ),
+        ),
+      ],
     );
   }
 
@@ -1238,7 +1455,9 @@ class _FreemarketViewState extends State<FreemarketView> {
     final bool isFailed = item.phase == DownloadPhase.failed;
     final bool isActive = !isFinished && !isFailed && item.phase != DownloadPhase.canceled;
 
-    return Container(
+    return GestureDetector(
+      onSecondaryTapDown: (details) => _showItemContextMenu(context, state, item, details.globalPosition),
+      child: Container(
       margin: const EdgeInsets.only(bottom: 20),
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -1254,15 +1473,32 @@ class _FreemarketViewState extends State<FreemarketView> {
               Container(
                 width: 56,
                 height: 56,
-                decoration: BoxDecoration(color: const Color(0xFF107C10).withOpacity(0.1), borderRadius: BorderRadius.circular(14)),
-                child: const Icon(Icons.videogame_asset_outlined, color: Color(0xFF107C10), size: 28),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF107C10).withOpacity(0.1), 
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(14),
+                  child: AsyncCoverImage(
+                    gameName: item.name,
+                    platform: item.platform,
+                    initialCoverUrl: item.coverUrl,
+                    titleId: item.titleId,
+                  ),
+                ),
               ),
               const SizedBox(width: 20),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(item.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, letterSpacing: 0.5)),
+                    Row(
+                      children: [
+                        Text(item.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, letterSpacing: 0.5)),
+                        const SizedBox(width: 12),
+                        _buildPhaseBadge(item),
+                      ],
+                    ),
                     const SizedBox(height: 4),
                     Text(item.statusMessage, style: TextStyle(color: isFailed ? Colors.redAccent : Colors.white38, fontSize: 13)),
                   ],
@@ -1282,10 +1518,23 @@ class _FreemarketViewState extends State<FreemarketView> {
                   ),
                 ),
               if (isActive)
-                 IconButton(
-                   onPressed: () => state.cancelDownload(item.id),
-                   icon: const Icon(Icons.close_rounded, color: Colors.white24),
-                   tooltip: "Cancelar Instalação",
+                 Row(
+                   mainAxisSize: MainAxisSize.min,
+                   children: [
+                     IconButton(
+                       onPressed: () => state.togglePauseDownload(item.id),
+                       icon: Icon(
+                         item.isPaused ? Icons.play_arrow_rounded : Icons.pause_rounded, 
+                         color: Colors.white24
+                       ),
+                       tooltip: item.isPaused ? "Retomar" : "Pausar",
+                     ),
+                     IconButton(
+                       onPressed: () => state.cancelDownload(item.id),
+                       icon: const Icon(Icons.close_rounded, color: Colors.white24),
+                       tooltip: "Cancelar Instalação",
+                     ),
+                   ],
                  ),
             ],
           ),
@@ -1303,7 +1552,19 @@ class _FreemarketViewState extends State<FreemarketView> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text("${(item.progress * 100).toInt()}%", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.white24)),
+              Row(
+                children: [
+                  Text("${(item.progress * 100).toStringAsFixed(1)}%", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.white24)),
+                  if (item.speed != null) ...[
+                    const SizedBox(width: 12),
+                    Text(item.speed!, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFF107C10))),
+                  ],
+                  if (item.eta != null) ...[
+                    const SizedBox(width: 12),
+                    Text(item.eta!, style: const TextStyle(fontSize: 12, color: Colors.white24)),
+                  ],
+                ],
+              ),
               if (isActive)
                 Text(
                   item.type == "tu" ? "TITLE UPDATE" :
@@ -1314,6 +1575,142 @@ class _FreemarketViewState extends State<FreemarketView> {
             ],
           ),
         ],
+      ),
+    ),
+  );
+}
+
+  void _showItemContextMenu(BuildContext context, AppState state, DownloadItem item, Offset position) {
+    final bool isFinished = item.phase == DownloadPhase.completed;
+    final bool isFailed = item.phase == DownloadPhase.failed;
+    final bool isActive = !isFinished && !isFailed && item.phase != DownloadPhase.canceled;
+
+    showMenu(
+      context: context,
+      position: RelativeRect.fromLTRB(position.dx, position.dy, position.dx, position.dy),
+      color: const Color(0xFF1E1E1E),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12), 
+        side: const BorderSide(color: Colors.white10)
+      ),
+      items: <PopupMenuEntry>[
+        PopupMenuItem(
+          onTap: item.localPath != null ? () => state.openInstallationFolder(item.localPath!) : null,
+          child: Row(
+            children: [
+              const Icon(Icons.folder_open_rounded, color: Colors.white70, size: 18),
+              const SizedBox(width: 12),
+              Text(state.tr("Abrir Pasta"), style: const TextStyle(color: Colors.white, fontSize: 13)),
+            ],
+          ),
+        ),
+        PopupMenuItem(
+          onTap: () {
+            // V101: Use stored originalGame for instant, robust navigation across platforms
+            final game = item.originalGame;
+            if (game != null) {
+              setState(() {
+                _currentTab = FreemarketTab.catalog;
+                _selectedPlatform = game['platform'] ?? "360"; 
+                _selectGame(game);
+              });
+            }
+          },
+          child: Row(
+            children: [
+              const Icon(Icons.info_outline_rounded, color: Colors.white70, size: 18),
+              const SizedBox(width: 12),
+              Text(state.tr("Ver no Catálogo"), style: const TextStyle(color: Colors.white, fontSize: 13)),
+            ],
+          ),
+        ),
+        if (isActive) ...[
+          PopupMenuItem(
+            onTap: () => state.togglePauseDownload(item.id),
+            child: Row(
+              children: [
+                Icon(
+                  item.isPaused ? Icons.play_arrow_rounded : Icons.pause_rounded, 
+                  color: Colors.white70, 
+                  size: 18
+                ),
+                const SizedBox(width: 12),
+                Text(state.tr(item.isPaused ? "Retomar Download" : "Pausar Download"), style: const TextStyle(color: Colors.white, fontSize: 13)),
+              ],
+            ),
+          ),
+          PopupMenuItem(
+            onTap: () => state.cancelDownload(item.id),
+            child: Row(
+              children: [
+                const Icon(Icons.close_rounded, color: Colors.white70, size: 18),
+                const SizedBox(width: 12),
+                Text(state.tr("Cancelar Instalação"), style: const TextStyle(color: Colors.white, fontSize: 13)),
+              ],
+            ),
+          ),
+          const PopupMenuDivider(height: 1),
+        ],
+        PopupMenuItem(
+          onTap: () {
+             if (isActive) {
+               state.cancelDownload(item.id);
+             }
+             state.downloads.removeWhere((d) => d.id == item.id);
+             state.notifyListeners();
+          },
+          child: Row(
+            children: [
+              const Icon(Icons.delete_outline_rounded, color: Colors.redAccent, size: 18),
+              const SizedBox(width: 12),
+              Text(state.tr("Remover da Lista"), style: const TextStyle(color: Colors.redAccent, fontSize: 13)),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPhaseBadge(DownloadItem item) {
+    Color color;
+    String label;
+    
+    switch (item.phase) {
+      case DownloadPhase.downloading:
+        color = item.isPaused ? Colors.orangeAccent : Colors.blueAccent;
+        label = item.isPaused ? "PAUSADO" : "BAIXANDO";
+        break;
+      case DownloadPhase.extracting:
+        color = Colors.orangeAccent;
+        label = "EXTRAINDO";
+        break;
+      case DownloadPhase.completed:
+        color = const Color(0xFF107C10);
+        label = "CONCLUÍDO";
+        break;
+      case DownloadPhase.failed:
+        color = Colors.redAccent;
+        label = "FALHA";
+        break;
+      case DownloadPhase.canceled:
+        color = Colors.white24;
+        label = "CANCELADO";
+        break;
+      default:
+        color = Colors.white10;
+        label = "AGUARDANDO";
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(color: color, fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 0.5),
       ),
     );
   }

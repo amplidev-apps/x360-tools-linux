@@ -48,11 +48,19 @@ def extract_zip(zip_path, extract_path, cancel_event=None):
 def get_free_space(path):
     """Returns the free space in bytes for the given path."""
     import shutil
+    if not path:
+        return 0
     try:
-        # If path doesn't exist, check its parent
+        # If path doesn't exist, check its parent recursively
         check_path = path
-        while not os.path.exists(check_path) and check_path != "/":
-            check_path = os.path.dirname(check_path)
+        while check_path and not os.path.exists(check_path) and check_path != "/":
+            parent = os.path.dirname(check_path)
+            if parent == check_path: break # Avoid infinite loop
+            check_path = parent
+            
+        if not check_path or not os.path.exists(check_path):
+            return 0
+            
         stat = shutil.disk_usage(check_path)
         return stat.free
     except:
@@ -85,6 +93,13 @@ def normalize_for_map(name):
     name = re.sub(r'\bjtag\b', '', name)
     name = re.sub(r'\brgh\b', '', name)
     name = re.sub(r'\bgod\b', '', name)
+    name = re.sub(r'\bztm\b', '', name)
+    name = re.sub(r'\bxbox\b', '', name)
+    name = re.sub(r'\busa\b', '', name)
+    name = re.sub(r'\beuro\b', '', name)
+    name = re.sub(r'\beur\b', '', name)
+    name = re.sub(r'\bjp\b', '', name)
+    name = re.sub(r'\bjap\b', '', name)
     
     replacements = {
         r'\b1\b': 'i', r'\b2\b': 'ii', r'\b3\b': 'iii',

@@ -6,17 +6,27 @@ class PythonBridge {
   static const String bridgeScript = '../service_bridge.py';
   static final Map<String, Process> _activeProcesses = {};
 
-  static void cancelDownload(String id) {
+  static Future<void> cancelDownload(String id) async {
+    // 1. Send signal through bridge (kills subprocesses)
+    await _runCommand("cancel_download", id: id);
+    // 2. Kill the bridge process itself if still running
     _activeProcesses[id]?.kill();
     _activeProcesses.remove(id);
+  }
+
+  static Future<void> pauseDownload(String id) async {
+    await _runCommand("pause_download", id: id);
+  }
+
+  static Future<void> resumeDownload(String id) async {
+    await _runCommand("resume_download", id: id);
   }
 
   static void cancelCurrentInstall() {
     // Legacy alias to kill the last active process if any
     if (_activeProcesses.isNotEmpty) {
        final lastId = _activeProcesses.keys.last;
-       _activeProcesses[lastId]?.kill();
-       _activeProcesses.remove(lastId);
+       cancelDownload(lastId);
     }
   }
 
@@ -36,7 +46,15 @@ class PythonBridge {
       bool gallery = false,
       bool cleanup = false,
       bool refresh = false,
+      bool isDir = false,
       String? lang,
+      String? host,
+      String? remotePath,
+      String? localPath,
+      String? type,
+      String? cookie,
+      String? user,
+      String? password,
   }) async {
     final List<String> args = ['python3', bridgeScript, '--cmd', cmd];
     if (arg != null) args.addAll(['--arg', arg]);
@@ -52,8 +70,16 @@ class PythonBridge {
     if (id != null) args.addAll(['--id', id]);
     if (name != null) args.addAll(['--name', name]);
     if (crop != null) args.addAll(['--crop', crop]);
+    if (user != null) args.addAll(['--ia-user', user]);
+    if (password != null) args.addAll(['--ia-pass', password]);
     if (gallery) args.add('--gallery');
     if (lang != null) args.addAll(['--lang', lang]);
+    if (host != null) args.addAll(['--host', host]);
+    if (remotePath != null) args.addAll(['--remote-path', remotePath]);
+    if (localPath != null) args.addAll(['--local-path', localPath]);
+    if (isDir) args.add('--is-dir');
+    if (type != null) args.addAll(['--type', type]);
+    if (cookie != null) args.addAll(['--cookie', cookie]);
 
     try {
       final Process process = await Process.start(args[0], args.sublist(1));
@@ -141,6 +167,25 @@ class PythonBridge {
 
   static Future<Map<String, dynamic>> convertIso(String src, String dest, String mode, {String? device, bool cleanup = false}) async {
     return await _runCommand("convert_iso", src: src, dest: dest, mode: mode, device: device, cleanup: cleanup);
+  }
+
+  static Future<Map<String, dynamic>> setDashLaunchConfig(String option, dynamic value, {String? device}) async {
+    return await _runCommand("dashlaunch_set", arg: option, device: device, src: value.toString());
+  }
+
+  // --- Added Generic & FTP Commands ---
+  static Future<Map<String, dynamic>> executeCommand(String cmd, {String? arg, String? src, String? type, String? device, String? dest, String? cookie, String? user, String? password}) async {
+    return await _runCommand(cmd, arg: arg, src: src, type: type, device: device, dest: dest, cookie: cookie, user: user, password: password);
+  }
+
+  static Future<Map<String, dynamic>> ftpCommand(String cmd, {String? host, String? remotePath, String? localPath, bool isDir = false}) async {
+    return await _runCommand(
+      cmd, 
+      host: host, 
+      remotePath: remotePath, 
+      localPath: localPath, 
+      isDir: isDir
+    );
   }
 
   static Future<Map<String, dynamic>> installSTFS(String src, String device) async {
@@ -340,7 +385,7 @@ class PythonBridge {
     required String dest,
   }) async* {
     final process = await Process.start('python3', [
-      'service_bridge.py',
+      bridgeScript,
       '--cmd', 'install_tu',
       '--url', url,
       '--name', name,

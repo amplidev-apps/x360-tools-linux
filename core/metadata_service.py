@@ -7,6 +7,7 @@ import sys
 import difflib
 import sqlite3
 from core.utils import normalize_for_map
+from core.og_meta_loader import OGMetadataService
 
 try:
     from deep_translator import GoogleTranslator
@@ -43,23 +44,41 @@ class MetadataService:
         self._unity_cache = {}
 
     def translate_text(self, text, target_lang="pt"):
-        if not text or not GoogleTranslator: return text
+        if not text: return text
         if len(text) < 5: return text # Skip tiny strings
         
         # Map human names to codes
         lang_map = {
-            "Português": "pt",
-            "English": "en",
-            "Español": "es",
+            "Português": "pt", "Portuguese": "pt",
+            "English": "en", "Español": "es", "Spanish": "es",
             "pt": "pt", "en": "en", "es": "es"
         }
         dest = lang_map.get(target_lang, "pt")
+
+        # 1. Try Deep Translator if available
+        if GoogleTranslator:
+            try:
+                return GoogleTranslator(source='auto', target=dest).translate(text)
+            except: pass
         
+        # 2. 🛡️ Robust Fallback (V77): Google Translate Web API (No Key Required)
         try:
-            # Detect source automatically
-            return GoogleTranslator(source='auto', target=dest).translate(text)
+            import urllib.parse
+            # Split text into chunks to avoid URL length limits
+            chunks = [text[i:i+1000] for i in range(0, len(text), 1000)]
+            translated_chunks = []
+            for chunk in chunks:
+                url = f"https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl={dest}&dt=t&q={urllib.parse.quote(chunk)}"
+                resp = requests.get(url, timeout=10, verify=False)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    # Response structure: [[["translated", "original", ...], ...]]
+                    translated_chunks.append("".join([part[0] for part in data[0] if part[0]]))
+                else:
+                    translated_chunks.append(chunk) # Fallback to original for this chunk
+            return "".join(translated_chunks)
         except Exception as e:
-            print(f"Translation Error: {e}")
+            print(f"Translation Fallback Error: {e}")
             return text
 
     def _load_cache(self):
@@ -88,13 +107,63 @@ class MetadataService:
         except Exception as e:
             print(f"Error loading maps: {e}")
 
-    def fast_batch_lookup(self, name):
+    def fast_batch_lookup(self, name, platform="360"):
         """Ultra-fast lookup for grid batch rendering. No I/O, no fuzzy search."""
         norm_name = normalize_for_map(name)
         tid = "Desconhecido"
         url = None
+        local_path = None
         
-        # 1. Primary Map (High accuracy)
+        if platform == "classic":
+            # 🎮 OG Xbox Robust Search (V58)
+            og_service = OGMetadataService()
+            db_path = os.path.join(self.cache_dir, "titleIDs.db")
+            if os.path.exists(db_path):
+                # Clean name: remove (USA), [ZTM], etc.
+                clean = re.sub(r'\(.*?\)|\[.*?\]', '', name)
+                clean = re.sub(r'\b(USA|XBOX-ZTM|ZTM|EURO|PAL|NTSC|JAP|JAG|Disc\s*\d+)\b', '', clean, flags=re.IGNORECASE)
+                
+                # 🛡️ Hyper-Aggressive SQL Pattern (V68)
+                # Replace any non-alphanumeric with '%' for maximum LIKE flexibility
+                search_pattern = re.sub(r'[^a-zA-Z0-9]', '%', clean)
+                search_pattern = re.sub(r'%+', '%', search_pattern).strip('%')
+                
+                conn = sqlite3.connect(db_path)
+                cur = conn.cursor()
+                
+                # Search Strategy:
+                # 1. Try aggressive pattern mapping
+                cur.execute("SELECT Title_ID FROM TitleIDs WHERE Full_Name LIKE ? OR AKA LIKE ? LIMIT 1", (f"%{search_pattern}%", f"%{search_pattern}%"))
+                row = cur.fetchone()
+                
+                # 2. Hardcore fallback: Try first 3 words only if still not found
+                if not row and len(clean.split()) > 2:
+                    short_clean = " ".join(clean.split()[:3])
+                    short_pattern = re.sub(r'[^a-zA-Z0-9]', '%', short_clean).strip('%')
+                    cur.execute("SELECT Title_ID FROM TitleIDs WHERE Full_Name LIKE ? LIMIT 1", (f"%{short_pattern}%",))
+                    row = cur.fetchone()
+                
+                if row:
+                    tid = row[0].upper()
+                    local_path = os.path.join(self.cache_dir, "assets", "gamecovers", f"{tid}.png")
+                    # 🚀 OG Xbox Cover Fallback (V101: Prioritize MobCat covers for OG Xbox)
+                    prefix = tid[:4].upper()
+                    url = f"https://raw.githubusercontent.com/MobCat/MobCats-original-xbox-game-list/main/icon/{prefix}/{tid}.png"
+                conn.close()
+            
+            # Final fallback for OG Xbox if no specific TID found
+            if tid == "Desconhecido":
+                url = "https://raw.githubusercontent.com/antigravity-org/assets/main/covers/generic_classic.jpg"
+            
+            return {
+                "TitleID": tid,
+                "CoverUrl": url,
+                "LocalPath": local_path,
+                "Region": "Region-Free",
+                "Rating": "4.8"
+            }
+
+        # 1. Primary Mapping (High accuracy - 360)
         mapping = self.covers_map.get(norm_name)
         if mapping:
             tid = mapping.get("id", "Desconhecido")
@@ -113,7 +182,6 @@ class MetadataService:
             url = "https://xboxunity.net/Resources/Lib/Images/Covers/4B4D07E2.jpg"
 
         # Simple path reconstruction without checking file existence (MUCH faster)
-        local_path = None
         if tid != "Desconhecido":
             local_path = os.path.join(self.cache_dir, "applib", "cache", "covers", f"{tid}.jpg")
 
@@ -127,6 +195,104 @@ class MetadataService:
 
     def search_unity_by_name(self, name, platform="360", lang="pt"):
         """Search Unity and Cache metadata (The 'Deep' resolution path)."""
+        if platform == "classic":
+            # 🎮 OG Xbox Robust Search (V65)
+            # Clean name: remove (USA), [ZTM], etc.
+            clean = re.sub(r'\(.*?\)|\[.*?\]', '', name)
+            clean = re.sub(r'\b(USA|XBOX-ZTM|ZTM|EURO|PAL|NTSC|JAP|JAG|Disc\s*\d+)\b', '', clean, flags=re.IGNORECASE)
+            
+            # 🛡️ Hyper-Aggressive SQL Pattern (V68)
+            search_pattern = re.sub(r'[^a-zA-Z0-9]', '%', clean)
+            search_pattern = re.sub(r'%+', '%', search_pattern).strip('%')
+            
+            og_service = OGMetadataService()
+            db_path = os.path.join(self.cache_dir, "titleIDs.db")
+            row = None
+            if os.path.exists(db_path):
+                conn = sqlite3.connect(db_path)
+                cur = conn.cursor()
+                # ⚔️ Dynamic Search (V106): Try exact first, then fuzzy
+                cur.execute("SELECT Title_ID, Full_Name, Publisher, Region, Features FROM TitleIDs WHERE Full_Name = ? OR AKA = ? LIMIT 1", (clean.strip(), clean.strip()))
+                row = cur.fetchone()
+                
+                if not row:
+                    cur.execute("SELECT Title_ID, Full_Name, Publisher, Region, Features FROM TitleIDs WHERE Full_Name LIKE ? OR AKA LIKE ? LIMIT 1", (f"%{search_pattern}%", f"%{search_pattern}%"))
+                    row = cur.fetchone()
+                
+                # Fallback: First 3 words
+                words = clean.split()
+                if not row and len(words) > 2:
+                    short_pattern = re.sub(r'[^a-zA-Z0-9]', '%', " ".join(words[:3])).strip('%')
+                    cur.execute("SELECT Title_ID, Full_Name, Publisher, Region, Features FROM TitleIDs WHERE Full_Name LIKE ? LIMIT 1", (f"%{short_pattern}%",))
+                    row = cur.fetchone()
+                conn.close()
+            
+            if row:
+                tid = row[0].upper()
+                game_name = row[1]
+                
+                # 🎨 Clean and Professional Technical Sheet (V80)
+                # Instead of raw JSON 'Recursos', we show a clean summary
+                publisher = row[2] or "Publicadora Clássica"
+                region = row[3] or "Region-Free"
+                
+                features_str = ""
+                # Optional: Simple parser for MobCat features if needed, but for now we hide raw JSON
+                # features = row[4] # e.g. {"0":[[1,1,1,4],[1,3]...]}
+                
+                tech_sheet = (
+                    f"**Editora:** {publisher}\n"
+                    f"**Região:** {region}\n"
+                )
+                
+                # 🕵️ Synopsis Fallback: Search XboxUnity by Name (V77)
+                # Many OG games have 360 counterparts, we can fetch their descriptions.
+                import urllib.parse
+                try:
+                    search_url = f"http://xboxunity.net/Resources/Lib/TitleSearch.php"
+                    params = {"search": game_name, "apiKey": "EA486DB0B43192E8846A7EB374AD7BED"}
+                    resp = requests.get(search_url, params=params, timeout=8)
+                    if resp.status_code == 200:
+                        data = resp.json()
+                        # The Unity PHP API returns a list of games
+                        if data and isinstance(data, list) and len(data) > 0:
+                            # Try to find a good description in the matches
+                            for match in data[:3]: # Check top 3 results
+                                synopsis = match.get("Description")
+                                if synopsis and len(synopsis) > 50:
+                                    tech_sheet = f"{synopsis}\n\n---\nFICHA TÉCNICA (ORIGINAL XBOX):\n{tech_sheet}"
+                                    break
+                except Exception as e:
+                    print(f"Unity Synopsis Fallback Error: {e}")
+                
+                # 🚀 V82: Professional Fallback (If no synopsis was found)
+                if "---\nFICHA TÉCNICA" not in tech_sheet:
+                    game_intro = (
+                        f"Em {game_name}, os jogadores vivenciam uma experiência fundamental da era Xbox Original. "
+                        f"Este título, publicado pela {publisher}, é reconhecido como uma peça essencial para qualquer biblioteca retrô. "
+                        f"Reviva este clássico agora com a conveniência e performance do seu PC."
+                    )
+                    tech_sheet = f"{game_intro}\n\n---\n**FICHA TÉCNICA:**\n{tech_sheet}"
+                
+                # 🌐 Translate if possible (V85)
+                translated_desc = self.translate_text(tech_sheet, lang)
+                
+                return {
+                    "TitleID": tid,
+                    "Name": game_name,
+                    "Description": translated_desc,
+                    "Developer": "Xbox Classic Dev",
+                    "Publisher": row[2],
+                    "ReleaseDate": "Nov 2001 - 2006",
+                    "Rating": "4.8",
+                    "Genre": "Classic",
+                    "Region": row[3],
+                    "CoverUrl": f"https://raw.githubusercontent.com/MobCat/MobCats-original-xbox-game-list/main/icon/{tid[:4].upper()}/{tid}.png",
+                    "LocalPath": os.path.join(self.cache_dir, "assets", "gamecovers", f"{tid}.png"),
+                    "Source": "OG DB",
+                    "TitleUpdates": []
+                }
+
         cache_key = f"{name}_{platform}_{lang}"
         if cache_key in self._unity_cache:
             return self._unity_cache[cache_key]
@@ -141,15 +307,20 @@ class MetadataService:
                 cur.execute("SELECT * FROM games WHERE normalized_name = ? OR name = ?", (norm, name))
                 row = cur.fetchone()
                 if row:
+                    # 📜 Ensure description is translated (V78)
+                    description = row[3] or "Disponível para download via x360 Tools Library."
+                    translated_desc = self.translate_text(description, lang)
+                    
                     res = {
                         "TitleID": row[0],
                         "Name": row[1],
-                        "Description": row[3] or "Disponível para download via x360 Tools Library.",
-                        "Developer": row[4] or "Microsoft Studios",
+                        "Description": translated_desc,
+                        "Developer": row[4] or "Xbox Studios",
                         "Publisher": row[5] or "Microsoft",
                         "ReleaseDate": row[6] or "2010",
                         "Rating": row[7] or "4.8",
-                        "Genre": row[8] or "Ação e Aventura",
+                        "Genre": row[8] or "Ação",
+                        "Region": "Region Free",
                         "CoverUrl": row[9],
                         "LocalPath": row[10],
                         "Source": "LOCAL DB",

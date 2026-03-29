@@ -137,6 +137,29 @@ class _DashLaunchViewState extends State<DashLaunchView> {
         _buildSectionHeader("Plugins Adicionais"),
         _buildPathField("plugin1", "Plugin 1", section: "plugins"),
         _buildPathField("plugin2", "Plugin 2", section: "plugins"),
+        
+        const SizedBox(height: 32),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.orange.withOpacity(0.05),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.orange.withOpacity(0.2)),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.warning_amber_rounded, color: Colors.orangeAccent, size: 24),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Text(
+                  context.read<AppState>().tr("Nota de Segurança: Certifique-se de que os plugins estejam instalados no dispositivo. Recomenda-se realizar um backup de segurança antes de aplicar alterações nas configurações do sistema."),
+                  style: const TextStyle(color: Colors.orangeAccent, fontSize: 13, height: 1.4),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 40),
       ],
     );
   }
@@ -149,6 +172,7 @@ class _DashLaunchViewState extends State<DashLaunchView> {
   }
 
   Widget _buildToggle(String key, String label) {
+    if (_iniData == null || _iniData!["settings"] == null) return const SizedBox();
     final section = _iniData!["settings"] ?? {};
     final bool value = section[key]?.toString().toLowerCase() == "true";
 
@@ -174,8 +198,10 @@ class _DashLaunchViewState extends State<DashLaunchView> {
   }
 
   Widget _buildPathField(String key, String label, {String section = "paths"}) {
+    if (_iniData == null || _iniData![section] == null) return const SizedBox();
     final data = _iniData![section] ?? {};
     final String value = data[key]?.toString() ?? "";
+    final state = context.read<AppState>();
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -189,6 +215,33 @@ class _DashLaunchViewState extends State<DashLaunchView> {
           fillColor: Colors.white.withOpacity(0.03),
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
           prefixIcon: const Icon(Icons.folder, size: 20, color: Colors.white24),
+          suffixIcon: IconButton(
+            icon: const Icon(Icons.file_open_outlined, size: 20, color: Color(0xFF107C10)),
+            onPressed: () async {
+              final result = await state.pickFile(
+                title: state.tr("Selecionar Executável (.xex)"),
+                filter: "Xbox Executable|*.xex;*.XEX",
+              );
+              if (result != null) {
+                // Convert path to Xbox format
+                String xboxPath = result;
+                if (state.selectedDrive != null) {
+                  final mount = state.selectedDrive!['mount_point'];
+                  if (result.startsWith(mount)) {
+                    final relative = result.substring(mount.length).replaceAll("/", "\\");
+                    xboxPath = "Usb:$relative";
+                    // Ensure the first character after Usb: is a backslash if it wasn't there
+                    if (relative.isNotEmpty && !relative.startsWith("\\")) {
+                       xboxPath = "Usb:\\$relative";
+                    }
+                  }
+                }
+                setState(() {
+                   _iniData![section][key] = xboxPath;
+                });
+              }
+            },
+          ),
           hintText: "Ex: Usb:\\Aurora\\Aurora.xex",
         ),
         style: const TextStyle(fontSize: 14),

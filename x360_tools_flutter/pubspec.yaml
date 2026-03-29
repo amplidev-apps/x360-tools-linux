@@ -38,6 +38,8 @@ dependencies:
   url_launcher: ^6.3.2
   animations: ^2.1.0
   window_manager: ^0.5.1
+  file_picker: ^10.3.10
+  flutter_svg: ^2.0.10
 
 dev_dependencies:
   flutter_test:

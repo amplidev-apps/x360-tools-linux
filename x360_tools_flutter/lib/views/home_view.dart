@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import '../models/app_state.dart';
 import '../widgets/premium_card.dart';
 
@@ -203,10 +204,9 @@ class HomeView extends StatelessWidget {
       width: double.infinity,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFF1E1E1E), Color(0xFF0A0A0A)],
+        image: const DecorationImage(
+          image: AssetImage('assets/welcome_banner.png'),
+          fit: BoxFit.cover,
         ),
         boxShadow: [
           BoxShadow(
@@ -219,10 +219,18 @@ class HomeView extends StatelessWidget {
       child: Stack(
         children: [
           // Background pattern or subtle image
-          Positioned(
-            right: -50,
-            top: -50,
-            child: Icon(Icons.blur_on, size: 300, color: const Color(0xFF107C10).withOpacity(0.1)),
+          // Overlay to ensure text readability
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(24),
+                gradient: LinearGradient(
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                  colors: [Colors.black.withOpacity(0.7), Colors.transparent],
+                ),
+              ),
+            ),
           ),
           Positioned(
             bottom: 40,
@@ -234,10 +242,18 @@ class HomeView extends StatelessWidget {
                   state.tr("BEM-VINDO AO"), 
                   style: const TextStyle(color: Color(0xFF107C10), fontWeight: FontWeight.bold, letterSpacing: 4, fontSize: 14)
                 ),
-                const Text("x360 Tools v2.0", style: TextStyle(fontSize: 48, fontWeight: FontWeight.w900, letterSpacing: -1)),
+                const SizedBox(height: 10),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: SvgPicture.asset(
+                    'assets/x360_new_logo_white.svg',
+                    width: 350,
+                    fit: BoxFit.contain,
+                  ),
+                ),
                 const SizedBox(height: 10),
                 Text(
-                  state.tr("A central definitiva para o seu Xbox 360 no Linux."), 
+                  state.tr("A central definitiva para o seu Xbox 360 no PC."), 
                   style: TextStyle(fontSize: 18, color: Colors.white.withOpacity(0.6))
                 ),
               ],

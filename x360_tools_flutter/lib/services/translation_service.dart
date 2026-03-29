@@ -150,12 +150,21 @@ class TranslationService {
     "Emerald_desc": {"pt": "Dashboard leve inspirada no Xbox original.", "en": "Lightweight dashboard inspired by original Xbox.", "es": "Dashboard ligera inspirada en el Xbox original."},
     "Viper360_desc": {"pt": "Interface alternativa com foco em velocidade.", "en": "Alternative interface focused on speed.", "es": "Interfaz alternativa centrada en la velocidad."},
     "XeXMenu_desc": {"pt": "Gerenciador de arquivos essencial.", "en": "Essential file manager.", "es": "Gestor de archivos esencial."},
+    "XeXLoader_desc": {"pt": "Lançador clássico de arquivos .xex.", "en": "Classic .xex file launcher.", "es": "Lanzador clásico de archivos .xex."},
+    "Xenu_desc": {"pt": "Dashboard minimalista e extremamente rápida.", "en": "Minimalist and extremely fast dashboard.", "es": "Dashboard minimalista y extremadamente rápida."},
+    "NXE2GOD_desc": {"pt": "Converte jogos instalados em disco para GOD.", "en": "Converts disc-installed games to GOD.", "es": "Convierte juegos instalados en disco a GOD."},
+    "IngeniouX_desc": {"pt": "Interface baseada em widgets personalizáveis.", "en": "Interface based on customizable widgets.", "es": "Interfaz basada en widgets personalizables."},
+    "XPG.Chameleon_desc": {"pt": "Dashboard focada em customização visual.", "en": "Dashboard focused on visual customization.", "es": "Dashboard centrada en la personalización visual."},
 
     // Descriptions - Homebrew
+    "Dashlaunch_desc": {"pt": "Configura inicialização e plugins do sistema.", "en": "Configure system boot and plugins.", "es": "Configura el inicio y los plugins del sistema."},
     "Dashlauncher_desc": {"pt": "Configura inicialização e plugins.", "en": "Configure boot settings and plugins.", "es": "Configura el inicio y los plugins."},
     "FFPlay_desc": {"pt": "Player de vídeo para diversos formatos.", "en": "Video player for various formats.", "es": "Reproductor de video para varios formatos."},
+    "GOD.Unlocker_desc": {"pt": "Desbloqueia jogos GoD baixados da Live.", "en": "Unlocks GoD games downloaded from Live.", "es": "Desbloquea juegos GoD descargados de Live."},
     "XM360_desc": {"pt": "Gerencie DLCs e conteúdos XBLA.", "en": "Manage DLCs and XBLA content.", "es": "Gestiona DLCs y contenido XBLA."},
+    "XNA.Offline_desc": {"pt": "Habilita suporte a jogos XNA sem conexão.", "en": "Enables offline support for XNA games.", "es": "Habilita el soporte de juegos XNA sin conexión."},
     "HDDx.Fixer_desc": {"pt": "Restaura a partição HDDx oficial.", "en": "Restores the official HDDx partition.", "es": "Restaura la partición HDDx oficial."},
+    "Flasher_desc": {"pt": "Utilitário para gravar a NAND do console.", "en": "Utility to flash the console NAND.", "es": "Utilidad para flashear la NAND de la consola."},
 
     // Descriptions - Stealth
     "CipherLive_desc": {"pt": "Servidor Stealth premium e estável.", "en": "Premium and stable stealth server.", "es": "Servidor stealth premium y estable."},
@@ -215,7 +224,21 @@ class TranslationService {
     "Xbox 360 Library": {"pt": "Biblioteca Xbox 360", "en": "Xbox 360 Library", "es": "Biblioteca Xbox 360"},
     "Xbox Classic Library": {"pt": "Biblioteca Xbox Classic", "en": "Xbox Classic Library", "es": "Biblioteca Xbox Classic"},
     "Original Xbox": {"pt": "Xbox Original", "en": "Original Xbox", "es": "Xbox Original"},
-    "Xbox 360": {"pt": "Xbox 360", "en": "Xbox 360", "es": "Xbox 360"},
+    "Search Games, DLCs & Apps...": {
+      "pt": "Procurar Jogos, DLCs e Conteúdos...",
+      "en": "Search Games, DLCs & Content...",
+      "es": "Buscar Juegos, DLCs y Contenido..."
+    },
+    "Explorar x360 Freemarket": {
+      "pt": "Explorar x360 Freemarket",
+      "en": "Explore x360 Freemarket",
+      "es": "Explorar x360 Freemarket"
+    },
+    "FEATURED": {
+      "pt": "Novidade!",
+      "en": "New!",
+      "es": "¡Novedad!"
+    },
   };
 
   static String tr(String key, String lang) {

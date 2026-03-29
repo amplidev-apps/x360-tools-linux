@@ -24,11 +24,15 @@ class DownloadItem {
   DownloadPhase phase;
   String statusMessage;
   double progress;
+  bool isPaused;
   String? localPath;
   DateTime startTime;
   String? speed;
   String? eta;
   final String type; // "game", "tu", or "dlc"
+  final String? coverUrl;
+  final String? titleId;
+  final Map<String, dynamic>? originalGame;
 
   DownloadItem({
     required this.id,
@@ -41,6 +45,10 @@ class DownloadItem {
     this.statusMessage = "Aguardando...",
     this.progress = 0.0,
     this.localPath,
+    this.coverUrl,
+    this.titleId,
+    this.originalGame,
+    this.isPaused = false,
   }) : startTime = DateTime.now();
 }
 
@@ -158,6 +166,18 @@ class AppState extends ChangeNotifier {
     "DLC": [],
     "TU": []
   };
+  bool isLoggedInIA = false;
+
+  // --- FTP State ---
+  bool isFtpConnected = false;
+  String? ftpHost;
+  List<dynamic> ftpCurrentDir = [];
+  String ftpCurrentPath = "/";
+  bool isLoadingFtp = false;
+
+  // --- Save Manager State ---
+  List<dynamic> saves = [];
+  bool isLoadingSaves = false;
 
   AppState() {
     _init();
@@ -165,6 +185,142 @@ class AppState extends ChangeNotifier {
 
   Future<void> _init() async {
     await refreshDrives();
+    await saveScan();
+    await verifyIALogin();
+  }
+
+  Future<void> verifyIALogin() async {
+    try {
+      final res = await PythonBridge.executeCommand("check_ia_login");
+      if (res["status"] == "success") {
+        isLoggedInIA = res["logged_in"] ?? false;
+        notifyListeners();
+      }
+    } catch (_) {}
+  }
+
+  // --- Save Manager Methods ---
+  Future<void> saveScan() async {
+    isLoadingSaves = true;
+    notifyListeners();
+    try {
+      final res = await PythonBridge.executeCommand("save_scan");
+      if (res['status'] == 'success') {
+        saves = res['data'] ?? [];
+      }
+    } catch (e) {
+      statusMessage = "Erro ao buscar saves: $e";
+    } finally {
+      isLoadingSaves = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> saveImport(String filePath) async {
+    statusMessage = "Importando Save/Perfil...";
+    notifyListeners();
+    try {
+      final res = await PythonBridge.executeCommand("save_import", src: filePath);
+      if (res['status'] == 'success') {
+        statusMessage = res['message'];
+        await saveScan();
+      } else {
+        statusMessage = "Erro importando save: ${res['message']}";
+      }
+    } catch (e) {
+      statusMessage = "Exceção: $e";
+    }
+    notifyListeners();
+  }
+
+  Future<void> saveDelete(String fileName) async {
+    statusMessage = "Apagando save...";
+    notifyListeners();
+    try {
+      final res = await PythonBridge.executeCommand("save_delete", arg: fileName);
+      if (res['status'] == 'success') {
+        statusMessage = "Save removido.";
+        await saveScan();
+      } else {
+        statusMessage = "Erro apagando save: ${res['message']}";
+      }
+    } catch (e) {
+      statusMessage = "Exceção ao apagar: $e";
+    }
+    notifyListeners();
+  }
+
+  // --- FTP Methods ---
+  Future<Map<String, dynamic>> ftpConnect(String host) async {
+    isLoadingFtp = true;
+    statusMessage = "Conectando ao Xbox (FTP)...";
+    notifyListeners();
+    try {
+      final res = await PythonBridge.ftpCommand("ftp_connect", host: host);
+      if (res['status'] == 'success') {
+        isFtpConnected = true;
+        ftpHost = host;
+        statusMessage = "Conectado via FTP ao Xbox!";
+        await ftpList("/");
+      } else {
+        statusMessage = "Erro FTP: ${res['message']}";
+      }
+      return res;
+    } finally {
+      isLoadingFtp = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> ftpDisconnect() async {
+    if (!isFtpConnected) return;
+    await PythonBridge.ftpCommand("ftp_disconnect", host: ftpHost);
+    isFtpConnected = false;
+    ftpHost = null;
+    ftpCurrentDir = [];
+    statusMessage = "FTP Desconectado";
+    notifyListeners();
+  }
+
+  Future<void> ftpList(String path) async {
+    isLoadingFtp = true;
+    notifyListeners();
+    try {
+      final res = await PythonBridge.ftpCommand("ftp_list", host: ftpHost, remotePath: path);
+      if (res['status'] == 'success') {
+        ftpCurrentDir = res['data'] ?? [];
+        ftpCurrentPath = res['path'] ?? "/";
+      }
+    } finally {
+      isLoadingFtp = false;
+      notifyListeners();
+    }
+  }
+
+  Future<Map<String, dynamic>> ftpUpload(String localPath, String remotePath) async {
+    statusMessage = "Enviando arquivo via FTP...";
+    notifyListeners();
+    final res = await PythonBridge.ftpCommand("ftp_upload", host: ftpHost, localPath: localPath, remotePath: remotePath);
+    statusMessage = res['status'] == 'success' ? "Envio concluído!" : "Erro de envio FTP";
+    notifyListeners();
+    if (res['status'] == 'success') await ftpList(ftpCurrentPath);
+    return res;
+  }
+
+  Future<Map<String, dynamic>> ftpDelete(String remotePath, bool isDir) async {
+    isLoadingFtp = true;
+    notifyListeners();
+    final res = await PythonBridge.ftpCommand("ftp_delete", host: ftpHost, remotePath: remotePath, isDir: isDir);
+    if (res['status'] == 'success') await ftpList(ftpCurrentPath);
+    return res;
+  }
+
+  Future<Map<String, dynamic>> ftpMkdir(String remotePath) async {
+    isLoadingFtp = true;
+    notifyListeners();
+    final res = await PythonBridge.ftpCommand("ftp_mkdir", host: ftpHost, remotePath: remotePath);
+    if (res['status'] == 'success') await ftpList(ftpCurrentPath);
+    return res;
   }
 
   Future<void> refreshDrives() async {
@@ -194,15 +350,33 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
-  void cancelDownload(String id) {
-    PythonBridge.cancelDownload(id);
-    final item = downloads.firstWhere((d) => d.id == id, orElse: () => DownloadItem(id: "", name: "", url: "", platform: "", destPath: ""));
-    if (item.id.isNotEmpty) {
+  Future<void> cancelDownload(String id) async {
+    await PythonBridge.cancelDownload(id);
+    final index = downloads.indexWhere((d) => d.id == id);
+    if (index != -1) {
+      final item = downloads[index];
       item.phase = DownloadPhase.canceled;
       item.statusMessage = "Cancelado pelo usuário";
       item.progress = 0;
       notifyListeners();
     }
+  }
+
+  Future<void> togglePauseDownload(String id) async {
+    final index = downloads.indexWhere((d) => d.id == id);
+    if (index == -1) return;
+    final item = downloads[index];
+
+    if (item.isPaused) {
+      await PythonBridge.resumeDownload(id);
+      item.isPaused = false;
+      item.statusMessage = "Retomando...";
+    } else {
+      await PythonBridge.pauseDownload(id);
+      item.isPaused = true;
+      item.statusMessage = "Pausado";
+    }
+    notifyListeners();
   }
 
   Future<void> installFromFreemarket(Map<String, dynamic> game, String destPath, bool onDevice) async {
@@ -214,6 +388,9 @@ class AppState extends ChangeNotifier {
       platform: game['platform'] ?? "360",
       destPath: destPath,
       type: "game",
+      coverUrl: game['coverUrl'],
+      titleId: game['titleId'],
+      originalGame: game,
     );
     
     downloads.add(item);
@@ -230,42 +407,70 @@ class AppState extends ChangeNotifier {
         onDevice: onDevice,
         onProgress: (line) {
           if (line.startsWith("Progress:")) {
-            final pStr = line.replaceFirst("Progress:", "").replaceAll("%", "").trim();
+            final parts = line.split("|");
+            final pStr = parts[0].replaceFirst("Progress:", "").replaceAll("%", "").trim();
             final p = double.tryParse(pStr);
-            if (p != null) item.progress = p / 100.0;
-          } else if (line.startsWith("PHASE:")) {
-            item.statusMessage = line.replaceFirst("PHASE:", "").trim();
-            final status = item.statusMessage.toLowerCase();
-            if (status.contains("espaço")) item.phase = DownloadPhase.checkingSpace;
-            else if (status.contains("baixando")) item.phase = DownloadPhase.downloading;
-            else if (status.contains("extraindo")) item.phase = DownloadPhase.extracting;
-            else if (status.contains("convertendo")) item.phase = DownloadPhase.converting;
-            else if (status.contains("processando")) item.phase = DownloadPhase.installing;
-            else if (status.contains("concluída")) {
-               item.phase = DownloadPhase.completed;
-               item.progress = 1.0;
+            if (p != null) {
+              item.progress = p / 100.0;
+              if (parts.length >= 3) {
+                item.speed = parts[1].trim();
+                item.eta = parts[2].trim();
+              }
+              notifyListeners();
             }
-          }
-          
-          // Legacy sync (for global overlay if needed)
-          statusMessage = item.statusMessage;
-          progress = item.progress;
-          notifyListeners();
-        },
-      );
+            } else if (line.startsWith("PHASE:")) {
+              final phaseText = line.replaceFirst("PHASE:", "").trim();
+              item.statusMessage = phaseText;
+              
+              // Map text to phase enum for UI coloring/badges
+              if (phaseText.contains("Baixando")) {
+                item.phase = DownloadPhase.downloading;
+              } else if (phaseText.contains("Extraindo")) {
+                item.phase = DownloadPhase.extracting;
+              } else if (phaseText.contains("Convertendo") || phaseText.contains("Processando")) {
+                item.phase = DownloadPhase.converting;
+              } else if (phaseText.contains("Instalando") || phaseText.contains("Copiando") || phaseText.contains("Enviando")) {
+                item.phase = DownloadPhase.installing;
+              } else if (phaseText.contains("Verificando espaço")) {
+                item.phase = DownloadPhase.checkingSpace;
+              } else if (phaseText.contains("concluída")) {
+                item.phase = DownloadPhase.completed;
+              }
+              
+              notifyListeners();
+            } else if (line.startsWith("LocalPath:")) {
+              item.localPath = line.replaceFirst("LocalPath:", "").trim();
+              notifyListeners();
+            }
+            // Legacy sync (for global overlay if needed)
+            statusMessage = item.statusMessage;
+            progress = item.progress;
+            notifyListeners();
+          },
+        );
 
       if (res["status"] == "success") {
         item.phase = DownloadPhase.completed;
         item.progress = 1.0;
-        // Determine installation folder
-        if (item.platform == "360") {
-           item.localPath = "$destPath/Content/0000000000000000";
+        // Determine installation folder (V99: Adaptive paths PC vs Device)
+        if (onDevice) {
+          if (item.platform == "360") {
+            item.localPath = "$destPath/Content/0000000000000000";
+          } else {
+            item.localPath = "$destPath/Games/${item.name}";
+          }
         } else {
-           item.localPath = "$destPath/Games/${item.name}";
+          // PC installation: directly into destPath
+          item.localPath = destPath;
         }
       } else {
-        item.phase = DownloadPhase.failed;
-        item.statusMessage = "Falha: ${res["message"]}";
+        if (item.phase != DownloadPhase.failed) {
+          item.phase = DownloadPhase.failed;
+          item.statusMessage = "Falha: ${res["message"] ?? "Erro na ponte"}";
+        } else if (res["message"] != null && res["message"].toString().length > 30) {
+          // If bridge has a VERY long/detailed error, use it
+          item.statusMessage = "Falha: ${res["message"]}";
+        }
       }
     } catch (e) {
       item.phase = DownloadPhase.failed;
@@ -295,14 +500,20 @@ class AppState extends ChangeNotifier {
       return;
     }
 
+    final baseGame = games.firstWhere((g) => g['titleId'] == titleId, orElse: () => {});
+    final cUrl = baseGame['coverUrl'] as String?;
+
     final downloadId = "TU_${DateTime.now().millisecondsSinceEpoch}";
     final item = DownloadItem(
       id: downloadId,
-      name: "Title Update (${tu['Version'] ?? 'vN/A'})",
-      url: tu['DownloadUrl'] ?? "",
+      name: tu['name'] ?? "Title Update (${tu['Version'] ?? 'vN/A'})",
+      url: tu['DownloadUrl'] ?? tu['downloadUrl'] ?? tu['url'] ?? "",
       platform: "360",
-      destPath: selectedDrive!['device'],
+      destPath: selectedDrive!['mount'],
       type: "tu",
+      coverUrl: cUrl,
+      titleId: titleId,
+      originalGame: baseGame,
       phase: DownloadPhase.downloading,
       statusMessage: "Iniciando download da TU...",
     );
@@ -321,11 +532,26 @@ class AppState extends ChangeNotifier {
 
       await for (final line in stream) {
         if (line.startsWith("Progress:")) {
-          final pStr = line.replaceFirst("Progress:", "").replaceAll("%", "").trim();
+          final parts = line.split("|");
+          final pStr = parts[0].replaceFirst("Progress:", "").replaceAll("%", "").trim();
           final p = double.tryParse(pStr);
-          if (p != null) item.progress = p / 100.0;
+          if (p != null) {
+            item.progress = p / 100.0;
+            if (parts.length >= 3) {
+              item.speed = parts[1].trim();
+              item.eta = parts[2].trim();
+            }
+            notifyListeners();
+          }
         } else if (line.startsWith("PHASE:")) {
-          item.statusMessage = line.replaceFirst("PHASE:", "").trim();
+          final msg = line.replaceFirst("PHASE:", "").trim();
+          if (msg.startsWith("Erro:")) {
+            item.phase = DownloadPhase.failed;
+            item.statusMessage = "Falha: ${msg.replaceFirst("Erro:", "").trim()}";
+            notifyListeners();
+            return;
+          }
+          item.statusMessage = msg;
           final status = item.statusMessage.toLowerCase();
           if (status.contains("concluído") || status.contains("sucesso")) {
              item.phase = DownloadPhase.completed;
@@ -339,7 +565,13 @@ class AppState extends ChangeNotifier {
          item.phase = DownloadPhase.completed;
          item.progress = 1.0;
       }
-      item.localPath = "${item.destPath}/Content/0000000000000000/$titleId/000B0000";
+      
+      // Determine TU local path (V99: Adaptive paths PC vs Device)
+      if (selectedDrive != null) {
+        item.localPath = "${selectedDrive!['mount']}/Content/0000000000000000/$titleId/000B0000";
+      } else {
+        item.localPath = item.destPath;
+      }
     } catch (e) {
       item.phase = DownloadPhase.failed;
       item.statusMessage = "Erro: $e";
@@ -356,17 +588,47 @@ class AppState extends ChangeNotifier {
       return;
     }
 
+    final baseGame = games.firstWhere((g) => g['titleId'] == titleId, orElse: () => {});
+    final cUrl = baseGame['coverUrl'] as String?;
+
+    // Resolve URL from all possible source structures:
+    // 1. Top-level 'url' (IA game objects)
+    // 2. 'DownloadUrl' / 'DownloadURL' (metadata service DLCs)
+    // 3. Nested in versions list (Freemarket grouped objects)
+    String resolvedUrl = dlc['url'] as String? ??
+        dlc['DownloadUrl'] as String? ??
+        dlc['DownloadURL'] as String? ??
+        "";
+    if (resolvedUrl.isEmpty) {
+      final versions = dlc['versions'] as List?;
+      if (versions != null && versions.isNotEmpty) {
+        resolvedUrl = versions[0]['url'] as String? ?? "";
+      }
+    }
+
+    final resolvedName = (dlc['name'] as String? ?? dlc['Name'] as String? ?? "DLC Content").trim();
+
+    if (resolvedUrl.isEmpty) {
+      statusMessage = "Erro: URL de download da DLC não encontrada.";
+      notifyListeners();
+      return;
+    }
+
     final downloadId = "DLC_${DateTime.now().millisecondsSinceEpoch}";
     final item = DownloadItem(
       id: downloadId,
-      name: dlc['name'] ?? "DLC Content",
-      url: dlc['url'] ?? "",
+      name: resolvedName,
+      url: resolvedUrl,
       platform: "360",
-      destPath: selectedDrive!['device'],
+      destPath: selectedDrive!['mount'],
       type: "dlc",
+      coverUrl: cUrl,
+      titleId: titleId,
+      originalGame: baseGame,
       phase: DownloadPhase.downloading,
       statusMessage: "Iniciando download da DLC...",
     );
+
     
     downloads.add(item);
     isInstalling = true;
@@ -381,11 +643,26 @@ class AppState extends ChangeNotifier {
         item.destPath,
         onProgress: (line) {
           if (line.startsWith("Progress:")) {
-            final pStr = line.replaceFirst("Progress:", "").replaceAll("%", "").trim();
+            final parts = line.split("|");
+            final pStr = parts[0].replaceFirst("Progress:", "").replaceAll("%", "").trim();
             final p = double.tryParse(pStr);
-            if (p != null) item.progress = p / 100.0;
+            if (p != null) {
+              item.progress = p / 100.0;
+              if (parts.length >= 3) {
+                item.speed = parts[1].trim();
+                item.eta = parts[2].trim();
+              }
+              notifyListeners();
+            }
           } else if (line.startsWith("PHASE:")) {
-            item.statusMessage = line.replaceFirst("PHASE:", "").trim();
+            final msg = line.replaceFirst("PHASE:", "").trim();
+            if (msg.startsWith("Erro:")) {
+              item.phase = DownloadPhase.failed;
+              item.statusMessage = "Falha: ${msg.replaceFirst("Erro:", "").trim()}";
+              notifyListeners();
+              return;
+            }
+            item.statusMessage = msg;
             final status = item.statusMessage.toLowerCase();
             if (status.contains("extraindo")) item.phase = DownloadPhase.extracting;
             else if (status.contains("instalando")) item.phase = DownloadPhase.installing;
@@ -401,10 +678,20 @@ class AppState extends ChangeNotifier {
       if (res["status"] == "success") {
         item.phase = DownloadPhase.completed;
         item.progress = 1.0;
-        item.localPath = "${item.destPath}/Content/0000000000000000/$titleId/00000002";
+        // V99: Adaptive paths PC vs Device
+        if (selectedDrive != null) {
+          item.localPath = "${selectedDrive!['mount']}/Content/0000000000000000/$titleId/00000002";
+        } else {
+          item.localPath = item.destPath;
+        }
       } else {
-        item.phase = DownloadPhase.failed;
-        item.statusMessage = "Falha: ${res["message"]}";
+        if (item.phase != DownloadPhase.failed) {
+          item.phase = DownloadPhase.failed;
+          item.statusMessage = "Falha: ${res["message"] ?? "Erro na ponte"}";
+        } else if (res["message"] != null && res["message"].toString().length > 30) {
+          // If bridge has a VERY long/detailed error, use it
+          item.statusMessage = "Falha: ${res["message"]}";
+        }
       }
     } catch (e) {
       item.phase = DownloadPhase.failed;
@@ -459,28 +746,141 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  int currentMainTab = 0; // 0=Main, 1=Library, 2=FTP, etc.
+  int currentLibraryTab = 0; // 0=360, 1=OG, 2=DLC, 3=TU
+  String librarySearchQuery = "";
+
+  void setMainTab(int index) {
+    currentMainTab = index;
+    notifyListeners();
+  }
+
+  void setLibraryTab(int index) {
+    currentLibraryTab = index;
+    notifyListeners();
+  }
+
   Future<void> scanLibrary() async {
     if (selectedDrive == null) return;
     isScanningLibrary = true;
     notifyListeners();
-
     try {
-      final res = await PythonBridge.scanLibrary(selectedDrive!['device']);
-      if (res["status"] == "success") {
-        final data = res["data"] as Map<String, dynamic>;
-        libraryGames = {
-          "360": data["360"] as List,
-          "OG": data["OG"] as List,
-          "DLC": data["DLC"] as List,
-          "TU": data["TU"] as List,
-        };
+      final res = await PythonBridge.executeCommand("scan_library", device: selectedDrive!['mount']);
+      if (res['status'] == 'success') {
+        libraryGames["360"] = res['data']['360'] ?? [];
+        libraryGames["OG"] = res['data']['OG'] ?? [];
+        libraryGames["DLC"] = res['data']['DLC'] ?? [];
+        libraryGames["TU"] = res['data']['TU'] ?? [];
       }
     } catch (e) {
-      print("Error scanning library: $e");
+      statusMessage = "Erro no scan: $e";
     } finally {
       isScanningLibrary = false;
       notifyListeners();
     }
+  }
+
+  Future<void> forcedSync() async {
+     statusMessage = "Sincronização forçada em andamento...";
+     notifyListeners();
+     // Clear any temp icon caches if needed (logic handled in backend mostly)
+     await scanLibrary();
+  }
+
+  Future<Map<String, dynamic>> renameLibraryItem(dynamic item, String newName) async {
+    statusMessage = "Renomeando...";
+    notifyListeners();
+    try {
+      final res = await PythonBridge.executeCommand(
+        "rename_library_item",
+        src: item['path'],
+        arg: newName,
+        type: item['type'] ?? "GOD",
+      );
+      if (res['status'] == 'success') {
+        statusMessage = "Renomeado com sucesso!";
+        await scanLibrary();
+      }
+      return res;
+    } catch (e) {
+      return {"status": "error", "message": e.toString()};
+    } finally {
+      notifyListeners();
+    }
+  }
+
+  Future<Map<String, dynamic>> deleteLibraryItem(dynamic item) async {
+    statusMessage = "Excluindo...";
+    notifyListeners();
+    try {
+      final res = await PythonBridge.executeCommand("delete_library_item", src: item['path']);
+      if (res['status'] == 'success') {
+        statusMessage = "Excluído com sucesso!";
+        await scanLibrary();
+      }
+      return res;
+    } catch (e) {
+      return {"status": "error", "message": e.toString()};
+    } finally {
+      notifyListeners();
+    }
+  }
+
+  Future<Map<String, dynamic>> exportLibraryItem(dynamic item, String destPC) async {
+    statusMessage = "Exportando para o PC...";
+    notifyListeners();
+    try {
+      final res = await PythonBridge.executeCommand("export_library_item", src: item['path'], dest: destPC);
+      statusMessage = res['status'] == 'success' ? "Exportado com sucesso!" : "Erro na exportação";
+      return res;
+    } catch (e) {
+      return {"status": "error", "message": e.toString()};
+    } finally {
+      notifyListeners();
+    }
+  }
+
+  Future<Map<String, dynamic>> changeGameCover(dynamic item, String iconPath) async {
+    statusMessage = "Alterando capa...";
+    notifyListeners();
+    try {
+      final res = await PythonBridge.executeCommand("set_custom_icon", src: item['path'], arg: iconPath);
+      if (res['status'] == 'success') {
+        statusMessage = "Capa atualizada!";
+        await scanLibrary();
+      }
+      return res;
+    } catch (e) {
+      return {"status": "error", "message": e.toString()};
+    } finally {
+      notifyListeners();
+    }
+  }
+
+  Future<Map<String, dynamic>> getSTFSMeta(String path) async {
+    return await PythonBridge.executeCommand("get_stfs_meta", src: path);
+  }
+
+  Future<void> exploreLibraryItem(dynamic item) async {
+    await PythonBridge.executeCommand("explore_library_item", src: item['path']);
+  }
+
+  void navigateToFtp(String remotePath) {
+    if (!isFtpConnected) {
+      statusMessage = "Conecte-se ao FTP primeiro!";
+      notifyListeners();
+      return;
+    }
+    currentMainTab = 2; // Assume FTP is tab 2
+    ftpCurrentPath = remotePath;
+    ftpList(remotePath);
+    notifyListeners();
+  }
+
+  void goToBaseGame(String titleId) {
+    currentLibraryTab = 0; // Switch to 360 Games
+    librarySearchQuery = titleId; // Filter by TitleID to highlight it
+    notifyListeners();
   }
 
   Future<Map<String, dynamic>> getDashLaunch(String path) async {
@@ -591,11 +991,10 @@ class AppState extends ChangeNotifier {
     // ... etc. This part needs to be mapped to the actual filenames in service_bridge.py
     
     final res = await PythonBridge.installPackages(
-      selectedDrive!['device'], 
+      selectedDrive!['mount'], 
       packages
     );
-    
-    statusMessage = res["message"] ?? "Concluído.";
+
     isInstalling = false;
     progress = 1.0;
     notifyListeners();
@@ -633,11 +1032,10 @@ class AppState extends ChangeNotifier {
     notifyListeners();
 
     final res = await PythonBridge.installPackages(
-      selectedDrive!['device'], 
+      selectedDrive!['mount'], 
       packages
     );
 
-    statusMessage = res["message"] ?? tr("Concluído.");
     isInstalling = false;
     progress = 1.0;
     notifyListeners();
@@ -715,7 +1113,7 @@ class AppState extends ChangeNotifier {
     isLoadingExplorer = true;
     notifyListeners();
     
-    final res = await PythonBridge.listContent(selectedDrive!['device']);
+    final res = await PythonBridge.listContent(selectedDrive!['mount']);
     if (res["status"] == "success") {
       explorerContent = Map<String, dynamic>.from(res["data"]);
     }
@@ -731,7 +1129,7 @@ class AppState extends ChangeNotifier {
     statusMessage = "Installing Content...";
     notifyListeners();
     
-    final res = await PythonBridge.installSTFS(currentSTFSPath!, selectedDrive!['device']);
+    final res = await PythonBridge.installSTFS(currentSTFSPath!, selectedDrive!['mount']);
     
     if (res["status"] == "success") {
       statusMessage = "Installation Successful!";
@@ -781,7 +1179,7 @@ class AppState extends ChangeNotifier {
     isLoadingInstalledGamerpics = true;
     notifyListeners();
     
-    installedGamerpics = await PythonBridge.getInstalledGamerpics(selectedDrive!['device']);
+    installedGamerpics = await PythonBridge.getInstalledGamerpics(selectedDrive!['mount']);
     
     isLoadingInstalledGamerpics = false;
     notifyListeners();
@@ -833,7 +1231,7 @@ class AppState extends ChangeNotifier {
     statusMessage = "${tr("Injetando")} Gamerpic...";
     notifyListeners();
 
-    final res = await PythonBridge.injectGamerpic(selectedDrive!['device'], id);
+    final res = await PythonBridge.injectGamerpic(selectedDrive!['mount'], id);
     
     if (res["status"] == "success") {
       statusMessage = tr("Gamerpic injetada com sucesso!");
@@ -879,6 +1277,49 @@ class AppState extends ChangeNotifier {
       notifyListeners();
       return null;
     }
+  }
+
+  Future<void> setIACookie(String cookie) async {
+    try {
+      final res = await PythonBridge.executeCommand("set_ia_cookie", cookie: cookie);
+      if (res["status"] == "success") {
+        statusMessage = res["message"];
+        notifyListeners();
+      } else {
+        throw res["message"];
+      }
+    } catch (e) {
+      statusMessage = "Erro ao salvar cookie: $e";
+      notifyListeners();
+    }
+  }
+
+  Future<void> loginIA(String email, String password) async {
+    try {
+      statusMessage = "PHASE:Autenticando no Archive.org...";
+      notifyListeners();
+      
+      final res = await PythonBridge.executeCommand("login_ia", user: email, password: password);
+      if (res["status"] == "success") {
+        statusMessage = "PHASE:Login realizado com sucesso!";
+        isLoggedInIA = true;
+        notifyListeners();
+      } else {
+        isLoggedInIA = false;
+        throw res["message"];
+      }
+    } catch (e) {
+      statusMessage = "PHASE:Erro no Login: $e";
+      notifyListeners();
+    }
+  }
+
+  void clearCompletedDownloads() {
+    downloads.removeWhere((item) => 
+      item.phase == DownloadPhase.completed || 
+      item.phase == DownloadPhase.failed || 
+      item.phase == DownloadPhase.canceled);
+    notifyListeners();
   }
 }
 

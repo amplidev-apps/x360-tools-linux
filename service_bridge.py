@@ -20,6 +20,8 @@ from core.gamerpics import get_manager
 from core.backup import BackupManager
 from core.library import LibraryScanner
 from core.dashlaunch import DashLaunchEditor
+from core.ftp_client import XboxFTPClient
+from core.save_manager import SaveManager
 
 def main():
     parser = argparse.ArgumentParser(description="x360 Tools Service Bridge")
@@ -43,6 +45,17 @@ def main():
     parser.add_argument("--refresh", action="store_true", help="Force refresh game list cache")
     parser.add_argument("--lang", default="pt", help="Language for translation")
     parser.add_argument("--title-id", help="Title ID for TU/DLC installation")
+    parser.add_argument("--host", help="FTP Host/IP")
+    parser.add_argument("--port", type=int, default=21, help="FTP Port")
+    parser.add_argument("--user", default="xbox", help="FTP Username")
+    parser.add_argument("--passwd", default="xbox", help="FTP Password")
+    parser.add_argument("--remote-path", help="FTP remote path")
+    parser.add_argument("--local-path", help="FTP local path")
+    parser.add_argument("--is-dir", action="store_true", help="Is directory (for delete)")
+    parser.add_argument("--type", help="Item type (XEX, GOD, DLC, TU)")
+    parser.add_argument("--cookie", help="Archive.org authentication cookie")
+    parser.add_argument("--ia-user", help="Archive.org username/email")
+    parser.add_argument("--ia-pass", help="Archive.org password")
     
     args = parser.parse_args()
     
@@ -84,11 +97,18 @@ def main():
                 result = {"status": "error", "message": "Missing destination path"}
             else:
                 import subprocess
-                try:
-                    subprocess.Popen(["xdg-open", args.dest])
-                    result = {"status": "success", "message": f"Abrindo pasta: {args.dest}"}
-                except Exception as e:
-                    result = {"status": "error", "message": f"Erro ao abrir pasta: {e}"}
+                import sys
+                import os
+                sys.stderr.write(f"DEBUG: Opening folder {args.dest}\n")
+                if not os.path.exists(args.dest):
+                    result = {"status": "error", "message": f"Caminho não encontrado: {args.dest}"}
+                else:
+                    try:
+                        subprocess.Popen(["xdg-open", args.dest])
+                        result = {"status": "success", "message": f"Abrindo pasta: {args.dest}"}
+                    except Exception as e:
+                        sys.stderr.write(f"DEBUG: Error opening folder: {e}\n")
+                        result = {"status": "error", "message": f"Erro ao abrir pasta: {e}"}
 
         elif args.cmd == "install_game":
             if not args.url or not args.name or not args.platform or not args.device:
@@ -98,15 +118,52 @@ def main():
                 def progress_callback(msg):
                     print(msg, flush=True)
                 
-                success = engine.install_game(
-                    args.url, 
-                    args.name, 
-                    args.platform, 
-                    args.device, 
-                    on_device=(args.on_device.lower() == 'true'),
-                    progress_cb=progress_callback
-                )
-                result = {"status": "success" if success else "error", "message": "Instalação concluída" if success else "Falha na instalação"}
+                try:
+                    success = engine.install_game(
+                        args.url, 
+                        args.name, 
+                        args.platform, 
+                        args.device, 
+                        on_device=(args.on_device.lower() == 'true'),
+                        progress_cb=progress_callback,
+                        task_id=args.id # V103
+                    )
+                    result = {"status": "success" if success else "error", "message": "Instalação concluída" if success else "Falha na instalação"}
+                except Exception as e:
+                    result = {"status": "error", "message": str(e)}
+
+        elif args.cmd == "pause_download":
+            if args.id:
+                temp_base = os.path.join(os.path.expanduser("~/.x360tools/freemarket"), "install_temp")
+                temp_dir = os.path.join(temp_base, args.id)
+                os.makedirs(temp_dir, exist_ok=True)
+                with open(os.path.join(temp_dir, "pause.flag"), "w") as f: f.write("1")
+                result = {"status": "success", "message": "Threaded download paused"}
+        
+        elif args.cmd == "resume_download":
+            if args.id:
+                temp_base = os.path.join(os.path.expanduser("~/.x360tools/freemarket"), "install_temp")
+                flag = os.path.join(temp_base, args.id, "pause.flag")
+                if os.path.exists(flag): os.remove(flag)
+                result = {"status": "success", "message": "Threaded download resumed"}
+
+        elif args.cmd == "cancel_download":
+            if args.id:
+                temp_base = os.path.join(os.path.expanduser("~/.x360tools/freemarket"), "install_temp")
+                temp_dir = os.path.join(temp_base, args.id)
+                os.makedirs(temp_dir, exist_ok=True)
+                with open(os.path.join(temp_dir, "stop.flag"), "w") as f: f.write("1")
+                # Kill subprocesses (aria2c/extractors) tracked by the engine
+                pid_file = os.path.join(temp_dir, "pid.txt")
+                if os.path.exists(pid_file):
+                    try:
+                        with open(pid_file, "r") as f:
+                            pids = f.readlines()
+                            for p in pids:
+                                try: os.kill(int(p.strip()), 9)
+                                except: pass
+                    except: pass
+                result = {"status": "success", "message": "Download cancelado e processos encerrados"}
 
         elif args.cmd == "get_game_details":
             if args.name:
@@ -114,8 +171,6 @@ def main():
                 service = MetadataService()
                 details = service.search_unity_by_name(args.name, args.platform, lang=args.lang)
                 result = {"status": "success", "data": details}
-        
-            result = {"status": "success" if success else "error", "message": "Instalação da TU concluída" if success else "Falha na instalação da TU"}
 
         elif args.cmd == "install_dlc":
             if not args.url or not args.name or not args.title_id or not args.device:
@@ -125,22 +180,179 @@ def main():
                 def progress_callback(msg):
                     print(msg, flush=True)
 
-                success = engine.install_dlc(
-                    args.url, 
-                    args.name, 
-                    args.title_id, 
-                    args.device, 
-                    progress_cb=progress_callback
-                )
-                result = {"status": "success" if success else "error", "message": "Instalação da DLC concluída" if success else "Falha na instalação da DLC"}
+                try:
+                    success = engine.install_dlc(
+                        args.url, 
+                        args.name, 
+                        args.title_id, 
+                        args.device, 
+                        progress_cb=progress_callback,
+                        task_id=args.id # V103
+                    )
+                    result = {"status": "success" if success else "error", "message": "Instalação da DLC concluída" if success else "Falha na instalação da DLC"}
+                except Exception as e:
+                    progress_callback(f"PHASE:Erro: {e}")
+                    result = {"status": "error", "message": str(e)}
+
+        elif args.cmd == "install_tu":
+            if not args.url or not args.name or not args.title_id or not args.device:
+                result = {"status": "error", "message": "Missing arguments for TU installation"}
+            else:
+                engine = FreemarketEngine()
+                def progress_callback(msg):
+                    print(msg, flush=True)
+
+                try:
+                    success = engine.install_tu(
+                        args.url, 
+                        args.name, 
+                        args.title_id, 
+                        args.device, 
+                        progress_cb=progress_callback
+                    )
+                    result = {"status": "success" if success else "error", "message": "Title Update instalada com sucesso" if success else "Falha na instalação da TU"}
+                except Exception as e:
+                    result = {"status": "error", "message": str(e)}
+
+        elif args.cmd == "cancel_download":
+            if not args.id:
+                result = {"status": "error", "message": "ID da tarefa não fornecido"}
+            else:
+                engine = FreemarketEngine()
+                task_dir = os.path.join(engine.cache_dir, "install_temp", args.id)
+                os.makedirs(task_dir, exist_ok=True)
+                with open(os.path.join(task_dir, "stop.flag"), "w") as f: f.write("1")
+                
+                # Kill tracked PIDs
+                pid_file = os.path.join(task_dir, "pid.txt")
+                if os.path.exists(pid_file):
+                    with open(pid_file, "r") as f:
+                        for line in f:
+                            try:
+                                pid = int(line.strip())
+                                import signal
+                                os.kill(pid, signal.SIGTERM)
+                            except: pass
+                result = {"status": "success", "message": "Download cancelado."}
+
+        elif args.cmd == "pause_download":
+            if not args.id:
+                result = {"status": "error", "message": "ID da tarefa não fornecido"}
+            else:
+                engine = FreemarketEngine()
+                task_dir = os.path.join(engine.cache_dir, "install_temp", args.id)
+                os.makedirs(task_dir, exist_ok=True)
+                with open(os.path.join(task_dir, "pause.flag"), "w") as f: f.write("1")
+                result = {"status": "success", "message": "Sinal de pausa enviado."}
+
+        elif args.cmd == "resume_download":
+            if not args.id:
+                result = {"status": "error", "message": "ID da tarefa não fornecido"}
+            else:
+                engine = FreemarketEngine()
+                task_dir = os.path.join(engine.cache_dir, "install_temp", args.id)
+                pause_flag = os.path.join(task_dir, "pause.flag")
+                if os.path.exists(pause_flag):
+                    os.remove(pause_flag)
+                result = {"status": "success", "message": "Download retomado."}
+
+        elif args.cmd == "set_ia_cookie":
+            if not args.cookie:
+                result = {"status": "error", "message": "Cookie não fornecido"}
+            else:
+                try:
+                    cookie_path = os.path.expanduser("~/.x360tools/ia_cookie.txt")
+                    os.makedirs(os.path.dirname(cookie_path), exist_ok=True)
+                    with open(cookie_path, "w") as f:
+                        f.write(args.cookie.strip())
+                    result = {"status": "success", "message": "Cookie do Archive.org salvo com sucesso!"}
+                except Exception as e:
+                    result = {"status": "error", "message": str(e)}
+
+        elif args.cmd == "login_ia":
+            if not args.ia_user or not args.ia_pass:
+                result = {"status": "error", "message": "E-mail e senha são obrigatórios"}
+            else:
+                engine = FreemarketEngine()
+                success, msg = engine.login_ia(args.ia_user, args.ia_pass)
+                result = {"status": "success" if success else "error", "message": msg}
+
+        elif args.cmd == "check_ia_login":
+            engine = FreemarketEngine()
+            cookies = engine._load_cookie()
+            is_logged = False
+            if cookies and isinstance(cookies, dict):
+                # Look for Archive.org specific login cookies
+                if "logged-in-user" in cookies:
+                    is_logged = True
+            result = {"status": "success", "logged_in": is_logged}
 
         elif args.cmd == "scan_library":
             if not args.device:
                 result = {"status": "error", "message": "Missing device for library scan"}
             else:
+                drives = detect_removable_drives()
+                drive = next((d for d in drives if d.device == args.device), None)
+                if not drive or not drive.mount_point:
+                    result = {"status": "error", "message": "Device not found or not mounted"}
+                else:
+                    scanner = LibraryScanner()
+                    data = scanner.scan_drive(drive.mount_point)
+                    result = {"status": "success", "data": data}
+
+        elif args.cmd == "rename_library_item":
+            if not args.src or not args.arg or not args.type:
+                result = {"status": "error", "message": "Missing path, new name or type"}
+            else:
                 scanner = LibraryScanner()
-                data = scanner.scan_drive(args.device)
-                result = {"status": "success", "data": data}
+                new_path = scanner.rename_entry(args.src, args.arg, args.type)
+                if new_path:
+                    result = {"status": "success", "new_path": new_path}
+                else:
+                    result = {"status": "error", "message": "Falha ao renomear item"}
+
+        elif args.cmd == "set_custom_icon":
+            if not args.src or not args.arg: # src=game_path, arg=icon_path
+                result = {"status": "error", "message": "Missing game path or icon path"}
+            else:
+                scanner = LibraryScanner()
+                if scanner.set_custom_icon(args.src, args.arg):
+                    result = {"status": "success"}
+                else:
+                    result = {"status": "error", "message": "Falha ao definir capa personalizada"}
+
+        elif args.cmd == "export_library_item":
+            if not args.src or not args.dest:
+                result = {"status": "error", "message": "Missing src or dest"}
+            else:
+                scanner = LibraryScanner()
+                if scanner.export_item(args.src, args.dest):
+                    result = {"status": "success"}
+                else:
+                    result = {"status": "error", "message": "Falha ao exportar item para o PC"}
+
+        elif args.cmd == "delete_library_item":
+            if not args.src:
+                result = {"status": "error", "message": "Missing path for deletion"}
+            else:
+                scanner = LibraryScanner()
+                if scanner.delete_entry(args.src):
+                    result = {"status": "success"}
+                else:
+                    result = {"status": "error", "message": "Falha ao excluir item"}
+
+        elif args.cmd == "explore_library_item":
+            if not args.src:
+                result = {"status": "error", "message": "Missing path for exploration"}
+            else:
+                import subprocess
+                # If it's a file (GOD), explore the directory
+                target = args.src if os.path.isdir(args.src) else os.path.dirname(args.src)
+                try:
+                    subprocess.Popen(["xdg-open", target])
+                    result = {"status": "success"}
+                except:
+                    result = {"status": "error", "message": "Falha ao abrir o explorador"}
 
         elif args.cmd == "get_dashlaunch":
             if not args.src:
@@ -153,7 +365,6 @@ def main():
             if not args.dest or not args.arg: # args.arg as JSON data
                 result = {"status": "error", "message": "Missing path or data for launch.ini update"}
             else:
-                import json
                 editor = DashLaunchEditor()
                 data = json.loads(args.arg)
                 result = editor.write_ini(args.dest, data)
@@ -431,6 +642,69 @@ def main():
             else:
                 res = BackupManager.get_zip_summary(args.src)
                 result = {"status": "success", "summary": res["summary"], "label": res["label"]}
+                
+        # --- FTP COMMANDS ---
+        elif args.cmd.startswith("ftp_"):
+            if not args.host:
+                result = {"status": "error", "message": "Missing FTP host"}
+            else:
+                ftp = XboxFTPClient(args.host, args.port, args.user, args.passwd)
+                conn_res = ftp.connect()
+                if conn_res["status"] != "success":
+                    result = conn_res
+                else:
+                    if args.cmd == "ftp_connect":
+                        result = conn_res
+                        
+                    elif args.cmd == "ftp_list":
+                        result = ftp.list_dir(args.remote_path or "")
+                        
+                    elif args.cmd == "ftp_upload":
+                        if not args.local_path:
+                            result = {"status": "error", "message": "Missing local path"}
+                        else:
+                            success, msg = ftp.upload_file(
+                                args.local_path, 
+                                args.remote_path,
+                                progress_cb=lambda up, tot: print(f"Progress: {(up/tot)*100:.2f}%", flush=True) if tot > 0 else None
+                            )
+                            result = {"status": "success" if success else "error", "message": msg}
+                            
+                    elif args.cmd == "ftp_delete":
+                        if not args.remote_path:
+                            result = {"status": "error", "message": "Missing remote path"}
+                        else:
+                            success, msg = ftp.delete_item(args.remote_path, args.is_dir)
+                            result = {"status": "success" if success else "error", "message": msg}
+                            
+                    elif args.cmd == "ftp_mkdir":
+                        if not args.remote_path:
+                            result = {"status": "error", "message": "Missing remote path"}
+                        else:
+                            success, msg = ftp.mkdir(args.remote_path)
+                            result = {"status": "success" if success else "error", "message": msg}
+                            
+                    ftp.disconnect()
+                    
+        # --- SAVE MANAGER COMMANDS ---
+        elif args.cmd.startswith("save_"):
+            save_mgr = SaveManager()
+            
+            if args.cmd == "save_scan":
+                result = {"status": "success", "data": save_mgr.scan_vault()}
+                
+            elif args.cmd == "save_import":
+                if not args.src:
+                    result = {"status": "error", "message": "Missing source file"}
+                else:
+                    result = save_mgr.import_save(args.src)
+                    
+            elif args.cmd == "save_delete":
+                if not args.arg:
+                    result = {"status": "error", "message": "Missing save filename to delete"}
+                else:
+                    result = save_mgr.delete_save(args.arg)
+            
             
     except Exception as e:
         result = {"status": "error", "message": str(e)}

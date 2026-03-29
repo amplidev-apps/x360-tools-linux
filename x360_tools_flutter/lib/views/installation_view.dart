@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import '../models/app_state.dart';
 
 class InstallationView extends StatelessWidget {
@@ -23,7 +24,7 @@ class InstallationView extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(vertical: 20),
                   child: Column(
                     children: [
-                      Image.asset("assets/x360_tools_logo_light.png", height: 200),
+                      SvgPicture.asset("assets/x360_new_logo_white.svg", height: 180),
                       const SizedBox(height: 10),
                       if (state.selectedDrive == null)
                         Text(
