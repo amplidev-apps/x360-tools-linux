@@ -471,6 +471,10 @@ class FreemarketEngine:
         os.makedirs(tu_dir, exist_ok=True)
         dest_path = os.path.join(tu_dir, tu_name)
         
+        # V106: Use unique temp path to prevent race conditions during parallel TU installs
+        import uuid
+        temp_dest = os.path.join(self.cache_dir, f"tu_temp_{str(uuid.uuid4())[:8]}")
+        
         # V99: Progress scaling (TU: 0-90% download, 90-100% install)
         def tu_wrapped_cb(msg):
             if not progress_cb: return
@@ -489,14 +493,22 @@ class FreemarketEngine:
         try:
             if progress_cb: progress_cb(f"PHASE:Baixando Title Update {tu_name}...")
             headers = self._get_headers(tu_url)
-            self._download_threaded(tu_url, dest_path, headers, tu_wrapped_cb, num_threads=32)
+            self._download_threaded(tu_url, temp_dest, headers, tu_wrapped_cb, num_threads=32)
             
             if progress_cb: progress_cb("Progress: 100.0%|Finalizado|--:--")
+            if progress_cb: progress_cb("PHASE:Finalizando Title Update...")
+            
+            # Move from temp to final destination
+            if os.path.exists(dest_path): os.remove(dest_path)
+            shutil.move(temp_dest, dest_path)
+            
             if progress_cb: progress_cb("PHASE:Title Update instalado com sucesso!")
             return True
         except Exception as e:
+            if os.path.exists(temp_dest): os.remove(temp_dest)
             if progress_cb: progress_cb(f"PHASE:Erro: {e}")
             return False
+
     def install_dlc(self, dlc_url, dlc_name, title_id, dest_drive, progress_cb=None, task_id=None):
         # Resolve bare URL if needed (V105)
         dlc_url = self._resolve_bare_url(dlc_url)
@@ -509,9 +521,13 @@ class FreemarketEngine:
         dlc_dest_dir = os.path.join(dest_drive, "Content", "0000000000000000", title_id, "00000002")
         os.makedirs(dlc_dest_dir, exist_ok=True)
         
-        temp_dir = os.path.join(self.cache_dir, "dlc_temp")
+        import uuid
+        install_id = task_id or str(uuid.uuid4())[:8]
+        temp_dir = os.path.join(self.cache_dir, f"dlc_temp_{install_id}")
         os.makedirs(temp_dir, exist_ok=True)
+        # Fallback to display name if URL resolution fails later
         temp_archive = os.path.join(temp_dir, dlc_name)
+
 
         # V99: Progress scaling (DLC: 0-80% download, 80-100% extraction)
         def dlc_wrapped_cb(msg):
@@ -544,7 +560,24 @@ class FreemarketEngine:
             headers = self._get_headers(dlc_url)
             self._download_threaded(dlc_url, temp_archive, headers, dlc_wrapped_cb, num_threads=32)
             
+            # V102: Robust Login Detection (Detect if we downloaded an HTML/Login page instead of archive)
+            try:
+                with open(temp_archive, "rb") as f:
+                    header = f.read(1024).decode('utf-8', errors='ignore').lower()
+                    if "<!doctype html" in header or "<html" in header or "login" in header:
+                        os.remove(temp_archive)
+                        raise Exception("Acesso Negado ou Redirecionamento. Por favor, faça login no Archive.org no botão acima ou verifique se o item está disponível.")
+                    # Also check for minimum size for a DLC (V102)
+                    f.seek(0, 2)
+                    if f.tell() < 1024 * 10: # Minimum 10KB
+                        os.remove(temp_archive)
+                        raise Exception(f"Arquivo da DLC é muito pequeno ({f.tell()} bytes). Download bloqueado ou arquivo inexistente no Archive.org.")
+            except Exception as e:
+                if "login" in str(e).lower() or "bloqueado" in str(e).lower(): raise e
+                pass
+
             # 2. Check if it's an archive — use URL extension, NOT dlc_name
+
             if url_ext.lower() in ('.zip', '.rar', '.7z'):
                 if progress_cb: progress_cb("PHASE:Extraindo DLC...")
                 if progress_cb: progress_cb("Progress: 90.0%|I/O|--:--")
