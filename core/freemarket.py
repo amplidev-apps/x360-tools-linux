@@ -9,6 +9,8 @@ import threading
 import shutil
 import urllib3
 import time
+import sys
+
 
 # Suppress SSL warnings so they don't break the Flutter service bridge
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -18,8 +20,9 @@ from core.utils import get_free_space, format_size
 
 IA_360_IDS = [
     "XBOX_360_1", "XBOX_360_2", "XBOX_360_3", "XBOX_360_4", "XBOX_360_5", "XBOX_360_6", "XBOX_360_1_OTHER",
-    "XBOX_360_DLC_1", "XBOX_360_DLC_2", "XBOX_360_DLC_3", "XBOX_360_DLC_4", "XBOX_360_DLC_5", "XBOX_360_DLC_6"
+    "msx360gcdlc"
 ]
+
 IA_CLASSIC_IDS = ["mxogcx-xbox-ztm"]
 
 class FreemarketEngine:
@@ -45,12 +48,24 @@ class FreemarketEngine:
         })
         
         # Load existing cookies into the session cookie jar (V97)
-        # Using the cookie JAR (not headers) ensures cookies are forwarded to CDN
-        # subdomains like dn720001.ca.archive.org after redirects.
         self._inject_session_cookies()
         
+        # V106: Automatic DB Cleanup (Remove legacy databases no longer in IA_IDS)
+        try:
+            valid_ids = set(IA_360_IDS + IA_CLASSIC_IDS)
+            if os.path.exists(self.ia_dbs_dir):
+                for db_name in os.listdir(self.ia_dbs_dir):
+                    if db_name.endswith("_meta.sqlite"):
+                        ia_id = db_name.replace("_meta.sqlite", "")
+                        if ia_id not in valid_ids:
+                            print(f"DEBUG: Removing legacy/unsupported IA DB: {ia_id}", file=sys.stderr)
+                            os.remove(os.path.join(self.ia_dbs_dir, db_name))
+        except Exception as e:
+            print(f"Error during legacy DB cleanup: {e}", file=sys.stderr)
+
         # V103: Task management for Cancel/Pause
         self._stop_events = {} # task_id -> threading.Event
+
         self._processes = {}   # task_id -> subprocess.Popen
         self._paused_tasks = set()
 
@@ -59,17 +74,18 @@ class FreemarketEngine:
         """Returns (is_dlc, base_name)."""
         # More aggressive patterns to catch noisy archive names
         dlc_patterns = [
-            r"[\s\-:]+dlc\b", 
+            r"[\s\-:\.]+dlc\b", 
             r"\bdownloadable content\b",
-            r"[\s\-:]+season pass\b",
-            r"[\s\-:]+bundle pack\b",
-            r"[\s\-:]+pack\b", 
-            r"[\s\-:]+expansion\b",
-            r"[\s\-:]+add-on\b", 
+            r"[\s\-:\.]+season pass\b",
+            r"[\s\-:\.]+bundle pack\b",
+            r"[\s\-:\.]+pack\b", 
+            r"[\s\-:\.]+expansion\b",
+            r"[\s\-:\.]+add-on\b", 
             r"\baddon\b",
-            r"[\s\-:]+content pack\b", 
-            r"[\s\-:]+map pack\b",
+            r"[\s\-:\.]+content pack\b", 
+            r"[\s\-:\.]+map pack\b",
         ]
+
         lower_name = name.lower()
         for pattern in dlc_patterns:
             match = re.search(pattern, lower_name, re.IGNORECASE)
@@ -203,8 +219,9 @@ class FreemarketEngine:
                             if name.lower().endswith(ext):
                                 name = name[:-4]
                                 
-                        if platform != "360":
-                            name = name.replace(".", " ")
+                        # V106: Always replace dots with spaces for a cleaner UI display
+                        name = name.replace(".", " ")
+
                         
                         is_dlc, base_name = self._detect_dlc_info(name)
                         raw_games.append({
@@ -326,13 +343,80 @@ class FreemarketEngine:
             "releaseDate": info.get("ReleaseDate")
         }
 
+    def find_dlcs_for_game(self, game_name):
+        """Finds DLCs for a game by matching normalized names in the catalog (V106)."""
+        import os, json
+        from core.utils import normalize_for_map
+        
+        catalog_path = self.cache_file_360
+        if not os.path.exists(catalog_path):
+            return []
+            
+        try:
+            with open(catalog_path, "r") as f:
+                catalog = json.load(f)
+        except:
+            return []
+            
+        norm_target = normalize_for_map(game_name)
+        results = []
+        for item in catalog:
+            if not item.get("is_dlc"): continue
+            
+            # The is_dlc flag already split the name into base_name (V97)
+            # But we re-normalize for maximum compatibility (e.g. V vs 5)
+            norm_item = normalize_for_map(item.get("name", ""))
+            
+            # Match if the game name is part of the dlc name or vice-versa
+            if norm_target in norm_item or norm_item in norm_target:
+                results.append({
+                    "Name": item.get("name"),
+                    "DownloadUrl": item.get("url")
+                })
+        return results
+
     def _download_threaded(self, url, dest_path, headers, progress_cb, num_threads=32, task_id=None):
+
         # Resolve final URL and size
         with self.session.get(url, headers=headers, stream=True, timeout=60, verify=False) as r:
+            # V106: Detect Archive.org restrictions early
+            if r.status_code in (401, 403):
+                 raise Exception("Acesso Negado (401/403). Este item é restrito e requer Login do Archive.org ou privilégios especiais.")
+            
             r.raise_for_status()
+            
+            # Diagnostic Peak (V106): Detect Archive.org restrictions and file validity early
+            # We read the first 1KB to check Content-Type, HTML errors, and ZIP headers
+            head_chunk = next(r.iter_content(chunk_size=1024), b'')
+            
+            # Check for HTML/XML error pages
+            ctype = r.headers.get('Content-Type', '').lower()
+            is_html = 'text/html' in ctype or b'<html' in head_chunk.lower() or b'<!doctype html' in head_chunk.lower()
+            is_xml = 'application/xml' in ctype or b'<?xml' in head_chunk[:20].lower() or b'<error' in head_chunk[:20].lower()
+
+            if is_html or is_xml:
+                 reason = "Redirecionado para Login ou Erro do Archive.org"
+                 if b'login' in head_chunk.lower() or 'login' in ctype:
+                      reason = "Acesso Negado (Login Requerido no Archive.org)"
+                 elif b'access' in head_chunk.lower() or b'restricted' in head_chunk.lower():
+                      reason = "Item Restrito ou Inacessível no Archive.org"
+                 raise Exception(f"{reason}. Por favor, tente refazer o login ou verifique se o item está disponível publicamente.")
+
+            # Validate ZIP Magic Bytes if it's supposed to be a ZIP
+            if url.lower().endswith('.zip') and head_chunk:
+                 if not head_chunk.startswith(b'PK'):
+                      # Not a ZIP Archive!
+                      snippet = head_chunk[:20].decode('utf-8', errors='ignore')
+                      raise Exception(f"ERRO: O servidor retornou um arquivo que NÃO é um ZIP válido (Início: '{snippet}'). O download foi interrompido para evitar erros de extração.")
+
             final_url = r.url
             total_size = int(r.headers.get('Content-Length', 0))
-            accept_ranges = r.headers.get('Accept-Ranges', '') == 'bytes'
+            accept_ranges = r.headers.get('Accept-Ranges', '').lower() == 'bytes'
+            
+            # If total_size is 0, we can try to get it from the chunk if we have to, 
+            # but usually Content-Length is present for valid direct links.
+
+
             
         if total_size <= 0 or not accept_ranges or num_threads <= 1:
             # Fallback to single stream
@@ -622,14 +706,22 @@ class FreemarketEngine:
         tu_dest_dir = os.path.join(dest_drive, "Content", "0000000000000000", title_id, "000B0000")
         os.makedirs(tu_dest_dir, exist_ok=True)
         
-        temp_dir = os.path.join(self.cache_dir, "tu_temp")
+        import uuid
+        temp_id = f"tu_temp_{str(uuid.uuid4())[:8]}"
+        temp_dir = os.path.join(self.cache_dir, temp_id)
         os.makedirs(temp_dir, exist_ok=True)
         temp_file = os.path.join(temp_dir, tu_name)
 
         try:
             # 1. Download (TU is usually a single small file)
             if progress_cb: progress_cb(f"PHASE:Baixando Title Update {tu_name}...")
+            
+            # V106: Add specific Referer for XboxUnity if needed
             headers = self._get_headers(tu_url)
+            if "xboxunity.net" in tu_url:
+                headers['Referer'] = 'https://xboxunity.net/'
+                headers['X-Requested-With'] = 'XMLHttpRequest'
+
             # Use multi-threaded download even for TU to ensure speed from Archive.org
             self._download_threaded(tu_url, temp_file, headers, progress_cb, num_threads=16)
             
@@ -645,9 +737,10 @@ class FreemarketEngine:
             if progress_cb: progress_cb(f"PHASE:Erro: {e}")
             return False
         finally:
-            if not has_error and os.path.exists(temp_dir):
+            if os.path.exists(temp_dir):
                 try: shutil.rmtree(temp_dir)
                 except: pass
+
 
     def download_cover(self, game_name, dest_path):
         try:

@@ -263,7 +263,7 @@ class _FreemarketViewState extends State<FreemarketView> {
     }).toList();
 
     return Container(
-      color: const Color(0xFF0A0A0A),
+      color: state.isDarkMode ? const Color(0xFF0A0A0A) : Colors.white,
       child: Column(
         children: [
           // 1. Premium Header with Glassmorphism
@@ -314,12 +314,12 @@ class _FreemarketViewState extends State<FreemarketView> {
               children: [
                 Text(
                   _selectedPlatform == "360" ? state.tr("Xbox 360 Library") : state.tr("Xbox Classic Library"),
-                  style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: state.isDarkMode ? Colors.white : Colors.black),
                 ),
                 const Spacer(),
-                _buildPlatformChip("360", state.tr("Xbox 360")),
+                _buildPlatformChip(state, "360", state.tr("Xbox 360")),
                 const SizedBox(width: 12),
-                _buildPlatformChip("classic", state.tr("Original Xbox")),
+                _buildPlatformChip(state, "classic", state.tr("Original Xbox")),
               ],
             ),
           ),
@@ -344,7 +344,7 @@ class _FreemarketViewState extends State<FreemarketView> {
                       childAspectRatio: 0.68,
                     ),
                     delegate: SliverChildBuilderDelegate(
-                      (context, index) => _buildGameCard(filteredGames[index]),
+                      (context, index) => _buildGameCard(state, filteredGames[index]),
                       childCount: filteredGames.length,
                     ),
                   ),
@@ -361,11 +361,11 @@ class _FreemarketViewState extends State<FreemarketView> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           const SizedBox(height: 100),
-          Icon(Icons.search_off_rounded, size: 64, color: Colors.white.withOpacity(0.1)),
+          Icon(Icons.search_off_rounded, size: 64, color: state.isDarkMode ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.1)),
           const SizedBox(height: 24),
-          const Text("Nenhuma sinopse disponível.", style: TextStyle(color: Colors.white38, fontSize: 18)),
+          Text(state.tr("Nenhuma sinopse disponível."), style: TextStyle(color: state.isDarkMode ? Colors.white38 : Colors.black38, fontSize: 18)),
           const SizedBox(height: 8),
-          const Text("Try changing the search query or platform category.", style: TextStyle(color: Colors.white12, fontSize: 14)),
+          Text(state.tr("Tente alterar o termo de busca ou a categoria da plataforma."), style: TextStyle(color: state.isDarkMode ? Colors.white12 : Colors.black12, fontSize: 14)),
         ],
       ),
     );
@@ -373,7 +373,7 @@ class _FreemarketViewState extends State<FreemarketView> {
 
   Widget _buildGameDetailView(AppState state) {
     return Container(
-      color: const Color(0xFF0A0A0A),
+      color: state.isDarkMode ? const Color(0xFF0A0A0A) : Colors.white,
       child: Column(
         children: [
           // Sub-header with Back Button
@@ -406,9 +406,9 @@ class _FreemarketViewState extends State<FreemarketView> {
   Widget _buildDetailHeader(AppState state) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
-      decoration: const BoxDecoration(
-        color: Colors.black,
-        border: Border(bottom: BorderSide(color: Colors.white10)),
+      decoration: BoxDecoration(
+        color: state.isDarkMode ? Colors.black : Colors.white,
+        border: Border(bottom: BorderSide(color: state.isDarkMode ? Colors.white10 : Colors.black12)),
       ),
       child: Row(
         children: [
@@ -420,7 +420,7 @@ class _FreemarketViewState extends State<FreemarketView> {
           const SizedBox(width: 12),
           Text(
             _selectedGame!['name'].toString().toUpperCase(),
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, letterSpacing: 1.5),
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, letterSpacing: 1.5, color: state.isDarkMode ? Colors.white : Colors.black),
           ),
         ],
       ),
@@ -476,23 +476,23 @@ class _FreemarketViewState extends State<FreemarketView> {
           Container(
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.02),
+              color: state.isDarkMode ? Colors.white.withOpacity(0.02) : Colors.black.withOpacity(0.02),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.white10),
+              border: Border.all(color: state.isDarkMode ? Colors.white10 : Colors.black12),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text("FICHA TÉCNICA", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF107C10))),
                 const SizedBox(height: 16),
-                _buildInfoRow(Icons.laptop, state.tr("Sistema"), _selectedPlatform == "360" ? "Xbox 360" : "Xbox Classic"),
-                _buildInfoRow(Icons.public, state.tr("Região"), _selectedGameDetails?['region'] ?? "Region-Free"),
-                _buildInfoRow(Icons.code, state.tr("GÊNERO"), _selectedGameDetails?['genre'] ?? "Ação e Aventura"),
-                _buildInfoRow(Icons.calendar_today, state.tr("LANÇAMENTO"), _selectedGameDetails?['releaseDate'] ?? "2010"),
-                _buildInfoRow(Icons.business, state.tr("DESENVOLVEDOR"), _selectedGameDetails?['developer'] ?? "Microsoft Studios"),
-                _buildInfoRow(Icons.store, state.tr("DISTRIBUIDORA"), _selectedGameDetails?['publisher'] ?? "Microsoft"),
-                _buildInfoRow(Icons.numbers, state.tr("TITLE ID"), _selectedGameDetails?['titleId'] ?? _selectedGame?['titleId'] ?? "Detectando..."),
-                _buildInfoRow(Icons.storage, state.tr("Tamanho"), _selectedGameDetails?['sizeFormatted'] ?? state.tr("Sob-Demanda")),
+                _buildInfoRow(state, Icons.laptop, state.tr("Sistema"), _selectedPlatform == "360" ? "Xbox 360" : "Xbox Classic"),
+                _buildInfoRow(state, Icons.public, state.tr("Região"), _selectedGameDetails?['region'] ?? "Region-Free"),
+                _buildInfoRow(state, Icons.code, state.tr("GÊNERO"), _selectedGameDetails?['genre'] ?? "Ação e Aventura"),
+                _buildInfoRow(state, Icons.calendar_today, state.tr("LANÇAMENTO"), _selectedGameDetails?['releaseDate'] ?? "2010"),
+                _buildInfoRow(state, Icons.business, state.tr("DESENVOLVEDOR"), _selectedGameDetails?['developer'] ?? "Microsoft Studios"),
+                _buildInfoRow(state, Icons.store, state.tr("DISTRIBUIDORA"), _selectedGameDetails?['publisher'] ?? "Microsoft"),
+                _buildInfoRow(state, Icons.numbers, state.tr("TITLE ID"), _selectedGameDetails?['titleId'] ?? _selectedGame?['titleId'] ?? "Detectando..."),
+                _buildInfoRow(state, Icons.storage, state.tr("Tamanho"), _selectedGameDetails?['sizeFormatted'] ?? state.tr("Sob-Demanda")),
               ],
             ),
           ),
@@ -501,21 +501,21 @@ class _FreemarketViewState extends State<FreemarketView> {
     );
   }
 
-  Widget _buildInfoRow(IconData icon, String label, String value) {
+  Widget _buildInfoRow(AppState state, IconData icon, String label, String value) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
         children: [
-          Icon(icon, size: 14, color: Colors.white38),
+          Icon(icon, size: 14, color: state.isDarkMode ? Colors.white38 : Colors.black38),
           const SizedBox(width: 12),
-          Text("$label:", style: const TextStyle(fontSize: 13, color: Colors.white38)),
+          Text("$label:", style: TextStyle(fontSize: 13, color: state.isDarkMode ? Colors.white38 : Colors.black38)),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               value,
               textAlign: TextAlign.right,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white70),
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: state.isDarkMode ? Colors.white70 : Colors.black87),
             ),
           ),
         ],
@@ -535,7 +535,7 @@ class _FreemarketViewState extends State<FreemarketView> {
             Expanded(
               child: Text(
                 _selectedGame!['name'],
-                style: const TextStyle(fontSize: 38, fontWeight: FontWeight.w900, letterSpacing: -1),
+                style: TextStyle(fontSize: 38, fontWeight: FontWeight.w900, letterSpacing: -1, color: state.isDarkMode ? Colors.white : Colors.black),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -565,7 +565,7 @@ class _FreemarketViewState extends State<FreemarketView> {
             const Icon(Icons.star, color: Colors.orange, size: 16),
             const Icon(Icons.star_half, color: Colors.orange, size: 16),
             const SizedBox(width: 12),
-            Text("${state.tr("Avaliação")}: ${_selectedGameDetails?['rating'] ?? '4.8'}/5.0", style: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 13)),
+            Text("${state.tr("Avaliação")}: ${_selectedGameDetails?['rating'] ?? '4.8'}/5.0", style: TextStyle(color: state.isDarkMode ? Colors.white.withOpacity(0.4) : Colors.black.withOpacity(0.4), fontSize: 13)),
             const SizedBox(width: 16),
             if (_selectedGameDetails?['source'] != null)
               Text("${state.tr("ORIGEM")}: ${_selectedGameDetails!['source']}", style: const TextStyle(color: Colors.orange, fontSize: 10, fontWeight: FontWeight.bold)),
@@ -581,9 +581,9 @@ class _FreemarketViewState extends State<FreemarketView> {
           const SizedBox(height: 16),
           Container(
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.02),
+              color: state.isDarkMode ? Colors.white.withOpacity(0.02) : Colors.black.withOpacity(0.02),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.white10),
+              border: Border.all(color: state.isDarkMode ? Colors.white10 : Colors.black12),
             ),
             child: Column(
               children: tus.map((tu) => _buildTURow(state, tu)).toList(),
@@ -599,27 +599,27 @@ class _FreemarketViewState extends State<FreemarketView> {
         if (_selectedGame != null && _selectedGame!['versions'] != null && (_selectedGame!['versions'] as List).length > 1) ...[
           Text(
             state.tr("REGIÃO / VERSÃO"),
-            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white54),
+            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: state.isDarkMode ? Colors.white54 : Colors.black54),
           ),
           const SizedBox(height: 16),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.02),
+              color: state.isDarkMode ? Colors.white.withOpacity(0.02) : Colors.black.withOpacity(0.02),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.white10),
+              border: Border.all(color: state.isDarkMode ? Colors.white10 : Colors.black12),
             ),
             child: DropdownButtonHideUnderline(
               child: DropdownButton<Map<String, dynamic>>(
                 value: _selectedVersion,
                 isExpanded: true,
-                dropdownColor: const Color(0xFF1E1E1E),
+                dropdownColor: state.isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
                 items: (_selectedGame!['versions'] as List).map((v) {
                   return DropdownMenuItem<Map<String, dynamic>>(
                     value: v as Map<String, dynamic>,
                     child: Text(
                       v['name'],
-                      style: const TextStyle(fontSize: 14, color: Colors.white),
+                      style: TextStyle(fontSize: 14, color: state.isDarkMode ? Colors.white : Colors.black),
                     ),
                   );
                 }).toList(),
@@ -641,7 +641,7 @@ class _FreemarketViewState extends State<FreemarketView> {
         const SizedBox(height: 16),
         Text(
           desc,
-          style: TextStyle(fontSize: 16, color: Colors.white.withOpacity(0.7), height: 1.6),
+          style: TextStyle(fontSize: 16, color: state.isDarkMode ? Colors.white.withOpacity(0.7) : Colors.black.withOpacity(0.7), height: 1.6),
         ),
         
         const SizedBox(height: 60),
@@ -794,12 +794,12 @@ class _FreemarketViewState extends State<FreemarketView> {
   Widget _buildDLCRow(AppState state, Map<String, dynamic> dlc) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: Colors.white12)),
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: state.isDarkMode ? Colors.white12 : Colors.black12)),
       ),
       child: Row(
         children: [
-          const Icon(Icons.add_box_outlined, color: Colors.white38, size: 20),
+          Icon(Icons.add_box_outlined, color: state.isDarkMode ? Colors.white38 : Colors.black38, size: 20),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
@@ -811,7 +811,7 @@ class _FreemarketViewState extends State<FreemarketView> {
                 ),
                 Text(
                   dlc['DownloadUrl'] != null ? "Download via Internet Archive" : (dlc['description'] ?? "Conteúdo Adicional"),
-                  style: const TextStyle(fontSize: 12, color: Colors.white30),
+                  style: TextStyle(fontSize: 12, color: state.isDarkMode ? Colors.white30 : Colors.black38),
                 ),
               ],
             ),
@@ -866,18 +866,18 @@ class _FreemarketViewState extends State<FreemarketView> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: Colors.white.withOpacity(0.05))),
+        border: Border(bottom: BorderSide(color: state.isDarkMode ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.05))),
       ),
       child: Row(
         children: [
-          const Icon(Icons.system_update, size: 16, color: Colors.white38),
+          Icon(Icons.system_update, size: 16, color: state.isDarkMode ? Colors.white38 : Colors.black38),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text("TU Version $version", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                Text("Media ID: $mediaId", style: const TextStyle(fontSize: 11, color: Colors.white24)),
+                Text("Media ID: $mediaId", style: TextStyle(fontSize: 11, color: state.isDarkMode ? Colors.white24 : Colors.black26)),
               ],
             ),
           ),
@@ -1011,8 +1011,8 @@ class _FreemarketViewState extends State<FreemarketView> {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
           decoration: BoxDecoration(
-            color: Colors.black.withOpacity(0.5),
-            border: const Border(bottom: BorderSide(color: Colors.white10)),
+            color: state.isDarkMode ? Colors.black.withOpacity(0.5) : Colors.white.withOpacity(0.8),
+            border: Border(bottom: BorderSide(color: state.isDarkMode ? Colors.white10 : Colors.black12)),
           ),
           child: Row(
             children: [
@@ -1020,15 +1020,15 @@ class _FreemarketViewState extends State<FreemarketView> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(state.tr("x360 FREEMARKET"), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, letterSpacing: 1.2, color: Color(0xFF107C10))),
-                  Text(state.tr("The ultimate Xbox marketplace"), style: const TextStyle(fontSize: 12, color: Colors.white38)),
+                  Text(state.tr("The ultimate Xbox marketplace"), style: TextStyle(fontSize: 12, color: state.isDarkMode ? Colors.white38 : Colors.black54)),
                 ],
               ),
               const Spacer(),
               
               // Tabs navigation
-              _buildTabButton(state.tr("CATÁLOGO"), FreemarketTab.catalog),
+              _buildTabButton(state, state.tr("CATÁLOGO"), FreemarketTab.catalog),
               const SizedBox(width: 8),
-              _buildTabButton(state.tr("DOWNLOADS"), FreemarketTab.downloads, badge: state.downloads.where((d) => d.phase != DownloadPhase.completed && d.phase != DownloadPhase.failed && d.phase != DownloadPhase.canceled).length),
+              _buildTabButton(state, state.tr("DOWNLOADS"), FreemarketTab.downloads, badge: state.downloads.where((d) => d.phase != DownloadPhase.completed && d.phase != DownloadPhase.failed && d.phase != DownloadPhase.canceled).length),
               
               const SizedBox(width: 32),
 
@@ -1038,28 +1038,28 @@ class _FreemarketViewState extends State<FreemarketView> {
                   constraints: const BoxConstraints(maxWidth: 350),
                   height: 40,
                   decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.05),
+                  color: state.isDarkMode ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.05),
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.white10),
+                  border: Border.all(color: state.isDarkMode ? Colors.white10 : Colors.black12),
                 ),
-                child: TextField(
-                  focusNode: _searchFocusNode,
-                  controller: _searchController,
-                  onChanged: (v) {
-                    if (_debounce?.isActive ?? false) _debounce!.cancel();
-                    _debounce = Timer(const Duration(milliseconds: 300), () {
-                      setState(() => _searchQuery = v);
-                    });
-                  },
-                  style: const TextStyle(color: Colors.white, fontSize: 13),
-                  decoration: InputDecoration(
-                    hintText: state.tr("Search Games, DLCs & Apps..."),
-                    hintStyle: const TextStyle(color: Colors.white24, fontSize: 13),
-                    prefixIcon: Icon(Icons.search, color: Colors.white38, size: 18),
-                    border: InputBorder.none,
-                    contentPadding: EdgeInsets.symmetric(vertical: 10),
+                  child: TextField(
+                    focusNode: _searchFocusNode,
+                    controller: _searchController,
+                    onChanged: (v) {
+                      if (_debounce?.isActive ?? false) _debounce!.cancel();
+                      _debounce = Timer(const Duration(milliseconds: 300), () {
+                        setState(() => _searchQuery = v);
+                      });
+                    },
+                    style: TextStyle(color: state.isDarkMode ? Colors.white : Colors.black, fontSize: 13),
+                    decoration: InputDecoration(
+                      hintText: state.tr("Search Games, DLCs & Apps..."),
+                      hintStyle: TextStyle(color: state.isDarkMode ? Colors.white24 : Colors.black26, fontSize: 13),
+                      prefixIcon: Icon(Icons.search, color: state.isDarkMode ? Colors.white38 : Colors.black38, size: 18),
+                      border: InputBorder.none,
+                      contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                    ),
                   ),
-                ),
               ),
             ),
             const SizedBox(width: 20),
@@ -1067,7 +1067,7 @@ class _FreemarketViewState extends State<FreemarketView> {
               // Refresh button
               IconButton(
                 onPressed: () => state.fetchGames(platform: _selectedPlatform, refresh: true),
-                icon: const Icon(Icons.refresh, color: Colors.white54),
+                icon: Icon(Icons.refresh, color: state.isDarkMode ? Colors.white54 : Colors.black54),
                 tooltip: state.tr("Refresh Catalog (Force)"),
               ),
             ],
@@ -1083,10 +1083,12 @@ class _FreemarketViewState extends State<FreemarketView> {
       width: double.infinity,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
-        gradient: const LinearGradient(
+        gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF1E1E1E), Color(0xFF0A0A0A)],
+          colors: state.isDarkMode 
+            ? [const Color(0xFF1E1E1E), const Color(0xFF0A0A0A)]
+            : [const Color(0xFFF2F2F2), Colors.white],
         ),
         boxShadow: [
           BoxShadow(
@@ -1145,16 +1147,16 @@ class _FreemarketViewState extends State<FreemarketView> {
                   child: Text(state.tr("FEATURED"), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white)),
                 ),
                 const SizedBox(height: 16),
-                const Text(
+                Text(
                   "EXPLORE O MELHOR\nDO XBOX SEM DIFICULDADES",
-                  style: TextStyle(fontSize: 48, fontWeight: FontWeight.w900, height: 1.0, letterSpacing: -1.5),
+                  style: TextStyle(fontSize: 48, fontWeight: FontWeight.w900, height: 1.0, letterSpacing: -1.5, color: state.isDarkMode ? Colors.white : Colors.black),
                 ),
                 const SizedBox(height: 16),
-                const SizedBox(
+                SizedBox(
                   width: 400,
                   child: Text(
                     "Milhares de títulos de Xbox 360 e Original Xbox a um clique de distância. A maior biblioteca retrô no seu PC.",
-                    style: TextStyle(fontSize: 16, color: Colors.white54),
+                    style: TextStyle(fontSize: 16, color: state.isDarkMode ? Colors.white54 : Colors.black54),
                   ),
                 ),
                 const SizedBox(height: 32),
@@ -1185,7 +1187,7 @@ class _FreemarketViewState extends State<FreemarketView> {
     );
   }
 
-  Widget _buildPlatformChip(String platform, String label) {
+  Widget _buildPlatformChip(AppState state, String platform, String label) {
     bool isSelected = _selectedPlatform == platform;
     return InkWell(
       onTap: () => _changePlatform(platform),
@@ -1201,7 +1203,7 @@ class _FreemarketViewState extends State<FreemarketView> {
         child: Text(
           label,
           style: TextStyle(
-            color: isSelected ? Colors.white : Colors.white54,
+            color: isSelected ? Colors.white : (state.isDarkMode ? Colors.white54 : Colors.black54),
             fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
             fontSize: 13,
           ),
@@ -1210,7 +1212,7 @@ class _FreemarketViewState extends State<FreemarketView> {
     );
   }
 
-  Widget _buildGameCard(Map<String, dynamic> game) {
+  Widget _buildGameCard(AppState state, Map<String, dynamic> game) {
     return InkWell(
       onTap: () => _selectGame(game),
       borderRadius: BorderRadius.circular(12),
@@ -1270,7 +1272,7 @@ class _FreemarketViewState extends State<FreemarketView> {
             const SizedBox(height: 4),
             Row(
               children: [
-                Text(game['platform'] == '360' ? "Xbox 360" : "Original Xbox", style: const TextStyle(fontSize: 11, color: Colors.white38)),
+                Text(game['platform'] == '360' ? "Xbox 360" : "Original Xbox", style: TextStyle(fontSize: 11, color: state.isDarkMode ? Colors.white38 : Colors.black38)),
                 const Spacer(),
                 const Icon(Icons.cloud_download, size: 12, color: Color(0xFF107C10)),
               ],
@@ -1281,7 +1283,7 @@ class _FreemarketViewState extends State<FreemarketView> {
     );
   }
 
-  Widget _buildTabButton(String label, FreemarketTab tab, {int badge = 0}) {
+  Widget _buildTabButton(AppState state, String label, FreemarketTab tab, {int badge = 0}) {
     final isSelected = _currentTab == tab;
     return InkWell(
       onTap: () => setState(() => _currentTab = tab),
@@ -1295,13 +1297,13 @@ class _FreemarketViewState extends State<FreemarketView> {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(label, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: isSelected ? Colors.white : Colors.white70)),
+            Text(label, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: isSelected ? Colors.white : (state.isDarkMode ? Colors.white70 : Colors.black54))),
             if (badge > 0) ...[
               const SizedBox(width: 8),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(color: Colors.redAccent, borderRadius: BorderRadius.circular(10)),
-                child: Text(badge.toString(), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+                child: Text(badge.toString(), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white)),
               )
             ]
           ],

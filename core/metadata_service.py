@@ -304,7 +304,8 @@ class MetadataService:
                 conn.execute("PRAGMA journal_mode=WAL;")
                 cur = conn.cursor()
                 norm = normalize_for_map(name)
-                cur.execute("SELECT * FROM games WHERE normalized_name = ? OR name = ?", (norm, name))
+                cur.execute("SELECT * FROM games WHERE title_id = ? OR normalized_name = ? OR name = ?", (name, norm, name))
+
                 row = cur.fetchone()
                 if row:
                     # 📜 Ensure description is translated (V78)
@@ -330,22 +331,14 @@ class MetadataService:
                     from core.freemarket import FreemarketEngine
                     engine = FreemarketEngine()
                     
-                    cur.execute("SELECT media_id, version, tu_id, download_url FROM title_updates WHERE title_id = ?", (row[0],))
-                    for tu in cur.fetchall():
-                        tu_url = engine._resolve_bare_url(tu[3])
-                        res["TitleUpdates"].append({
-                            "MediaID": tu[0], "Version": tu[1], "TitleUpdateID": tu[2], "downloadUrl": tu_url
-                        })
+                    # Fetch Title Updates Dynamically (V106)
+                    res["TitleUpdates"] = self._fetch_tus_dynamically(res["TitleID"])
+
                     
-                    # Fetch Linked DLCs (V45)
-                    res["DLCs"] = []
-                    cur.execute("SELECT name, download_url FROM dlcs WHERE base_title_id = ?", (row[0],))
-                    for dlc in cur.fetchall():
-                        dlc_url = engine._resolve_bare_url(dlc[1])
-                        res["DLCs"].append({
-                            "Name": dlc[0],
-                            "DownloadUrl": dlc_url
-                        })
+                    # Fetch Linked DLCs Dynamically from Freemarket Engine (V106)
+                    # This replaces the hardcoded and stale 'dlcs' table in metadata.db
+                    res["DLCs"] = engine.find_dlcs_for_game(row[1]) # Pass game name
+
 
 
                     conn.close()
@@ -390,15 +383,63 @@ class MetadataService:
         except: pass
         return None
 
+    def _fetch_tus_dynamically(self, title_id):
+        """Fetches TUs in real-time from XboxUnity (V106)."""
+        if not title_id or title_id == "Desconhecido": return []
+        
+        try:
+            url = "https://xboxunity.net/Resources/Lib/TitleUpdateInfo.php"
+            params = {"titleid": title_id}
+            headers = {
+                'User-Agent': 'Mozilla/5.0 x360Tools/1.1',
+                'X-Requested-With': 'XMLHttpRequest',
+                'Referer': 'https://xboxunity.net/'
+            }
+            resp = requests.get(url, params=params, headers=headers, timeout=10, verify=False)
+            if resp.status_code != 200: return []
+            
+            data = resp.json()
+            tus = []
+            
+            # Type 1: MediaIDS structure (e.g. GTA V)
+            if data.get('Type') == 1 and 'MediaIDS' in data:
+                for media in data['MediaIDS']:
+                    mid = media.get('MediaID', '')
+                    for up in media.get('Updates', []):
+                        tu_id = up.get('TitleUpdateID', '')
+                        tus.append({
+                            "MediaID": mid,
+                            "Version": up.get('Version', ''),
+                            "TitleUpdateID": tu_id,
+                            "downloadUrl": f"https://xboxunity.net/Resources/Lib/TitleUpdate.php?tuid={tu_id}"
+                        })
+            
+            # Type 2: Direct Updates structure
+            elif data.get('Type') == 2 and 'Updates' in data:
+                for up in data['Updates']:
+                    tu_id = up.get('TitleUpdateID', '')
+                    tus.append({
+                        "MediaID": up.get('MediaID', ''),
+                        "Version": up.get('Version', ''),
+                        "TitleUpdateID": tu_id,
+                        "downloadUrl": f"https://xboxunity.net/Resources/Lib/TitleUpdate.php?tuid={tu_id}"
+                    })
+            
+            return tus
+        except Exception as e:
+            print(f"[!] Dynamic TU Fetch Error: {e}")
+            return []
+
     def get_title_updates(self, title_id):
         """Legacy compatibility."""
-        res = self.search_unity_by_name(title_id)
-        return res.get("TitleUpdates", [])
+        return self._fetch_tus_dynamically(title_id)
 
     def get_dlcs(self, title_id):
         """Legacy compatibility."""
+        # First resolve title_id to name if it's an ID
         res = self.search_unity_by_name(title_id)
         return res.get("DLCs", [])
+
 
 def get_service():
     """Singleton provider."""

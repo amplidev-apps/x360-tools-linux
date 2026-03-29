@@ -53,16 +53,16 @@ class _BackupViewState extends State<BackupView> {
     return "${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(1)} GB";
   }
 
-  Future<bool> _showSummaryDialog(String title, List<dynamic> summary, {bool isRestore = false}) async {
+  Future<bool> _showSummaryDialog(AppState state, String title, List<dynamic> summary, {bool isRestore = false}) async {
     return await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF1A1A1A),
+        backgroundColor: state.isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
         title: Row(
           children: [
             Icon(isRestore ? Icons.cloud_download : Icons.cloud_upload, color: const Color(0xFF107C10)),
             const SizedBox(width: 12),
-            Text(title, style: const TextStyle(color: Colors.white)),
+            Text(title, style: TextStyle(color: state.isDarkMode ? Colors.white : Colors.black)),
           ],
         ),
         content: SizedBox(
@@ -74,7 +74,7 @@ class _BackupViewState extends State<BackupView> {
                 isRestore 
                   ? "Os seguintes itens serão instalados no seu dispositivo. O dispositivo será TOTALMENTE LIMPO antes da instalação."
                   : "Os seguintes itens foram identificados para o backup:",
-                style: TextStyle(color: Colors.white.withOpacity(0.7)),
+                style: TextStyle(color: state.isDarkMode ? Colors.white.withOpacity(0.7) : Colors.black.withOpacity(0.7)),
               ),
               const SizedBox(height: 20),
               Flexible(
@@ -82,19 +82,19 @@ class _BackupViewState extends State<BackupView> {
                   constraints: const BoxConstraints(maxHeight: 300),
                   child: Container(
                     decoration: BoxDecoration(
-                      color: Colors.black26,
+                      color: state.isDarkMode ? Colors.black26 : Colors.black.withOpacity(0.05),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: ListView.separated(
                       shrinkWrap: true,
                       itemCount: summary.length,
-                      separatorBuilder: (context, index) => const Divider(color: Colors.white10, height: 1),
+                      separatorBuilder: (context, index) => Divider(color: state.isDarkMode ? Colors.white10 : Colors.black12, height: 1),
                       itemBuilder: (context, index) {
                         final item = summary[index];
                         return ListTile(
                           leading: Icon(_getIconData(item['icon']), color: const Color(0xFF107C10)),
-                          title: Text(item['name'], style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                          subtitle: Text("${item['category']} • ${_formatSize(item['size_bytes'])}", style: const TextStyle(color: Colors.white54)),
+                          title: Text(item['name'], style: TextStyle(color: state.isDarkMode ? Colors.white : Colors.black, fontWeight: FontWeight.bold)),
+                          subtitle: Text("${item['category']} • ${_formatSize(item['size_bytes'])}", style: TextStyle(color: state.isDarkMode ? Colors.white54 : Colors.black54)),
                         );
                       },
                     ),
@@ -115,7 +115,7 @@ class _BackupViewState extends State<BackupView> {
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("CANCELAR", style: TextStyle(color: Colors.white54))),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text("CANCELAR", style: TextStyle(color: state.isDarkMode ? Colors.white54 : Colors.black54))),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF107C10)),
@@ -140,7 +140,7 @@ class _BackupViewState extends State<BackupView> {
       return;
     }
 
-    final confirmed = await _showSummaryDialog("Resumo do Backup", summaryRes['summary']);
+    final confirmed = await _showSummaryDialog(state, "Resumo do Backup", summaryRes['summary']);
     if (!confirmed) {
       setState(() => _status = "Backup cancelado pelo usuário.");
       return;
@@ -254,7 +254,7 @@ class _BackupViewState extends State<BackupView> {
       }
     }
 
-    final confirmed = await _showSummaryDialog("Resumo da Restauração", summaryRes['summary'], isRestore: true);
+    final confirmed = await _showSummaryDialog(state, "Resumo da Restauração", summaryRes['summary'], isRestore: true);
     if (!confirmed) {
       setState(() => _status = "Restauração cancelada.");
       return;
@@ -306,10 +306,10 @@ class _BackupViewState extends State<BackupView> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(state.tr("Backup e Restauração"), style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold)),
+                  Text(state.tr("Backup e Restauração"), style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: state.isDarkMode ? Colors.white : Colors.black)),
                   Text(
                     state.tr("Salve ou restaure a configuração completa do seu dispositivo."),
-                    style: TextStyle(fontSize: 16, color: Colors.white.withOpacity(0.5)),
+                    style: TextStyle(fontSize: 16, color: state.isDarkMode ? Colors.white.withOpacity(0.5) : Colors.black.withOpacity(0.5)),
                   ),
                 ],
               ),
@@ -321,25 +321,25 @@ class _BackupViewState extends State<BackupView> {
           Container(
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              color: Colors.black26,
+              color: state.isDarkMode ? Colors.black26 : Colors.black.withOpacity(0.05),
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.white10),
+              border: Border.all(color: state.isDarkMode ? Colors.white10 : Colors.black12),
             ),
             child: Row(
               children: [
-                const Icon(Icons.usb, color: Colors.white54),
+                Icon(Icons.usb, color: state.isDarkMode ? Colors.white54 : Colors.black54),
                 const SizedBox(width: 16),
-                const Text("Dispositivo:", style: TextStyle(fontWeight: FontWeight.bold)),
+                Text("Dispositivo:", style: TextStyle(fontWeight: FontWeight.bold, color: state.isDarkMode ? Colors.white : Colors.black)),
                 const SizedBox(width: 24),
                 Expanded(
                   child: DropdownButtonHideUnderline(
                     child: DropdownButton<String>(
                       value: state.selectedDrive?['device'],
-                      dropdownColor: const Color(0xFF1A1A1A),
+                      dropdownColor: state.isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
                       items: state.drives.map((d) {
                         return DropdownMenuItem<String>(
                           value: d['device'],
-                          child: Text("${d['label']} (${d['size_gb']} GB)"),
+                          child: Text("${d['label']} (${d['size_gb']} GB)", style: TextStyle(color: state.isDarkMode ? Colors.white : Colors.black)),
                         );
                       }).toList(),
                       onChanged: (v) {
@@ -359,23 +359,23 @@ class _BackupViewState extends State<BackupView> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
             decoration: BoxDecoration(
-              color: Colors.black12,
+              color: state.isDarkMode ? Colors.black12 : Colors.black.withOpacity(0.02),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.white10),
+              border: Border.all(color: state.isDarkMode ? Colors.white10 : Colors.black12),
             ),
             child: Row(
               children: [
                 const Icon(Icons.label_important_outline, color: Color(0xFF107C10), size: 20),
                 const SizedBox(width: 16),
-                const Text("Nome para o Backup:", style: TextStyle(color: Colors.white70, fontSize: 13)),
+                Text("Nome para o Backup:", style: TextStyle(color: state.isDarkMode ? Colors.white70 : Colors.black87, fontSize: 13)),
                 const SizedBox(width: 16),
                 Expanded(
                   child: TextField(
                     controller: _labelController,
-                    style: const TextStyle(color: Colors.white, fontSize: 14),
-                    decoration: const InputDecoration(
+                    style: TextStyle(color: state.isDarkMode ? Colors.white : Colors.black, fontSize: 14),
+                    decoration: InputDecoration(
                       hintText: "Máximo 11 caracteres",
-                      hintStyle: TextStyle(color: Colors.white24),
+                      hintStyle: TextStyle(color: state.isDarkMode ? Colors.white24 : Colors.black26),
                       border: InputBorder.none,
                       counterText: "",
                     ),
@@ -392,6 +392,7 @@ class _BackupViewState extends State<BackupView> {
             children: [
               Expanded(
                 child: _buildActionCard(
+                  state,
                   "CRIA BACKUP",
                   "Comprime todo o conteúdo em um arquivo .x360b",
                   Icons.cloud_upload,
@@ -401,6 +402,7 @@ class _BackupViewState extends State<BackupView> {
               const SizedBox(width: 24),
               Expanded(
                 child: _buildActionCard(
+                  state,
                   "RESTAURAR",
                   "Extrai um arquivo .x360b para o dispositivo",
                   Icons.cloud_download,
@@ -456,7 +458,7 @@ class _BackupViewState extends State<BackupView> {
     );
   }
 
-  Widget _buildActionCard(String title, String subtitle, IconData icon, VoidCallback? onTap, {bool isSecondary = false}) {
+  Widget _buildActionCard(AppState state, String title, String subtitle, IconData icon, VoidCallback? onTap, {bool isSecondary = false}) {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(16),
@@ -465,17 +467,17 @@ class _BackupViewState extends State<BackupView> {
         child: Container(
           padding: const EdgeInsets.all(32),
           decoration: BoxDecoration(
-            color: isSecondary ? Colors.white.withOpacity(0.02) : const Color(0xFF107C10).withOpacity(0.1),
+            color: isSecondary ? (state.isDarkMode ? Colors.white.withOpacity(0.02) : Colors.black.withOpacity(0.05)) : const Color(0xFF107C10).withOpacity(0.1),
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: isSecondary ? Colors.white10 : const Color(0xFF107C10).withOpacity(0.5)),
+            border: Border.all(color: isSecondary ? (state.isDarkMode ? Colors.white10 : Colors.black12) : const Color(0xFF107C10).withOpacity(0.5)),
           ),
           child: Column(
             children: [
-              Icon(icon, size: 48, color: isSecondary ? Colors.white : const Color(0xFF107C10)),
+              Icon(icon, size: 48, color: isSecondary ? (state.isDarkMode ? Colors.white : Colors.black) : const Color(0xFF107C10)),
               const SizedBox(height: 24),
-              Text(title, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, letterSpacing: 1.5)),
+              Text(title, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, letterSpacing: 1.5, color: state.isDarkMode ? Colors.white : Colors.black)),
               const SizedBox(height: 8),
-              Text(subtitle, textAlign: TextAlign.center, style: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 13)),
+              Text(subtitle, textAlign: TextAlign.center, style: TextStyle(color: state.isDarkMode ? Colors.white.withOpacity(0.4) : Colors.black.withOpacity(0.4), fontSize: 13)),
             ],
           ),
         ),

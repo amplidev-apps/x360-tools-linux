@@ -34,7 +34,10 @@ class HomeView extends StatelessWidget {
             subtitle: state.tr("Configure seu console do zero com o Wizard guiado."),
             icon: Icons.auto_awesome,
             color: const Color(0xFF107C10),
-            onTap: () => onNavigate(1),
+            onTap: () {
+              state.startWizard();
+              onNavigate(1);
+            },
           ),
           const SizedBox(height: 20),
           
@@ -46,7 +49,7 @@ class HomeView extends StatelessWidget {
                   subtitle: state.tr("Aurora, Freestyle e mais."),
                   icon: Icons.dashboard_customize,
                   color: Colors.blueAccent,
-                  onTap: () => onNavigate(2),
+                  onTap: () => onNavigate(4),
                 ),
               ),
               const SizedBox(width: 20),
@@ -56,7 +59,7 @@ class HomeView extends StatelessWidget {
                   subtitle: state.tr("Apps essenciais para seu 360."),
                   icon: Icons.apps,
                   color: Colors.deepPurpleAccent,
-                  onTap: () => onNavigate(3),
+                  onTap: () => onNavigate(5),
                 ),
               ),
             ],
@@ -71,7 +74,7 @@ class HomeView extends StatelessWidget {
                   subtitle: state.tr("Serviços online e segurança."),
                   icon: Icons.security,
                   color: Colors.redAccent,
-                  onTap: () => onNavigate(4),
+                  onTap: () => onNavigate(6),
                 ),
               ),
               const SizedBox(width: 20),
@@ -81,7 +84,7 @@ class HomeView extends StatelessWidget {
                   subtitle: state.tr("Expanda as funções do seu console."),
                   icon: Icons.extension,
                   color: Colors.orangeAccent,
-                  onTap: () => onNavigate(5),
+                  onTap: () => onNavigate(7),
                 ),
               ),
             ],
@@ -93,7 +96,7 @@ class HomeView extends StatelessWidget {
             subtitle: state.tr("Gerencie DLCs, TUs e Saves com facilidade."),
             icon: Icons.send_to_mobile,
             color: const Color(0xFF107C10),
-            onTap: () => onNavigate(6),
+            onTap: () => onNavigate(8),
           ),
           const SizedBox(height: 20),
 
@@ -102,7 +105,7 @@ class HomeView extends StatelessWidget {
             subtitle: state.tr("Transforme ISOs em GOD (360) ou Extraia (Clássico)."),
             icon: Icons.transform,
             color: Colors.blueGrey,
-            onTap: () => onNavigate(7),
+            onTap: () => onNavigate(9),
           ),
           const SizedBox(height: 20),
 
@@ -111,7 +114,7 @@ class HomeView extends StatelessWidget {
             subtitle: state.tr("Personalize seu console com Gamer Pictures customizadas."),
             icon: Icons.photo_library,
             color: Colors.teal,
-            onTap: () => onNavigate(8),
+            onTap: () => onNavigate(10),
           ),
           const SizedBox(height: 20),
 
@@ -120,7 +123,7 @@ class HomeView extends StatelessWidget {
             subtitle: state.tr("Crie uma imagem completa (.x360b) do seu dispositivo."),
             icon: Icons.settings_backup_restore,
             color: const Color(0xFF107C10),
-            onTap: () => onNavigate(9),
+            onTap: () => onNavigate(11),
           ),
           
           const SizedBox(height: 48),
@@ -254,7 +257,7 @@ class HomeView extends StatelessWidget {
                 const SizedBox(height: 10),
                 Text(
                   state.tr("A central definitiva para o seu Xbox 360 no PC."), 
-                  style: TextStyle(fontSize: 18, color: Colors.white.withOpacity(0.6))
+                  style: TextStyle(fontSize: 18, color: Colors.white.withOpacity(0.8))
                 ),
               ],
             ),

@@ -72,14 +72,14 @@ class _ProfilePicsViewState extends State<ProfilePicsView> with SingleTickerProv
           // ── TabBar ──────────────────────────────────────────────────────
           Container(
             decoration: BoxDecoration(
-              color: const Color(0xFF151515),
+              color: state.isDarkMode ? const Color(0xFF151515) : Colors.white70,
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.white.withOpacity(0.05)),
+              border: Border.all(color: state.isDarkMode ? Colors.white.withOpacity(0.05) : Colors.black12),
             ),
             child: TabBar(
               controller: _tabController,
               labelColor: const Color(0xFF107C10),
-              unselectedLabelColor: Colors.white54,
+              unselectedLabelColor: state.isDarkMode ? Colors.white54 : Colors.black54,
               indicatorColor: const Color(0xFF107C10),
               indicatorSize: TabBarIndicatorSize.tab,
               dividerColor: Colors.transparent,
@@ -122,19 +122,11 @@ class _ProfilePicsViewState extends State<ProfilePicsView> with SingleTickerProv
               controller: _tabController,
               children: [
                 // ── Tab 1: Library ──────────────────────────────────────
-                Column(
-                  children: [
-                    _buildFilters(state, genres),
-                    const SizedBox(height: 16),
-                    Expanded(
-                      child: state.isLoadingGamerpics
-                          ? const Center(child: CircularProgressIndicator(color: Color(0xFF107C10)))
-                          : filteredPics.isEmpty
-                              ? _buildEmptyState(state, "Nenhum herói encontrado.")
-                              : _buildGrid(filteredPics, state, showInject: true),
-                    ),
-                  ],
-                ),
+                state.isLoadingGamerpics
+                    ? const Center(child: CircularProgressIndicator(color: Color(0xFF107C10)))
+                    : state.gamerpics.isEmpty
+                        ? _buildEmptyState(state, "Nenhum herói encontrado.")
+                        : _buildGrid(state.gamerpics, state, showInject: true),
                 // ── Tab 2: Installed on Device ──────────────────────────
                 Column(
                   children: [
@@ -159,22 +151,60 @@ class _ProfilePicsViewState extends State<ProfilePicsView> with SingleTickerProv
 
   Widget _buildHeader(AppState state) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               state.tr("Profile Pics"),
-              style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white),
+              style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: state.isDarkMode ? Colors.white : Colors.black),
             ),
             const SizedBox(height: 8),
             Text(
               state.tr("Selecione um heroi para injetar no seu dispositivo."),
-              style: TextStyle(fontSize: 14, color: Colors.white.withOpacity(0.6)),
+              style: TextStyle(fontSize: 14, color: state.isDarkMode ? Colors.white.withOpacity(0.6) : Colors.black.withOpacity(0.6)),
             ),
           ],
         ),
+        const Spacer(),
+        // ── Global Device Selector ──────────────────────────────────────
+        Container(
+          width: 240,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          decoration: BoxDecoration(
+            color: state.isDarkMode ? const Color(0xFF151515) : Colors.white,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: state.isDarkMode ? Colors.white.withOpacity(0.1) : Colors.black12),
+          ),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<String>(
+              value: state.drives.isEmpty 
+                  ? null 
+                  : state.drives.any((d) => d['device'] == state.selectedDrive?['device']) 
+                      ? state.selectedDrive!['device'] 
+                      : state.drives.first['device'],
+              dropdownColor: state.isDarkMode ? const Color(0xFF151515) : Colors.white,
+              isExpanded: true,
+              style: TextStyle(color: state.isDarkMode ? Colors.white : Colors.black, fontSize: 13),
+              icon: const Icon(Icons.usb, size: 18, color: Color(0xFF107C10)),
+              onChanged: (val) {
+                if (val != null) {
+                  final drive = state.drives.firstWhere((d) => d['device'] == val);
+                  state.selectDrive(drive);
+                }
+              },
+              items: state.drives.map((d) {
+                final label = d['label'] ?? d['device'];
+                final size = d['size_gb'] != null ? "${d['size_gb']}GB" : (d['size'] ?? "");
+                return DropdownMenuItem<String>(
+                  value: d['device'].toString(),
+                  child: Text("$label ($size)", overflow: TextOverflow.ellipsis),
+                );
+              }).toList(),
+            ),
+          ),
+        ),
+        const SizedBox(width: 16),
         ElevatedButton.icon(
           onPressed: () async {
             final path = await state.pickFile(
@@ -205,46 +235,15 @@ class _ProfilePicsViewState extends State<ProfilePicsView> with SingleTickerProv
   Widget _buildDeviceHeader(AppState state) {
     return Row(
       children: [
-        Expanded(
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            decoration: BoxDecoration(
-              color: const Color(0xFF151515),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.white.withOpacity(0.05)),
-            ),
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<String>(
-                value: state.drives.isEmpty ? null : state.drives.any((d) => d['device'] == state.selectedDrive?['device']) ? state.selectedDrive!['device'] : state.drives.first['device'],
-                dropdownColor: const Color(0xFF151515),
-                isExpanded: true,
-                style: const TextStyle(color: Colors.white, fontSize: 13),
-                icon: const Icon(Icons.arrow_drop_down, color: Colors.white54),
-                onChanged: (val) {
-                  if (val != null) {
-                    final drive = state.drives.firstWhere((d) => d['device'] == val);
-                    state.selectDrive(drive);
-                  }
-                },
-                items: state.drives.map((d) {
-                  final label = d['label'] ?? d['device'];
-                  final size = d['size'] ?? "";
-                  return DropdownMenuItem<String>(
-                    value: d['device'].toString(),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.usb, size: 16, color: Color(0xFF107C10)),
-                        const SizedBox(width: 8),
-                        Expanded(child: Text("$label ($size)", overflow: TextOverflow.ellipsis)),
-                      ],
-                    ),
-                  );
-                }).toList(),
-              ),
-            ),
-          ),
-        ),
+        const Icon(Icons.storage, size: 18, color: Color(0xFF107C10)),
         const SizedBox(width: 12),
+        Text(
+          state.selectedDrive != null 
+              ? "${state.selectedDrive!['label'] ?? state.selectedDrive!['device']} (${state.selectedDrive!['size_gb'] ?? state.selectedDrive!['size'] ?? "?"} GB)"
+              : state.tr("Nenhum dispositivo selecionado"),
+          style: TextStyle(color: state.isDarkMode ? Colors.white70 : Colors.black87, fontSize: 14, fontWeight: FontWeight.w500),
+        ),
+        const Spacer(),
         OutlinedButton.icon(
           onPressed: state.selectedDrive != null ? () => state.fetchInstalledGamerpics() : null,
           icon: const Icon(Icons.refresh, size: 16),
@@ -267,9 +266,9 @@ class _ProfilePicsViewState extends State<ProfilePicsView> with SingleTickerProv
           flex: 3,
           child: Container(
             decoration: BoxDecoration(
-              color: const Color(0xFF151515),
+              color: state.isDarkMode ? const Color(0xFF151515) : Colors.white,
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.white.withOpacity(0.05)),
+              border: Border.all(color: state.isDarkMode ? Colors.white.withOpacity(0.05) : Colors.black12),
             ),
             child: TextField(
               controller: _searchController,
@@ -279,11 +278,11 @@ class _ProfilePicsViewState extends State<ProfilePicsView> with SingleTickerProv
                   setState(() => _searchQuery = value);
                 });
               },
-              style: const TextStyle(color: Colors.white),
+              style: TextStyle(color: state.isDarkMode ? Colors.white : Colors.black),
               decoration: InputDecoration(
                 hintText: state.tr("Procurar Herois"),
-                hintStyle: TextStyle(color: Colors.white.withOpacity(0.3)),
-                prefixIcon: Icon(Icons.search, color: Colors.white.withOpacity(0.3)),
+                hintStyle: TextStyle(color: state.isDarkMode ? Colors.white.withOpacity(0.3) : Colors.black.withOpacity(0.3)),
+                prefixIcon: Icon(Icons.search, color: state.isDarkMode ? Colors.white.withOpacity(0.3) : Colors.black.withOpacity(0.3)),
                 border: InputBorder.none,
                 contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               ),
@@ -303,10 +302,10 @@ class _ProfilePicsViewState extends State<ProfilePicsView> with SingleTickerProv
             child: DropdownButtonHideUnderline(
               child: DropdownButton<String>(
                 value: _selectedGenre,
-                dropdownColor: const Color(0xFF151515),
+                dropdownColor: state.isDarkMode ? const Color(0xFF151515) : Colors.white,
                 isExpanded: true,
-                style: const TextStyle(color: Colors.white, fontSize: 13),
-                icon: const Icon(Icons.filter_list, color: Colors.white54),
+                style: TextStyle(color: state.isDarkMode ? Colors.white : Colors.black, fontSize: 13),
+                icon: Icon(Icons.filter_list, color: state.isDarkMode ? Colors.white54 : Colors.black54),
                 items: genres.map((g) => DropdownMenuItem(value: g, child: Text(g, overflow: TextOverflow.ellipsis))).toList(),
                 onChanged: (val) => setState(() => _selectedGenre = val!),
               ),
@@ -326,10 +325,10 @@ class _ProfilePicsViewState extends State<ProfilePicsView> with SingleTickerProv
             child: DropdownButtonHideUnderline(
               child: DropdownButton<String>(
                 value: state.drives.isEmpty ? null : state.drives.any((d) => d['device'] == state.selectedDrive?['device']) ? state.selectedDrive!['device'] : state.drives.first['device'],
-                dropdownColor: const Color(0xFF151515),
+                dropdownColor: state.isDarkMode ? const Color(0xFF151515) : Colors.white,
                 isExpanded: true,
-                style: const TextStyle(color: Colors.white, fontSize: 13),
-                icon: const Icon(Icons.usb, size: 16, color: Colors.white54),
+                style: TextStyle(color: state.isDarkMode ? Colors.white : Colors.black, fontSize: 13),
+                icon: Icon(Icons.usb, size: 16, color: state.isDarkMode ? Colors.white54 : Colors.black54),
                 onChanged: (val) {
                   if (val != null) {
                     final drive = state.drives.firstWhere((d) => d['device'] == val);
@@ -373,46 +372,33 @@ class _ProfilePicsViewState extends State<ProfilePicsView> with SingleTickerProv
       cursor: SystemMouseCursors.click,
       child: Container(
         decoration: BoxDecoration(
-          color: const Color(0xFF151515),
+          color: state.isDarkMode ? const Color(0xFF151515) : Colors.white,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.white.withOpacity(0.05)),
+          border: Border.all(color: state.isDarkMode ? Colors.white.withOpacity(0.05) : Colors.black12),
         ),
         child: Column(
           children: [
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.all(12.0),
+                padding: const EdgeInsets.fromLTRB(10, 10, 10, 6),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(8),
                   child: Image.file(
                     File(pic['path']),
                     fit: BoxFit.cover,
-                    errorBuilder: (ctx, err, stack) => const Icon(Icons.image_not_supported, color: Colors.white10),
+                    errorBuilder: (ctx, err, stack) => Icon(Icons.image_not_supported, color: state.isDarkMode ? Colors.white10 : Colors.black12),
                   ),
                 ),
               ),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+              padding: const EdgeInsets.fromLTRB(10, 0, 10, 10),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    pic['genre'] ?? "Outros",
-                    style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: const Color(0xFF107C10).withOpacity(0.8)),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    pic['name'] ?? "Unknown",
-                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 8),
                   if (showInject)
                     SizedBox(
                       width: double.infinity,
-                      height: 32,
+                      height: 30,
                       child: ElevatedButton(
                         onPressed: isInjecting ? null : () => state.injectGamerpic(pic['id']),
                         style: ElevatedButton.styleFrom(
@@ -478,18 +464,18 @@ class _ProfilePicsViewState extends State<ProfilePicsView> with SingleTickerProv
                                   final confirm = await showDialog<bool>(
                                     context: context,
                                     builder: (ctx) => AlertDialog(
-                                      backgroundColor: const Color(0xFF151515),
+                                      backgroundColor: state.isDarkMode ? const Color(0xFF151515) : Colors.white,
                                       title: Text(state.tr("Confirmar Exclusão"),
-                                          style: const TextStyle(color: Colors.white, fontSize: 16)),
+                                          style: TextStyle(color: state.isDarkMode ? Colors.white : Colors.black, fontSize: 16)),
                                       content: Text(
                                         '${state.tr("Deseja excluir")} "${pic['name']}" ${state.tr("do dispositivo?")}',
-                                        style: const TextStyle(color: Colors.white70, fontSize: 13),
+                                        style: TextStyle(color: state.isDarkMode ? Colors.white70 : Colors.black87, fontSize: 13),
                                       ),
                                       actions: [
                                         TextButton(
                                           onPressed: () => Navigator.pop(ctx, false),
                                           child: Text(state.tr("Cancelar"),
-                                              style: const TextStyle(color: Colors.white54)),
+                                              style: TextStyle(color: state.isDarkMode ? Colors.white54 : Colors.black54)),
                                         ),
                                         ElevatedButton(
                                           onPressed: () => Navigator.pop(ctx, true),
@@ -533,11 +519,11 @@ class _ProfilePicsViewState extends State<ProfilePicsView> with SingleTickerProv
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.photo_library_outlined, size: 64, color: Colors.white.withOpacity(0.1)),
+          Icon(Icons.photo_library_outlined, size: 64, color: state.isDarkMode ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.1)),
           const SizedBox(height: 16),
           Text(
             state.tr(message),
-            style: TextStyle(color: Colors.white.withOpacity(0.3)),
+            style: TextStyle(color: state.isDarkMode ? Colors.white.withOpacity(0.3) : Colors.black.withOpacity(0.3)),
             textAlign: TextAlign.center,
           ),
         ],

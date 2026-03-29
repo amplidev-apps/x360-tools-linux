@@ -18,7 +18,12 @@ class StealthView extends StatelessWidget {
           // 1. Large Xbox Live Logo (Literal Parity)
           Expanded(
             flex: 1,
-            child: Image.asset("assets/xlivelogo.png", height: 250, fit: BoxFit.contain),
+            child: Image.asset(
+              state.isDarkMode ? "assets/xlive_logo_dark.png" : "assets/xlive_logo_light.png",
+              height: 250,
+              fit: BoxFit.contain,
+              filterQuality: FilterQuality.high,
+            ),
           ),
           const SizedBox(width: 40),
 
@@ -27,24 +32,28 @@ class StealthView extends StatelessWidget {
             flex: 1,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
               children: [
                 Text(state.tr("Stealth Networks"), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 20),
-                ...state.stealthSelections.keys.map((key) => Padding(
-                  padding: const EdgeInsets.only(bottom: 4.0),
-                  child: CheckboxListTile(
-                    title: Text(key, style: const TextStyle(fontSize: 13, color: Colors.white, fontWeight: FontWeight.w600)),
-                    subtitle: Text(state.tr("${key}_desc"), style: const TextStyle(fontSize: 10, color: Colors.white54)),
-                    value: state.stealthSelections[key],
-                    onChanged: (_) => state.toggleStealth(key),
-                    controlAffinity: ListTileControlAffinity.leading,
-                    contentPadding: EdgeInsets.zero,
-                    dense: true,
-                    activeColor: Colors.green,
+                const SizedBox(height: 10),
+                Expanded(
+                  child: ListView(
+                    padding: EdgeInsets.zero,
+                    children: state.stealthSelections.keys.map((key) => Padding(
+                      padding: const EdgeInsets.only(bottom: 4.0),
+                      child: CheckboxListTile(
+                        title: Text(key, style: TextStyle(fontSize: 13, color: state.isDarkMode ? Colors.white : Colors.black, fontWeight: FontWeight.w600)),
+                        subtitle: Text(state.tr("${key}_desc"), style: TextStyle(fontSize: 10, color: state.isDarkMode ? Colors.white54 : Colors.black54)),
+                        value: state.stealthSelections[key],
+                        onChanged: (_) => state.toggleStealth(key),
+                        controlAffinity: ListTileControlAffinity.leading,
+                        contentPadding: EdgeInsets.zero,
+                        dense: true,
+                        activeColor: Colors.green,
+                      ),
+                    )).toList(),
                   ),
-                )),
-                const Spacer(),
+                ),
+                const SizedBox(height: 10),
                 const PartialInstallFooter(category: "Stealth"),
               ],
             ),

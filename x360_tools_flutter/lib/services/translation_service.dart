@@ -10,7 +10,8 @@ class TranslationService {
     "x360 Landscape": {"pt": "x360 Landscape", "en": "x360 Landscape", "es": "x360 Landscape"},
     "x360 Converter": {"pt": "x360 Converter", "en": "x360 Converter", "es": "x360 Converter"},
     "Profile Pics": {"pt": "Avatar Gamerpics", "en": "Gamerpics", "es": "Gamerpics"},
-    "Backup e Restauro": {"pt": "Backup e Restauro", "en": "Backup & Restore", "es": "Copia de Seguridad"},
+    "Backup e Restauro": {"pt": "x360 Recovery", "en": "x360 Recovery", "es": "x360 Recovery"},
+    "Backup e Restauração": {"pt": "x360 Recovery", "en": "x360 Recovery", "es": "x360 Recovery"},
     "INICIAR CONVERSÃO": {"pt": "INICIAR CONVERSÃO", "en": "START CONVERSION", "es": "INICIAR CONVERSIÓN"},
 
     // Home Banners
@@ -170,6 +171,11 @@ class TranslationService {
     "CipherLive_desc": {"pt": "Servidor Stealth premium e estável.", "en": "Premium and stable stealth server.", "es": "Servidor stealth premium y estable."},
     "xbGuard_desc": {"pt": "Proteção e funções online avançadas.", "en": "Advanced online protection and features.", "es": "Protección y funciones online avanzadas."},
     "Proto_desc": {"pt": "Servidor Stealth gratuito e eficiente.", "en": "Free and efficient stealth server.", "es": "Servidor stealth gratuito y eficiente."},
+    "Nfinite_desc": {"pt": "Servidor alternativo com ampla compatibilidade.", "en": "Alternative server with broad compatibility.", "es": "Servidor alternativo con amplia compatibilidad."},
+    "TetheredLive_desc": {"pt": "Serviço robusto focado em segurança.", "en": "Robust service focused on security.", "es": "Servicio robusto centrado en la seguridad."},
+    "XBL.Kyuubii_desc": {"pt": "Focado em mods e comunidades.", "en": "Focused on mods and communities.", "es": "Centrado en mods y comunidades."},
+    "XBLS_desc": {"pt": "Acesso rápido e gratuito.", "en": "Fast and free access.", "es": "Acceso rápido y gratuito."},
+    "xbNetwork_desc": {"pt": "Rede customizada com features exclusivas.", "en": "Custom network with exclusive features.", "es": "Red personalizada con características exclusivas."},
 
     // Descriptions - Plugins
     "Plugins e Outros_desc": {"pt": "Pacote base de plugins essenciais.", "en": "Base pack of essential plugins.", "es": "Paquete base de plugins esenciales."},
@@ -239,6 +245,39 @@ class TranslationService {
       "en": "New!",
       "es": "¡Novedad!"
     },
+    // New Settings
+    "Pasta de Downloads": {"pt": "Pasta de Downloads", "en": "Download Folder", "es": "Carpeta de Descargas"},
+    "download_path_desc": {
+      "pt": "Local onde os jogos e DLCs do Freemarket serão salvos.",
+      "en": "Location where Freemarket games and DLCs will be saved.",
+      "es": "Ubicación onde se guardarán los juegos y DLC de Freemarket."
+    },
+    "Configurações de Rede (FTP)": {"pt": "Configurações de Rede (FTP)", "en": "Network Settings (FTP)", "es": "Ajustes de Red (FTP)"},
+    "ftp_settings_desc": {
+      "pt": "Configure o IP e as credenciais para o gerenciador FTP.",
+      "en": "Configure IP and credentials for the FTP manager.",
+      "es": "Configura la IP y las credenciales para el gestor FTP."
+    },
+    "Auto-Scan de Dispositivos": {"pt": "Auto-Scan de Dispositivos", "en": "Auto-Scan Devices", "es": "Auto-escaneo de Dispositivos"},
+    "auto_scan_desc": {
+      "pt": "Busca automática por pendrives ao iniciar o aplicativo.",
+      "en": "Automatically search for USB drives when the app starts.",
+      "es": "Busca automática de pendrives al iniciar la aplicación."
+    },
+    "Resolução de Capas": {"pt": "Resolução de Capas", "en": "Cover Resolution", "es": "Resolución de Portadas"},
+    "cover_res_desc": {
+      "pt": "Qualidade das imagens baixadas para Aurora/Freestyle.",
+      "en": "Quality of images downloaded for Aurora/Freestyle.",
+      "es": "Calidad de las imágenes descargadas para Aurora/Freestyle."
+    },
+    "Logs e Diagnóstico": {"pt": "Logs e Diagnóstico", "en": "Logs & Diagnostics", "es": "Logs y Diagnóstico"},
+    "logs_desc": {
+      "pt": "Visualize o histórico de operações do backend Python.",
+      "en": "View the history of Python backend operations.",
+      "es": "Ver el historial de operaciones del backend Python."
+    },
+    "VER LOGS": {"pt": "VER LOGS", "en": "VIEW LOGS", "es": "VER LOGS"},
+    "ALTERAR": {"pt": "ALTERAR", "en": "CHANGE", "es": "CAMBIAR"},
   };
 
   static String tr(String key, String lang) {

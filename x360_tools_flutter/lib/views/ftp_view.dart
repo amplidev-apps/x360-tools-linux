@@ -33,21 +33,21 @@ class _FtpViewState extends State<FtpView> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1A1A1A),
-        title: Text(state.tr("Nova Pasta"), style: const TextStyle(color: Colors.white)),
+        backgroundColor: state.isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
+        title: Text(state.tr("Nova Pasta"), style: TextStyle(color: state.isDarkMode ? Colors.white : Colors.black)),
         content: TextField(
           controller: ctrl,
-          style: const TextStyle(color: Colors.white),
+          style: TextStyle(color: state.isDarkMode ? Colors.white : Colors.black),
           decoration: InputDecoration(
             hintText: state.tr("Nome da pasta"),
-            hintStyle: const TextStyle(color: Colors.white38),
+            hintStyle: TextStyle(color: state.isDarkMode ? Colors.white38 : Colors.black45),
             enabledBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Color(0xFF107C10))),
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text(state.tr("Cancelar"), style: const TextStyle(color: Colors.white54)),
+            child: Text(state.tr("Cancelar"), style: TextStyle(color: state.isDarkMode ? Colors.white54 : Colors.black54)),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF107C10)),
@@ -71,16 +71,16 @@ class _FtpViewState extends State<FtpView> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1A1A1A),
-        title: Text(state.tr("Confirmar Exclusão"), style: const TextStyle(color: Colors.white)),
+        backgroundColor: state.isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
+        title: Text(state.tr("Confirmar Exclusão"), style: TextStyle(color: state.isDarkMode ? Colors.white : Colors.black)),
         content: Text(
           "${state.tr("Deseja deletar")} '$name'?", 
-          style: const TextStyle(color: Colors.white70)
+          style: TextStyle(color: state.isDarkMode ? Colors.white70 : Colors.black87)
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text(state.tr("Cancelar"), style: const TextStyle(color: Colors.white54)),
+            child: Text(state.tr("Cancelar"), style: TextStyle(color: state.isDarkMode ? Colors.white54 : Colors.black54)),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
@@ -103,7 +103,7 @@ class _FtpViewState extends State<FtpView> {
     final state = context.watch<AppState>();
 
     return Container(
-      color: const Color(0xFF0A0A0A),
+      color: state.isDarkMode ? const Color(0xFF0A0A0A) : Colors.white,
       padding: const EdgeInsets.all(40),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -124,14 +124,14 @@ class _FtpViewState extends State<FtpView> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       "FTP Wireless Manager",
-                      style: TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: -1),
+                      style: TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: state.isDarkMode ? Colors.white : Colors.black, letterSpacing: -1),
                     ),
                     const SizedBox(height: 8),
                     Text(
                       state.tr("Gerencie e instale arquivos no Xbox 360 pelo ar (Requer Aurora/FSD3)."),
-                      style: const TextStyle(fontSize: 14, color: Colors.white54),
+                      style: TextStyle(fontSize: 14, color: state.isDarkMode ? Colors.white54 : Colors.black54),
                     ),
                   ],
                 ),
@@ -144,9 +144,9 @@ class _FtpViewState extends State<FtpView> {
           Container(
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.02),
+              color: state.isDarkMode ? Colors.white.withOpacity(0.02) : Colors.black.withOpacity(0.05),
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.white10),
+              border: Border.all(color: state.isDarkMode ? Colors.white10 : Colors.black12),
             ),
             child: Row(
               children: [
@@ -154,10 +154,10 @@ class _FtpViewState extends State<FtpView> {
                   child: TextField(
                     controller: _ipController,
                     enabled: !state.isFtpConnected,
-                    style: const TextStyle(color: Colors.white, fontSize: 18),
+                    style: TextStyle(color: state.isDarkMode ? Colors.white : Colors.black, fontSize: 18),
                     decoration: InputDecoration(
                       hintText: "192.168.0.X",
-                      hintStyle: const TextStyle(color: Colors.white24),
+                      hintStyle: TextStyle(color: state.isDarkMode ? Colors.white24 : Colors.black26),
                       labelText: state.tr("Endereço IP do Xbox 360"),
                       labelStyle: const TextStyle(color: Color(0xFF107C10)),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
@@ -165,7 +165,7 @@ class _FtpViewState extends State<FtpView> {
                         borderRadius: BorderRadius.circular(8),
                         borderSide: const BorderSide(color: Color(0xFF107C10), width: 2),
                       ),
-                      prefixIcon: const Icon(Icons.router, color: Colors.white54),
+                      prefixIcon: Icon(Icons.router, color: state.isDarkMode ? Colors.white54 : Colors.black54),
                     ),
                   ),
                 ),
@@ -208,16 +208,16 @@ class _FtpViewState extends State<FtpView> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.satellite_alt, size: 80, color: Colors.white.withOpacity(0.05)),
+                        Icon(Icons.satellite_alt, size: 80, color: state.isDarkMode ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.05)),
                         const SizedBox(height: 24),
                         Text(
                           state.tr("Nenhuma conexão ativa."),
-                          style: const TextStyle(color: Colors.white38, fontSize: 18),
+                          style: TextStyle(color: state.isDarkMode ? Colors.white38 : Colors.black45, fontSize: 18),
                         ),
                         const SizedBox(height: 8),
                         Text(
                           state.tr("Certifique-se de que a Aurora ou Freestyle estão abertas no console e o FTP ativado."),
-                          style: const TextStyle(color: Colors.white24, fontSize: 14),
+                          style: TextStyle(color: state.isDarkMode ? Colors.white24 : Colors.black38, fontSize: 14),
                         ),
                       ],
                     ),
@@ -231,22 +231,22 @@ class _FtpViewState extends State<FtpView> {
   Widget _buildFileExplorer(AppState state) {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFF121212),
+        color: state.isDarkMode ? const Color(0xFF121212) : Colors.white.withOpacity(0.7),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white10),
+        border: Border.all(color: state.isDarkMode ? Colors.white10 : Colors.black12),
       ),
       child: Column(
         children: [
           // Toolbar
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-            decoration: const BoxDecoration(
-              border: Border(bottom: BorderSide(color: Colors.white10)),
+            decoration: BoxDecoration(
+              border: Border(bottom: BorderSide(color: state.isDarkMode ? Colors.white10 : Colors.black12)),
             ),
             child: Row(
               children: [
                 IconButton(
-                  icon: const Icon(Icons.arrow_upward, color: Colors.white70),
+                  icon: Icon(Icons.arrow_upward, color: state.isDarkMode ? Colors.white70 : Colors.black87),
                   tooltip: "Acima",
                   onPressed: () {
                     if (state.ftpCurrentPath != "/") {
@@ -261,7 +261,7 @@ class _FtpViewState extends State<FtpView> {
                 Expanded(
                   child: Text(
                     state.ftpCurrentPath.isEmpty ? "/" : state.ftpCurrentPath,
-                    style: const TextStyle(color: Colors.white, fontSize: 16, fontFamily: 'monospace'),
+                    style: TextStyle(color: state.isDarkMode ? Colors.white : Colors.black, fontSize: 16, fontFamily: 'monospace'),
                   ),
                 ),
                 IconButton(
@@ -299,13 +299,13 @@ class _FtpViewState extends State<FtpView> {
                       return ListTile(
                         leading: Icon(
                           isDir ? Icons.folder : Icons.insert_drive_file,
-                          color: isDir ? const Color(0xFF107C10) : Colors.white54,
+                          color: isDir ? const Color(0xFF107C10) : (state.isDarkMode ? Colors.white54 : Colors.black54),
                           size: 32,
                         ),
-                        title: Text(item['name'], style: const TextStyle(color: Colors.white)),
-                        subtitle: Text(item['size'].toString(), style: const TextStyle(color: Colors.white38)),
+                        title: Text(item['name'], style: TextStyle(color: state.isDarkMode ? Colors.white : Colors.black)),
+                        subtitle: Text(item['size'].toString(), style: TextStyle(color: state.isDarkMode ? Colors.white38 : Colors.black45)),
                         trailing: IconButton(
-                          icon: const Icon(Icons.delete_outline, color: Colors.white38),
+                          icon: Icon(Icons.delete_outline, color: state.isDarkMode ? Colors.white38 : Colors.black45),
                           onPressed: () => _deleteItem(state, item['name'], isDir),
                         ),
                         onTap: () {

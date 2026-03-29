@@ -24,7 +24,10 @@ class InstallationView extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(vertical: 20),
                   child: Column(
                     children: [
-                      SvgPicture.asset("assets/x360_new_logo_white.svg", height: 180),
+                      SvgPicture.asset(
+                        state.isDarkMode ? "assets/x360_new_logo_white.svg" : "assets/x360_new_logo_black.svg",
+                        height: 180,
+                      ),
                       const SizedBox(height: 10),
                       if (state.selectedDrive == null)
                         Text(
@@ -51,7 +54,7 @@ class InstallationView extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF1E1E1E),
+                    color: state.isDarkMode ? const Color(0xFF1E1E1E) : Colors.white70,
                     borderRadius: BorderRadius.circular(4),
                     border: Border.all(color: Colors.blueAccent, width: 2),
                   ),
@@ -59,11 +62,11 @@ class InstallationView extends StatelessWidget {
                     child: DropdownButton<String>(
                       value: state.selectedDrive?['device'],
                       isExpanded: true,
-                      dropdownColor: Colors.black,
+                      dropdownColor: state.isDarkMode ? Colors.black : Colors.white,
                       icon: const Icon(Icons.unfold_more, color: Colors.blueAccent),
                       items: state.drives.map((d) => DropdownMenuItem<String>(
                         value: d['device'] as String,
-                        child: Text("${d['device']} - ${d['label']}", style: const TextStyle(color: Colors.white, fontSize: 14)),
+                        child: Text("${d['device']} - ${d['label']}", style: TextStyle(color: state.isDarkMode ? Colors.white : Colors.black, fontSize: 14)),
                       )).toList(),
                       onChanged: (val) {
                         final drive = state.drives.firstWhere((d) => d['device'] == val);
@@ -120,12 +123,12 @@ class InstallationView extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.white70)),
-            const Divider(color: Colors.white10),
+            Text(title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: state.isDarkMode ? Colors.white70 : Colors.black87)),
+            Divider(color: state.isDarkMode ? Colors.white10 : Colors.black12),
             ...items.keys.map((key) => SizedBox(
               height: 32,
               child: CheckboxListTile(
-                title: Text(state.tr(key), style: const TextStyle(fontSize: 12)),
+                title: Text(state.tr(key), style: TextStyle(fontSize: 12, color: state.isDarkMode ? Colors.white : Colors.black87)),
                 value: items[key],
                 onChanged: (_) => onToggle(key),
                 controlAffinity: ListTileControlAffinity.trailing,

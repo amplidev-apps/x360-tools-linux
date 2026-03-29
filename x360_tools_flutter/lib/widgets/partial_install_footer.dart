@@ -13,9 +13,9 @@ class PartialInstallFooter extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
+        color: state.isDarkMode ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.05),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white10),
+        border: Border.all(color: state.isDarkMode ? Colors.white10 : Colors.black12),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -26,7 +26,7 @@ class PartialInstallFooter extends StatelessWidget {
               const SizedBox(width: 8),
               Text(
                 state.tr("Select Target Device"),
-                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white70),
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: state.isDarkMode ? Colors.white70 : Colors.black87),
               ),
             ],
           ),
@@ -38,17 +38,17 @@ class PartialInstallFooter extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 12),
                   height: 48,
                   decoration: BoxDecoration(
-                    color: Colors.black26,
+                    color: state.isDarkMode ? Colors.black26 : Colors.white70,
                     borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: Colors.white10),
+                    border: Border.all(color: state.isDarkMode ? Colors.white10 : Colors.black12),
                   ),
                   child: DropdownButtonHideUnderline(
                     child: DropdownButton<String>(
                       value: state.selectedDrive?['device'],
                       isExpanded: true,
-                      dropdownColor: Colors.black,
-                      icon: const Icon(Icons.keyboard_arrow_down, color: Colors.white54, size: 18),
-                      style: const TextStyle(color: Colors.white, fontSize: 11),
+                      dropdownColor: state.isDarkMode ? Colors.black : Colors.white,
+                      icon: Icon(Icons.keyboard_arrow_down, color: state.isDarkMode ? Colors.white54 : Colors.black54, size: 18),
+                      style: TextStyle(color: state.isDarkMode ? Colors.white : Colors.black, fontSize: 11),
                       items: state.drives.map((d) => DropdownMenuItem<String>(
                         value: d['device'],
                         child: Text("${d['device']} - ${d['label']} (${d['size_gb']} GB)"),

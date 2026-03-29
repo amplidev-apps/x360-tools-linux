@@ -88,8 +88,12 @@ def get_stfs_metadata(path, extract_icon=False):
                     
                     if is_valid:
                         # Save to temp file
+                        # V108: Unique icon path per package (Fix for overlapping thumbnails)
+                        import hashlib
+                        h_path = hashlib.md5(path.encode()).hexdigest()[:8]
+                        h_cont = hashlib.md5(icon_data).hexdigest()[:8]
                         temp_dir = tempfile.gettempdir()
-                        icon_path = os.path.join(temp_dir, f"x360_icon_{title_id}.png")
+                        icon_path = os.path.join(temp_dir, f"x360_icon_{title_id}_{h_path}_{h_cont}.png")
                         with open(icon_path, "wb") as icon_f:
                             icon_f.write(icon_data)
                     else:

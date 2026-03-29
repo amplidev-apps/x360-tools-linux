@@ -36,13 +36,13 @@ class _HorizonInjectorViewState extends State<HorizonInjectorView> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(state.tr("Injetor Horizon"), style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold)),
+                    Text(state.tr("x360 Landscape"), style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold)),
                     const SizedBox(height: 8),
                     Text(
                       state.tr(_isExplorerMode 
                         ? "Explore e extraia conteúdo do seu dispositivo USB." 
                         : "Injete DLCs, TUs e Saves diretamente no seu Xbox 360."),
-                      style: TextStyle(fontSize: 16, color: Colors.white.withOpacity(0.5)),
+                      style: TextStyle(fontSize: 16, color: state.isDarkMode ? Colors.white.withOpacity(0.5) : Colors.black.withOpacity(0.5)),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -52,13 +52,13 @@ class _HorizonInjectorViewState extends State<HorizonInjectorView> {
               const SizedBox(width: 20),
               Container(
                 decoration: BoxDecoration(
-                  color: Colors.white10,
+                  color: state.isDarkMode ? Colors.white10 : Colors.black12,
                   borderRadius: BorderRadius.circular(30),
                 ),
                 child: Row(
                   children: [
-                    _buildModeButton(state.tr("INJETOR"), !_isExplorerMode),
-                    _buildModeButton(state.tr("EXPLORADOR"), _isExplorerMode),
+                    _buildModeButton(state, state.tr("INJETOR"), !_isExplorerMode),
+                    _buildModeButton(state, state.tr("EXPLORADOR"), _isExplorerMode),
                   ],
                 ),
               ),
@@ -81,7 +81,7 @@ class _HorizonInjectorViewState extends State<HorizonInjectorView> {
     );
   }
 
-  Widget _buildModeButton(String label, bool active) {
+  Widget _buildModeButton(AppState state, String label, bool active) {
     return GestureDetector(
       onTap: () => setState(() => _isExplorerMode = label == context.read<AppState>().tr("EXPLORADOR")),
       child: Container(
@@ -93,7 +93,7 @@ class _HorizonInjectorViewState extends State<HorizonInjectorView> {
         child: Text(
           label,
           style: TextStyle(
-            color: active ? Colors.white : Colors.white54,
+            color: active ? Colors.white : (state.isDarkMode ? Colors.white54 : Colors.black54),
             fontWeight: FontWeight.bold,
             fontSize: 12,
           ),
@@ -117,16 +117,16 @@ class _HorizonInjectorViewState extends State<HorizonInjectorView> {
                     height: 200,
                     width: double.infinity,
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.05),
+                      color: state.isDarkMode ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.05),
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: Colors.white10),
+                      border: Border.all(color: state.isDarkMode ? Colors.white10 : Colors.black12),
                     ),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.add_circle_outline, size: 48, color: Colors.white.withOpacity(0.3)),
+                        Icon(Icons.add_circle_outline, size: 48, color: state.isDarkMode ? Colors.white.withOpacity(0.3) : Colors.black.withOpacity(0.2)),
                         const SizedBox(height: 16),
-                        Text(state.tr("Clique para selecionar um arquivo STFS"), style: const TextStyle(color: Colors.white54)),
+                        Text(state.tr("Clique para selecionar um arquivo STFS"), style: TextStyle(color: state.isDarkMode ? Colors.white54 : Colors.black54)),
                         if (state.currentSTFSPath != null)
                           Padding(
                             padding: const EdgeInsets.all(16.0),
@@ -147,34 +147,34 @@ class _HorizonInjectorViewState extends State<HorizonInjectorView> {
             child: Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: const Color(0xFF151515),
+                color: state.isDarkMode ? const Color(0xFF151515) : Colors.white,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.white10),
+                border: Border.all(color: state.isDarkMode ? Colors.white10 : Colors.black12),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(state.tr("OPÇÕES DE INJEÇÃO"), style: const TextStyle(color: Color(0xFF107C10), fontWeight: FontWeight.bold, fontSize: 12)),
                   const SizedBox(height: 24),
-                  Text(state.tr("Dispositivo Destino:"), style: const TextStyle(color: Colors.white54, fontSize: 14)),
+                  Text(state.tr("Dispositivo Destino:"), style: TextStyle(color: state.isDarkMode ? Colors.white54 : Colors.black54, fontSize: 14)),
                   const SizedBox(height: 8),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     decoration: BoxDecoration(
-                      color: Colors.black,
+                      color: state.isDarkMode ? Colors.black : Colors.white,
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.white10),
+                      border: Border.all(color: state.isDarkMode ? Colors.white10 : Colors.black12),
                     ),
                     child: DropdownButtonHideUnderline(
                       child: DropdownButton<String>(
                         isExpanded: true,
                         value: state.selectedDrive?['device'],
-                        dropdownColor: Colors.black,
+                        dropdownColor: state.isDarkMode ? Colors.black : Colors.white,
                         items: state.drives.map((d) {
                           final drive = Map<String, dynamic>.from(d);
                           return DropdownMenuItem<String>(
                             value: drive['device'],
-                            child: Text("${drive['label']} (${drive['size_gb']} GB)", style: const TextStyle(color: Colors.white, fontSize: 14)),
+                            child: Text("${drive['label']} (${drive['size_gb']} GB)", style: TextStyle(color: state.isDarkMode ? Colors.white : Colors.black, fontSize: 14)),
                           );
                         }).toList(),
                         onChanged: (val) {
@@ -212,7 +212,7 @@ class _HorizonInjectorViewState extends State<HorizonInjectorView> {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: const Color(0xFF151515),
+        color: state.isDarkMode ? const Color(0xFF151515) : Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: const Color(0xFF107C10).withOpacity(0.3)),
       ),
@@ -228,20 +228,20 @@ class _HorizonInjectorViewState extends State<HorizonInjectorView> {
                 width: 80,
                 height: 80,
                 decoration: BoxDecoration(
-                  color: Colors.black,
+                  color: state.isDarkMode ? Colors.black : Colors.black.withOpacity(0.05),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.white10),
+                  border: Border.all(color: state.isDarkMode ? Colors.white10 : Colors.black12),
                 ),
                 child: meta['icon_path'] != null 
                   ? Image.file(File(meta['icon_path']))
-                  : const Icon(Icons.inventory_2_outlined, size: 40, color: Colors.white24),
+                  : Icon(Icons.inventory_2_outlined, size: 40, color: state.isDarkMode ? Colors.white24 : Colors.black26),
               ),
               const SizedBox(width: 24),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(meta['display_name'] ?? "Unknown", style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white)),
+                    Text(meta['display_name'] ?? "Unknown", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: state.isDarkMode ? Colors.white : Colors.black)),
                     Text(meta['type_name'] ?? "Unknown Type", style: const TextStyle(color: Color(0xFF107C10))),
                     const SizedBox(height: 20),
                     Row(
@@ -265,9 +265,9 @@ class _HorizonInjectorViewState extends State<HorizonInjectorView> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(state.tr(label), style: const TextStyle(fontSize: 10, color: Colors.white38, fontWeight: FontWeight.bold)),
+        Text(state.tr(label), style: TextStyle(fontSize: 10, color: state.isDarkMode ? Colors.white38 : Colors.black45, fontWeight: FontWeight.bold)),
         const SizedBox(height: 4),
-        Text(value, style: const TextStyle(fontSize: 14, color: Colors.white, fontFamily: 'monospace')),
+        Text(value, style: TextStyle(fontSize: 14, color: state.isDarkMode ? Colors.white : Colors.black, fontFamily: 'monospace')),
       ],
     );
   }
@@ -282,9 +282,9 @@ class _HorizonInjectorViewState extends State<HorizonInjectorView> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.folder_open, size: 64, color: Colors.white10),
+            Icon(Icons.folder_open, size: 64, color: state.isDarkMode ? Colors.white10 : Colors.black12),
             const SizedBox(height: 16),
-            Text(state.tr("Nenhum conteúdo encontrado no dispositivo."), style: const TextStyle(color: Colors.white24)),
+            Text(state.tr("Nenhum conteúdo encontrado no dispositivo."), style: TextStyle(color: state.isDarkMode ? Colors.white24 : Colors.black38)),
           ],
         ),
       );
@@ -309,9 +309,9 @@ class _HorizonInjectorViewState extends State<HorizonInjectorView> {
   Widget _buildGameCard(String tid, Map<String, dynamic> game, AppState state) {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFF1E1E1E),
+        color: state.isDarkMode ? const Color(0xFF1E1E1E) : Colors.white70,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white12),
+        border: Border.all(color: state.isDarkMode ? Colors.white12 : Colors.black12),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -320,14 +320,14 @@ class _HorizonInjectorViewState extends State<HorizonInjectorView> {
             flex: 2,
             child: Container(
               width: double.infinity,
-              decoration: const BoxDecoration(
-                color: Colors.black26,
+              decoration: BoxDecoration(
+                color: state.isDarkMode ? Colors.black26 : Colors.black.withOpacity(0.05),
                 borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
               ),
               child: Center(
                 child: game['icon'] != null && File(game['icon']).existsSync()
                   ? Image.file(File(game['icon']), fit: BoxFit.contain)
-                  : const Icon(Icons.videogame_asset, size: 48, color: Colors.white10),
+                  : Icon(Icons.videogame_asset, size: 48, color: state.isDarkMode ? Colors.white10 : Colors.black12),
               ),
             ),
           ),
@@ -354,7 +354,7 @@ class _HorizonInjectorViewState extends State<HorizonInjectorView> {
                     children: [
                       IconButton(
                         onPressed: () => _showContentDetails(game, state),
-                        icon: const Icon(Icons.arrow_forward_ios, size: 14, color: Colors.white38),
+                        icon: Icon(Icons.arrow_forward_ios, size: 14, color: state.isDarkMode ? Colors.white38 : Colors.black45),
                       ),
                     ],
                   ),
@@ -371,8 +371,8 @@ class _HorizonInjectorViewState extends State<HorizonInjectorView> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF151515),
-        title: Text(game['name'], style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        backgroundColor: state.isDarkMode ? const Color(0xFF151515) : Colors.white,
+        title: Text(game['name'], style: TextStyle(color: state.isDarkMode ? Colors.white : Colors.black, fontWeight: FontWeight.bold)),
         content: SizedBox(
           width: 500,
           child: ListView.separated(

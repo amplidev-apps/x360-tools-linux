@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import '../models/app_state.dart';
 import '../widgets/partial_install_footer.dart';
 
@@ -14,8 +15,8 @@ class PluginsView extends StatelessWidget {
       padding: const EdgeInsets.all(40.0),
       child: Column(
         children: [
-          // 1. Logo (Literal Parity)
-          Image.asset("assets/x360_tools_logo_light.png", height: 120),
+          // 1. Logo
+          SvgPicture.asset(state.isDarkMode ? "assets/x360_new_logo_white.svg" : "assets/x360_new_logo_black.svg", height: 120),
           const SizedBox(height: 40),
 
           // 2. Three Columns of Checkboxes
@@ -44,12 +45,12 @@ class PluginsView extends StatelessWidget {
             padding: const EdgeInsets.only(bottom: 12),
             child: Column(
               children: [
-                Text(state.tr(key), style: const TextStyle(fontSize: 13, color: Colors.white, fontWeight: FontWeight.w600)),
+                Text(state.tr(key), style: TextStyle(fontSize: 13, color: state.isDarkMode ? Colors.white : Colors.black, fontWeight: FontWeight.w600)),
                 const SizedBox(height: 2),
                 Text(
                   state.tr("${key}_desc"), 
                   textAlign: TextAlign.center,
-                  style: const TextStyle(fontSize: 10, color: Colors.white54),
+                  style: TextStyle(fontSize: 10, color: state.isDarkMode ? Colors.white54 : Colors.black54),
                 ),
                 Checkbox(
                   value: items[key],

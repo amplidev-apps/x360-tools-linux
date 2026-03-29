@@ -59,8 +59,8 @@ class HomebrewView extends StatelessWidget {
                   ...state.homebrewSelections.keys.map((key) => Padding(
                     padding: const EdgeInsets.only(bottom: 2.0),
                     child: CheckboxListTile(
-                      title: Text(key, style: const TextStyle(fontSize: 13, color: Colors.white, fontWeight: FontWeight.w600)),
-                      subtitle: Text(state.tr("${key}_desc"), style: const TextStyle(fontSize: 10, color: Colors.white54)),
+                      title: Text(key, style: TextStyle(fontSize: 13, color: state.isDarkMode ? Colors.white : Colors.black, fontWeight: FontWeight.w600)),
+                      subtitle: Text(state.tr("${key}_desc"), style: TextStyle(fontSize: 10, color: state.isDarkMode ? Colors.white54 : Colors.black54)),
                       value: state.homebrewSelections[key],
                       onChanged: (_) => state.toggleHomebrew(key),
                       controlAffinity: ListTileControlAffinity.leading,

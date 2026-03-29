@@ -6,6 +6,7 @@ import os
 import threading
 import tempfile
 import shutil
+import subprocess
 
 # Ensure we can import the core modules
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -22,6 +23,7 @@ from core.library import LibraryScanner
 from core.dashlaunch import DashLaunchEditor
 from core.ftp_client import XboxFTPClient
 from core.save_manager import SaveManager
+from core.metadata_service import MetadataService
 
 def main():
     parser = argparse.ArgumentParser(description="x360 Tools Service Bridge")
@@ -96,9 +98,6 @@ def main():
             if not args.dest:
                 result = {"status": "error", "message": "Missing destination path"}
             else:
-                import subprocess
-                import sys
-                import os
                 sys.stderr.write(f"DEBUG: Opening folder {args.dest}\n")
                 if not os.path.exists(args.dest):
                     result = {"status": "error", "message": f"Caminho não encontrado: {args.dest}"}
@@ -167,7 +166,7 @@ def main():
 
         elif args.cmd == "get_game_details":
             if args.name:
-                from core.metadata_service import MetadataService
+                # ... (removed local import)
                 service = MetadataService()
                 details = service.search_unity_by_name(args.name, args.platform, lang=args.lang)
                 result = {"status": "success", "data": details}
@@ -214,47 +213,6 @@ def main():
                 except Exception as e:
                     result = {"status": "error", "message": str(e)}
 
-        elif args.cmd == "cancel_download":
-            if not args.id:
-                result = {"status": "error", "message": "ID da tarefa não fornecido"}
-            else:
-                engine = FreemarketEngine()
-                task_dir = os.path.join(engine.cache_dir, "install_temp", args.id)
-                os.makedirs(task_dir, exist_ok=True)
-                with open(os.path.join(task_dir, "stop.flag"), "w") as f: f.write("1")
-                
-                # Kill tracked PIDs
-                pid_file = os.path.join(task_dir, "pid.txt")
-                if os.path.exists(pid_file):
-                    with open(pid_file, "r") as f:
-                        for line in f:
-                            try:
-                                pid = int(line.strip())
-                                import signal
-                                os.kill(pid, signal.SIGTERM)
-                            except: pass
-                result = {"status": "success", "message": "Download cancelado."}
-
-        elif args.cmd == "pause_download":
-            if not args.id:
-                result = {"status": "error", "message": "ID da tarefa não fornecido"}
-            else:
-                engine = FreemarketEngine()
-                task_dir = os.path.join(engine.cache_dir, "install_temp", args.id)
-                os.makedirs(task_dir, exist_ok=True)
-                with open(os.path.join(task_dir, "pause.flag"), "w") as f: f.write("1")
-                result = {"status": "success", "message": "Sinal de pausa enviado."}
-
-        elif args.cmd == "resume_download":
-            if not args.id:
-                result = {"status": "error", "message": "ID da tarefa não fornecido"}
-            else:
-                engine = FreemarketEngine()
-                task_dir = os.path.join(engine.cache_dir, "install_temp", args.id)
-                pause_flag = os.path.join(task_dir, "pause.flag")
-                if os.path.exists(pause_flag):
-                    os.remove(pause_flag)
-                result = {"status": "success", "message": "Download retomado."}
 
         elif args.cmd == "set_ia_cookie":
             if not args.cookie:
@@ -293,8 +251,10 @@ def main():
             else:
                 drives = detect_removable_drives()
                 drive = next((d for d in drives if d.device == args.device), None)
-                if not drive or not drive.mount_point:
-                    result = {"status": "error", "message": "Device not found or not mounted"}
+                if not drive:
+                    result = {"status": "error", "message": "Dispositivo não encontrado"}
+                elif not drive.mount_point:
+                    result = {"status": "error", "message": "Dispositivo não está montado"}
                 else:
                     scanner = LibraryScanner()
                     data = scanner.scan_drive(drive.mount_point)
@@ -345,7 +305,7 @@ def main():
             if not args.src:
                 result = {"status": "error", "message": "Missing path for exploration"}
             else:
-                import subprocess
+                # ... (removed local import)
                 # If it's a file (GOD), explore the directory
                 target = args.src if os.path.isdir(args.src) else os.path.dirname(args.src)
                 try:
@@ -375,8 +335,10 @@ def main():
             else:
                 drives = detect_removable_drives()
                 drive = next((d for d in drives if d.device == args.device), None)
-                if not drive or not drive.mount_point:
-                    result = {"status": "error", "message": "Drive not found"}
+                if not drive:
+                    result = {"status": "error", "message": "Dispositivo para instalação não encontrado"}
+                elif not drive.mount_point:
+                    result = {"status": "error", "message": "Dispositivo para instalação não está montado"}
                 else:
                     package_list = json.loads(args.packages)
                     success_count = 0
@@ -426,8 +388,10 @@ def main():
             else:
                 drives = detect_removable_drives()
                 drive = next((d for d in drives if d.device == args.device), None)
-                if not drive or not drive.mount_point:
-                    result = {"status": "error", "message": "Drive not found"}
+                if not drive:
+                    result = {"status": "error", "message": "Dispositivo não encontrado"}
+                elif not drive.mount_point:
+                    result = {"status": "error", "message": "Dispositivo não montado"}
                 else:
                     content = list_usb_content(drive.mount_point)
                     result = {"status": "success", "data": content}
@@ -438,8 +402,10 @@ def main():
             else:
                 drives = detect_removable_drives()
                 drive = next((d for d in drives if d.device == args.device), None)
-                if not drive or not drive.mount_point:
-                    result = {"status": "error", "message": "Drive not found"}
+                if not drive:
+                    result = {"status": "error", "message": "Dispositivo não encontrado"}
+                elif not drive.mount_point:
+                    result = {"status": "error", "message": "Ponto de montagem não encontrado"}
                 else:
                     dest = install_package(args.src, drive.mount_point)
                     result = {"status": "success", "data": {"dest": dest}}
@@ -456,8 +422,10 @@ def main():
             else:
                 drives = detect_removable_drives()
                 drive = next((d for d in drives if d.device == args.device), None)
-                if not drive or not drive.mount_point:
-                    result = {"status": "error", "message": "Drive not found"}
+                if not drive:
+                    result = {"status": "error", "message": "Dispositivo não detectado"}
+                elif not drive.mount_point:
+                    result = {"status": "error", "message": "Ponto de montagem indisponível"}
                 else:
                     manager = get_manager()
                     pics = manager.extract_from_device(drive.mount_point)
@@ -515,7 +483,7 @@ def main():
             if not args.src or not args.dest:
                 result = {"status": "error", "message": "Missing src or dest"}
             else:
-                import shutil
+                # ... (removed local import)
                 try:
                     if not os.path.isfile(args.src):
                         result = {"status": "error", "message": "Source file not found"}
@@ -533,8 +501,10 @@ def main():
             else:
                 drives = detect_removable_drives()
                 drive = next((d for d in drives if d.device == args.device), None)
-                if not drive or not drive.mount_point:
-                    result = {"status": "error", "message": "Drive not found"}
+                if not drive:
+                    result = {"status": "error", "message": "Dispositivo para injeção não encontrado"}
+                elif not drive.mount_point:
+                    result = {"status": "error", "message": "Ponto de montagem não disponível para injeção"}
                 else:
                     manager = get_manager()
                     temp_dir = tempfile.gettempdir()
@@ -606,8 +576,10 @@ def main():
             else:
                 drives = detect_removable_drives()
                 drive = next((d for d in drives if d.device == args.device), None)
-                if not drive or not drive.mount_point:
-                    result = {"status": "error", "message": "Drive not found"}
+                if not drive:
+                    result = {"status": "error", "message": "Disco de origem não encontrado"}
+                elif not drive.mount_point:
+                    result = {"status": "error", "message": "Disco de origem não está montado"}
                 else:
                     BackupManager.create_backup(drive.mount_point, args.dest, label=args.label, progress_cb=lambda m: print(m, flush=True))
                     result = {"status": "success"}
@@ -630,8 +602,10 @@ def main():
             else:
                 drives = detect_removable_drives()
                 drive = next((d for d in drives if d.device == args.device), None)
-                if not drive or not drive.mount_point:
-                    result = {"status": "error", "message": "Drive not found"}
+                if not drive:
+                    result = {"status": "error", "message": "Dispositivo não identificado"}
+                elif not drive.mount_point:
+                    result = {"status": "error", "message": "Montagem não encontrada para resumo"}
                 else:
                     summary = BackupManager.get_summary(drive.mount_point)
                     result = {"status": "success", "summary": summary}

@@ -84,10 +84,10 @@ class _ConvertViewState extends State<ConvertView> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(state.tr("x360 Converter"), style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold)),
+                  Text(state.tr("x360 Converter"), style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: state.isDarkMode ? Colors.white : Colors.black)),
                   Text(
                     state.tr("Prepare seus jogos para rodar no console."),
-                    style: TextStyle(fontSize: 16, color: Colors.white.withOpacity(0.5)),
+                    style: TextStyle(fontSize: 16, color: state.isDarkMode ? Colors.white.withOpacity(0.5) : Colors.black.withOpacity(0.5)),
                   ),
                 ],
               ),
@@ -98,9 +98,9 @@ class _ConvertViewState extends State<ConvertView> {
           // Selection Cards
           Row(
             children: [
-              Expanded(child: _buildModeCard("Xbox 360", "Converter ISO para GOD", Icons.album, "god")),
+              Expanded(child: _buildModeCard(state, "Xbox 360", "Converter ISO para GOD", Icons.album, "god")),
               const SizedBox(width: 24),
-              Expanded(child: _buildModeCard("Xbox Clássico", "Extrair ISO para Pasta (.xbe)", Icons.disc_full, "extract")),
+              Expanded(child: _buildModeCard(state, "Xbox Clássico", "Extrair ISO para Pasta (.xbe)", Icons.disc_full, "extract")),
             ],
           ),
 
@@ -110,17 +110,18 @@ class _ConvertViewState extends State<ConvertView> {
           Container(
             padding: const EdgeInsets.all(32),
             decoration: BoxDecoration(
-              color: const Color(0xFF151515),
+              color: state.isDarkMode ? const Color(0xFF151515) : Colors.white,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.white.withOpacity(0.05)),
+              border: Border.all(color: state.isDarkMode ? Colors.white.withOpacity(0.05) : Colors.black12),
               boxShadow: [
-                BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 40, offset: const Offset(0, 20)),
+                BoxShadow(color: state.isDarkMode ? Colors.black.withOpacity(0.3) : Colors.black.withOpacity(0.1), blurRadius: 40, offset: const Offset(0, 20)),
               ],
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _buildFilePickerField(
+                  state,
                   state.tr("Arquivo ISO de Origem"), 
                   _srcController, 
                   Icons.file_present,
@@ -131,6 +132,7 @@ class _ConvertViewState extends State<ConvertView> {
                 ),
                 const SizedBox(height: 24),
                 _buildFilePickerField(
+                  state,
                   state.tr("Pasta de Destino"), 
                   _destController, 
                   Icons.folder,
@@ -156,18 +158,18 @@ class _ConvertViewState extends State<ConvertView> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                     decoration: BoxDecoration(
-                      color: Colors.black26, 
+                      color: state.isDarkMode ? Colors.black26 : Colors.black.withOpacity(0.05), 
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: DropdownButtonHideUnderline(
                       child: DropdownButton<String>(
                         value: state.selectedDrive?['device'],
                         isExpanded: true,
-                        hint: const Text("Selecione o dispositivo"),
+                        hint: Text("Selecione o dispositivo", style: TextStyle(color: state.isDarkMode ? Colors.white54 : Colors.black54)),
                         items: state.drives.map((d) {
                           return DropdownMenuItem<String>(
                             value: d['device'],
-                            child: Text("${d['label']} (${d['size_gb']} GB)"),
+                            child: Text("${d['label']} (${d['size_gb']} GB)", style: TextStyle(color: state.isDarkMode ? Colors.white : Colors.black)),
                           );
                         }).toList(),
                         onChanged: (v) {
@@ -191,7 +193,7 @@ class _ConvertViewState extends State<ConvertView> {
                       foregroundColor: Colors.white,
                       elevation: 0,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      disabledBackgroundColor: Colors.grey.withOpacity(0.2),
+                      disabledBackgroundColor: state.isDarkMode ? Colors.grey.withOpacity(0.2) : Colors.black12,
                     ),
                     child: _isConverting 
                       ? const Row(
@@ -233,7 +235,7 @@ class _ConvertViewState extends State<ConvertView> {
     );
   }
 
-  Widget _buildModeCard(String title, String subtitle, IconData icon, String mode) {
+  Widget _buildModeCard(AppState state, String title, String subtitle, IconData icon, String mode) {
     bool isSelected = _mode == mode;
     return MouseRegion(
       cursor: SystemMouseCursors.click,
@@ -243,21 +245,21 @@ class _ConvertViewState extends State<ConvertView> {
           duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
-            color: isSelected ? const Color(0xFF107C10).withOpacity(0.1) : Colors.black26,
+            color: isSelected ? const Color(0xFF107C10).withOpacity(0.1) : (state.isDarkMode ? Colors.black26 : Colors.black.withOpacity(0.05)),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: isSelected ? const Color(0xFF107C10) : Colors.white12,
+              color: isSelected ? const Color(0xFF107C10) : (state.isDarkMode ? Colors.white12 : Colors.black12),
               width: 2,
             ),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(icon, color: isSelected ? Colors.white : Colors.white24, size: 32),
+              Icon(icon, color: isSelected ? (state.isDarkMode ? Colors.white : Colors.black) : (state.isDarkMode ? Colors.white24 : Colors.black26), size: 32),
               const SizedBox(height: 16),
-              Text(title, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: isSelected ? Colors.white : Colors.white54)),
+              Text(title, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: isSelected ? (state.isDarkMode ? Colors.white : Colors.black) : (state.isDarkMode ? Colors.white54 : Colors.black54))),
               const SizedBox(height: 4),
-              Text(subtitle, style: TextStyle(fontSize: 14, color: isSelected ? Colors.white70 : Colors.white24)),
+              Text(subtitle, style: TextStyle(fontSize: 14, color: isSelected ? (state.isDarkMode ? Colors.white70 : Colors.black.withOpacity(0.6)) : (state.isDarkMode ? Colors.white24 : Colors.black26))),
             ],
           ),
         ),
@@ -265,11 +267,11 @@ class _ConvertViewState extends State<ConvertView> {
     );
   }
 
-  Widget _buildFilePickerField(String label, TextEditingController controller, IconData icon, VoidCallback onPick) {
+  Widget _buildFilePickerField(AppState state, String label, TextEditingController controller, IconData icon, VoidCallback onPick) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white54)),
+        Text(label, style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: state.isDarkMode ? Colors.white54 : Colors.black54)),
         const SizedBox(height: 12),
         Row(
           children: [
@@ -278,10 +280,10 @@ class _ConvertViewState extends State<ConvertView> {
                 controller: controller,
                 readOnly: true,
                 decoration: InputDecoration(
-                  prefixIcon: Icon(icon, color: Colors.white30),
+                  prefixIcon: Icon(icon, color: state.isDarkMode ? Colors.white30 : Colors.black26),
                   hintText: "Caminho do arquivo...",
                   filled: true,
-                  fillColor: Colors.black26,
+                  fillColor: state.isDarkMode ? Colors.black26 : Colors.black.withOpacity(0.05),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
                 ),
               ),

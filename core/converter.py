@@ -103,18 +103,24 @@ class GameConverter:
             if process_callback:
                 process_callback(process)
 
+            last_lines = []
             if process.stdout is not None:
                 for line in process.stdout:
+                    clean_line = line.strip()
+                    if clean_line:
+                        last_lines.append(clean_line)
+                        if len(last_lines) > 5: last_lines.pop(0)
                     if progress_cb:
-                        # simplistic progress parsing (can be refined per tool)
-                        progress_cb(line.strip())
+                        progress_cb(clean_line)
 
             process.wait()
             if process.returncode != 0:
+                error_context = "\n".join(last_lines)
                 if allow_errors:
                     if progress_cb: progress_cb(f"Warning: Command exited with code {process.returncode} (Continued as requested).")
                     return True
-                raise Exception(f"Command failed with exit code {process.returncode}")
+                raise Exception(f"Command failed with exit code {process.returncode}\nDetalhes do Erro:\n{error_context}")
+
             
             return True
         except Exception as e:

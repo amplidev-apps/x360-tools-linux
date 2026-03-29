@@ -78,17 +78,55 @@ class _DashLaunchViewState extends State<DashLaunchView> {
             children: [
               const Icon(Icons.tune_rounded, color: Color(0xFF107C10), size: 32),
               const SizedBox(width: 16),
-              const Text("DashLaunch Pro Editor", style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
+              Text("DashLaunch Pro Editor", style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: state.isDarkMode ? Colors.white : Colors.black)),
               const Spacer(),
+              // ── Global Device Selector ──────────────────────────────────────
+              Container(
+                width: 240,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                decoration: BoxDecoration(
+                  color: state.isDarkMode ? const Color(0xFF151515) : Colors.white70,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: state.isDarkMode ? Colors.white.withOpacity(0.1) : Colors.black12),
+                ),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    value: state.drives.isEmpty 
+                        ? null 
+                        : state.drives.any((d) => d['device'] == state.selectedDrive?['device']) 
+                            ? state.selectedDrive!['device'] 
+                            : state.drives.first['device'],
+                    dropdownColor: state.isDarkMode ? const Color(0xFF151515) : Colors.white,
+                    isExpanded: true,
+                    style: TextStyle(color: state.isDarkMode ? Colors.white : Colors.black, fontSize: 13),
+                    icon: const Icon(Icons.usb, size: 18, color: Color(0xFF107C10)),
+                    onChanged: (val) {
+                      if (val != null) {
+                        final drive = state.drives.firstWhere((d) => d['device'] == val);
+                        state.selectDrive(drive);
+                      }
+                    },
+                    items: state.drives.map((d) {
+                      final label = d['label'] ?? d['device'];
+                      final size = d['size_gb'] != null ? "${d['size_gb']}GB" : (d['size'] ?? "");
+                      return DropdownMenuItem<String>(
+                        value: d['device'].toString(),
+                        child: Text("$label ($size)", style: TextStyle(color: state.isDarkMode ? Colors.white : Colors.black), overflow: TextOverflow.ellipsis),
+                      );
+                    }).toList(),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 16),
               ElevatedButton.icon(
-                onPressed: _isLoading ? null : _loadIni,
+                onPressed: _isLoading || state.selectedDrive == null ? null : _loadIni,
                 icon: const Icon(Icons.file_open_rounded),
                 label: const Text("CARREGAR .INI"),
                 style: ElevatedButton.styleFrom(backgroundColor: Colors.white10),
               ),
               const SizedBox(width: 12),
               ElevatedButton.icon(
-                onPressed: _isLoading || _iniData == null ? null : _saveIni,
+                onPressed: _isLoading || _iniData == null || state.selectedDrive == null ? null : _saveIni,
                 icon: const Icon(Icons.save_rounded),
                 label: const Text("SALVAR NO USB"),
                 style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF107C10)),
@@ -98,21 +136,21 @@ class _DashLaunchViewState extends State<DashLaunchView> {
           const SizedBox(height: 8),
           Text(
             _currentPath ?? "Selecione um dispositivo e carregue o arquivo launch.ini",
-            style: const TextStyle(color: Colors.white24, fontSize: 12),
+            style: TextStyle(color: state.isDarkMode ? Colors.white24 : Colors.black38, fontSize: 12),
           ),
           const SizedBox(height: 24),
           if (_iniData == null && !_isLoading)
-            const Expanded(child: Center(child: Text("Carregue o arquivo do seu pendrive para começar a editar.", style: TextStyle(color: Colors.white24))))
+            Expanded(child: Center(child: Text("Carregue o arquivo do seu pendrive para começar a editar.", style: TextStyle(color: state.isDarkMode ? Colors.white24 : Colors.black38))))
           else if (_isLoading)
             const Expanded(child: Center(child: CircularProgressIndicator(color: Color(0xFF107C10))))
           else
-            Expanded(child: _buildEditorForm()),
+            Expanded(child: _buildEditorForm(state)),
         ],
       ),
     );
   }
 
-  Widget _buildEditorForm() {
+  Widget _buildEditorForm(AppState state) {
     return ListView(
       children: [
         _buildSectionHeader("Caminhos de Inicialização (Paths)"),
@@ -124,12 +162,12 @@ class _DashLaunchViewState extends State<DashLaunchView> {
           spacing: 16,
           runSpacing: 16,
           children: [
-            _buildToggle("pingpatch", "Remover limite de Ping (System Link)"),
-            _buildToggle("contpatch", "Remover limite de Conteúdo (DLC Patch)"),
-            _buildToggle("liveblock", "Bloquear conexão com Xbox Live"),
-            _buildToggle("livestrong", "Bloquear servidores DNS da Microsoft"),
-            _buildToggle("noontp", "Não sincronizar hora via NTP"),
-            _buildToggle("xhttp", "Habilitar comandos HTTP"),
+            _buildToggle(state, "pingpatch", "Remover limite de Ping (System Link)"),
+            _buildToggle(state, "contpatch", "Remover limite de Conteúdo (DLC Patch)"),
+            _buildToggle(state, "liveblock", "Bloquear conexão com Xbox Live"),
+            _buildToggle(state, "livestrong", "Bloquear servidores DNS da Microsoft"),
+            _buildToggle(state, "noontp", "Não sincronizar hora via NTP"),
+            _buildToggle(state, "xhttp", "Habilitar comandos HTTP"),
           ],
         ),
         const SizedBox(height: 24),
@@ -171,7 +209,7 @@ class _DashLaunchViewState extends State<DashLaunchView> {
     );
   }
 
-  Widget _buildToggle(String key, String label) {
+  Widget _buildToggle(AppState state, String key, String label) {
     if (_iniData == null || _iniData!["settings"] == null) return const SizedBox();
     final section = _iniData!["settings"] ?? {};
     final bool value = section[key]?.toString().toLowerCase() == "true";
@@ -179,10 +217,10 @@ class _DashLaunchViewState extends State<DashLaunchView> {
     return Container(
       width: 300,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(color: Colors.white.withOpacity(0.03), borderRadius: BorderRadius.circular(8)),
+      decoration: BoxDecoration(color: state.isDarkMode ? Colors.white.withOpacity(0.03) : Colors.black.withOpacity(0.05), borderRadius: BorderRadius.circular(8)),
       child: Row(
         children: [
-          Expanded(child: Text(label, style: const TextStyle(fontSize: 13))),
+          Expanded(child: Text(label, style: TextStyle(fontSize: 13, color: state.isDarkMode ? Colors.white : Colors.black))),
           Switch(
             value: value,
             activeColor: const Color(0xFF107C10),
@@ -210,11 +248,11 @@ class _DashLaunchViewState extends State<DashLaunchView> {
         onChanged: (val) => _iniData![section][key] = val,
         decoration: InputDecoration(
           labelText: label,
-          labelStyle: const TextStyle(color: Colors.white38),
+          labelStyle: TextStyle(color: state.isDarkMode ? Colors.white38 : Colors.black45),
           filled: true,
-          fillColor: Colors.white.withOpacity(0.03),
+          fillColor: state.isDarkMode ? Colors.white.withOpacity(0.03) : Colors.black.withOpacity(0.05),
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
-          prefixIcon: const Icon(Icons.folder, size: 20, color: Colors.white24),
+          prefixIcon: Icon(Icons.folder, size: 20, color: state.isDarkMode ? Colors.white24 : Colors.black26),
           suffixIcon: IconButton(
             icon: const Icon(Icons.file_open_outlined, size: 20, color: Color(0xFF107C10)),
             onPressed: () async {
@@ -244,7 +282,7 @@ class _DashLaunchViewState extends State<DashLaunchView> {
           ),
           hintText: "Ex: Usb:\\Aurora\\Aurora.xex",
         ),
-        style: const TextStyle(fontSize: 14),
+        style: TextStyle(fontSize: 14, color: state.isDarkMode ? Colors.white : Colors.black),
       ),
     );
   }

@@ -30,7 +30,7 @@ class _LibraryViewState extends State<LibraryView> {
     final state = context.watch<AppState>();
 
     return Container(
-      color: const Color(0xFF0A0A0A),
+      color: state.isDarkMode ? const Color(0xFF0A0A0A) : const Color(0xFFF2F2F2),
       padding: const EdgeInsets.all(32),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -50,8 +50,8 @@ class _LibraryViewState extends State<LibraryView> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(state.tr("Minha Biblioteca"), style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: Colors.white)),
-                  Text(state.tr("Jogos e conteúdos instalados no dispositivo"), style: const TextStyle(color: Colors.white38, fontSize: 13)),
+                  Text(state.tr("Minha Biblioteca"), style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: state.isDarkMode ? Colors.white : Colors.black)),
+                  Text(state.tr("Jogos e conteúdos instalados no dispositivo"), style: TextStyle(color: state.isDarkMode ? Colors.white38 : Colors.black45, fontSize: 13)),
                 ],
               ),
               const Spacer(),
@@ -75,19 +75,19 @@ class _LibraryViewState extends State<LibraryView> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.03),
+              color: state.isDarkMode ? Colors.white.withOpacity(0.03) : Colors.black.withOpacity(0.03),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.white10),
+              border: Border.all(color: state.isDarkMode ? Colors.white10 : Colors.black12),
             ),
             child: Row(
               children: [
-                const Icon(Icons.usb_rounded, color: Color(0xFF107C10), size: 22),
+                Icon(Icons.usb_rounded, color: const Color(0xFF107C10), size: 22),
                 const SizedBox(width: 12),
-                Text("${state.tr("Dispositivo")}:", style: const TextStyle(color: Colors.white54, fontSize: 14)),
+                Text("${state.tr("Dispositivo")}:", style: TextStyle(color: state.isDarkMode ? Colors.white54 : Colors.black54, fontSize: 14)),
                 const SizedBox(width: 16),
                 Expanded(
                       child: state.drives.isEmpty
-                      ? Text(state.tr("Nenhum dispositivo encontrado."), style: const TextStyle(color: Colors.white38))
+                      ? Text(state.tr("Nenhum dispositivo encontrado."), style: TextStyle(color: state.isDarkMode ? Colors.white38 : Colors.black45))
                       : DropdownButton<String>(
                           value: state.selectedDrive?['device'],
                           isExpanded: true,
@@ -98,7 +98,7 @@ class _LibraryViewState extends State<LibraryView> {
                             final drive = d as Map<String, dynamic>;
                             return DropdownMenuItem<String>(
                               value: drive['device'] as String,
-                              child: Text("${drive['label']} (${drive['device']}) - ${drive['mount_point']}"),
+                              child: Text("${drive['label']} (${drive['device']}) - ${drive['mount']}"),
                             );
                           }).toList(),
                           onChanged: (val) {
@@ -164,9 +164,9 @@ class _LibraryViewState extends State<LibraryView> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.folder_off_outlined, size: 64, color: Colors.white.withOpacity(0.05)),
+            Icon(Icons.folder_off_outlined, size: 64, color: state.isDarkMode ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.05)),
             const SizedBox(height: 16),
-            Text("${state.tr("Nenhum")} $type ${state.tr("encontrado")}.", style: const TextStyle(color: Colors.white38)),
+            Text("${state.tr("Nenhum")} $type ${state.tr("encontrado")}.", style: TextStyle(color: state.isDarkMode ? Colors.white38 : Colors.black45)),
           ],
         ),
       );
@@ -181,9 +181,9 @@ class _LibraryViewState extends State<LibraryView> {
           child: Container(
             margin: const EdgeInsets.only(bottom: 8),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.03),
+              color: state.isDarkMode ? Colors.white.withOpacity(0.03) : Colors.black.withOpacity(0.03),
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: Colors.white10),
+              border: Border.all(color: state.isDarkMode ? Colors.white10 : Colors.black12),
             ),
             child: ListTile(
               leading: Container(
@@ -200,12 +200,12 @@ class _LibraryViewState extends State<LibraryView> {
                     ? const Icon(Icons.videogame_asset, color: Color(0xFF107C10), size: 20)
                     : null,
               ),
-              title: Text(item['name'] ?? "Unknown Content", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              title: Text(item['name'] ?? "Unknown Content", style: TextStyle(color: state.isDarkMode ? Colors.white : Colors.black, fontWeight: FontWeight.bold)),
               subtitle: Text(
                 "TitleID: ${item['titleId'] ?? 'XEX/XBE'} | Path: ${item['path']}",
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(color: Colors.white38, fontSize: 11),
+                style: TextStyle(color: state.isDarkMode ? Colors.white38 : Colors.black45, fontSize: 11),
               ),
               trailing: IconButton(
                 icon: const Icon(Icons.more_vert, color: Colors.white24),

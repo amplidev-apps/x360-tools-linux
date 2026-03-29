@@ -11,7 +11,7 @@ class SavesView extends StatelessWidget {
     final state = context.watch<AppState>();
 
     return Container(
-      color: const Color(0xFF0A0A0A),
+      color: state.isDarkMode ? const Color(0xFF0A0A0A) : Colors.white,
       padding: const EdgeInsets.all(40),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -32,18 +32,57 @@ class SavesView extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       "Save Manager",
-                      style: TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: -1),
+                      style: TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: state.isDarkMode ? Colors.white : Colors.black, letterSpacing: -1),
                     ),
                     const SizedBox(height: 8),
                     Text(
                       state.tr("Gerencie seus saves e perfis de Xbox 360 localmente e exporte para outros dispositivos."),
-                      style: const TextStyle(fontSize: 14, color: Colors.white54),
+                      style: TextStyle(fontSize: 14, color: state.isDarkMode ? Colors.white54 : Colors.black54),
                     ),
                   ],
                 ),
               ),
+              const Spacer(),
+              // ── Global Device Selector ──────────────────────────────────────
+              Container(
+                width: 240,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                decoration: BoxDecoration(
+                  color: state.isDarkMode ? const Color(0xFF151515) : Colors.white70,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: state.isDarkMode ? Colors.white.withOpacity(0.1) : Colors.black12),
+                ),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    value: state.drives.isEmpty 
+                        ? null 
+                        : state.drives.any((d) => d['device'] == state.selectedDrive?['device']) 
+                            ? state.selectedDrive!['device'] 
+                            : state.drives.first['device'],
+                    dropdownColor: state.isDarkMode ? const Color(0xFF151515) : Colors.white,
+                    isExpanded: true,
+                    style: TextStyle(color: state.isDarkMode ? Colors.white : Colors.black, fontSize: 13),
+                    icon: const Icon(Icons.usb, size: 18, color: Color(0xFF107C10)),
+                    onChanged: (val) {
+                      if (val != null) {
+                        final drive = state.drives.firstWhere((d) => d['device'] == val);
+                        state.selectDrive(drive);
+                      }
+                    },
+                    items: state.drives.map((d) {
+                      final label = d['label'] ?? d['device'];
+                      final size = d['size_gb'] != null ? "${d['size_gb']}GB" : (d['size'] ?? "");
+                      return DropdownMenuItem<String>(
+                        value: d['device'].toString(),
+                        child: Text("$label ($size)", style: TextStyle(color: state.isDarkMode ? Colors.white : Colors.black), overflow: TextOverflow.ellipsis),
+                      );
+                    }).toList(),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 16),
               ElevatedButton.icon(
                 onPressed: state.isLoadingSaves ? null : () => state.saveScan(),
                 style: ElevatedButton.styleFrom(
@@ -83,11 +122,11 @@ class SavesView extends StatelessWidget {
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.save_outlined, size: 80, color: Colors.white.withOpacity(0.05)),
+                            Icon(Icons.save_outlined, size: 80, color: state.isDarkMode ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.05)),
                             const SizedBox(height: 24),
                             Text(
                               state.tr("Nenhum save encontrado no cofre."),
-                              style: const TextStyle(color: Colors.white38, fontSize: 18),
+                              style: TextStyle(color: state.isDarkMode ? Colors.white38 : Colors.black45, fontSize: 18),
                             ),
                           ],
                         ),
@@ -123,9 +162,9 @@ class SavesView extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.02),
+        color: state.isDarkMode ? Colors.white.withOpacity(0.02) : Colors.black.withOpacity(0.05),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white10),
+        border: Border.all(color: state.isDarkMode ? Colors.white10 : Colors.black12),
       ),
       padding: const EdgeInsets.all(16),
       child: Row(
@@ -136,9 +175,9 @@ class SavesView extends StatelessWidget {
             width: 64,
             height: 64,
             decoration: BoxDecoration(
-              color: Colors.black,
+              color: state.isDarkMode ? Colors.black : Colors.black.withOpacity(0.05),
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.white10),
+              border: Border.all(color: state.isDarkMode ? Colors.white10 : Colors.black12),
               image: iconPath.isNotEmpty && File(iconPath).existsSync()
                   ? DecorationImage(
                       image: FileImage(File(iconPath)),
@@ -147,7 +186,7 @@ class SavesView extends StatelessWidget {
                   : null,
             ),
             child: iconPath.isEmpty || !File(iconPath).existsSync()
-                ? const Icon(Icons.videogame_asset, color: Colors.white38, size: 32)
+                ? Icon(Icons.videogame_asset, color: state.isDarkMode ? Colors.white38 : Colors.black45, size: 32)
                 : null,
           ),
           const SizedBox(width: 16),
@@ -164,14 +203,14 @@ class SavesView extends StatelessWidget {
                       displayName,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                      style: TextStyle(color: state.isDarkMode ? Colors.white : Colors.black, fontSize: 16, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       description.isNotEmpty ? description : "Title ID: $titleId",
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(color: Colors.white54, fontSize: 13),
+                      style: TextStyle(color: state.isDarkMode ? Colors.white54 : Colors.black54, fontSize: 13),
                     ),
                   ],
                 ),
@@ -186,7 +225,7 @@ class SavesView extends StatelessWidget {
                       children: [
                         // Tooltip & Export disabled for now as mocked, but visually present
                         IconButton(
-                          icon: const Icon(Icons.cloud_upload, color: Colors.white38, size: 20),
+                          icon: Icon(Icons.cloud_upload, color: state.isDarkMode ? Colors.white38 : Colors.black45, size: 20),
                           tooltip: state.tr("Backup em Nuvem (Em Breve)"),
                           onPressed: () {
                              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(state.tr("Cloud Sync chegará em uma atualização futura."))));

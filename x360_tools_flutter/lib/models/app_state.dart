@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:io';
+import 'dart:convert';
 import '../services/python_bridge.dart';
 import '../services/translation_service.dart';
 
@@ -179,14 +180,88 @@ class AppState extends ChangeNotifier {
   List<dynamic> saves = [];
   bool isLoadingSaves = false;
 
+  // --- New Settings Fields ---
+  String downloadPath = "";
+  String ftpIp = "192.168.1.100";
+  String ftpUser = "xbox";
+  String ftpPass = "xbox";
+  bool autoScanDrives = true;
+  String coverResolution = "Média";
+  bool isDarkMode = true;
+
   AppState() {
     _init();
   }
 
   Future<void> _init() async {
-    await refreshDrives();
+    await loadSettings();
+    if (autoScanDrives) {
+      await refreshDrives();
+    }
     await saveScan();
     await verifyIALogin();
+  }
+
+  Future<void> loadSettings() async {
+    try {
+      final file = File('config.json');
+      if (await file.exists()) {
+        final content = await file.readAsString();
+        final data = json.decode(content);
+        downloadPath = data['downloadPath'] ?? "";
+        ftpIp = data['ftpIp'] ?? "192.168.1.100";
+        ftpUser = data['ftpUser'] ?? "xbox";
+        ftpPass = data['ftpPass'] ?? "xbox";
+        autoScanDrives = data['autoScanDrives'] ?? true;
+        coverResolution = data['coverResolution'] ?? "Média";
+        isDarkMode = data['isDarkMode'] ?? true;
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint("Error loading settings: $e");
+    }
+  }
+
+  Future<void> saveSettings() async {
+    try {
+      final data = {
+        'downloadPath': downloadPath,
+        'ftpIp': ftpIp,
+        'ftpUser': ftpUser,
+        'ftpPass': ftpPass,
+        'autoScanDrives': autoScanDrives,
+        'coverResolution': coverResolution,
+        'isDarkMode': isDarkMode,
+      };
+      final file = File('config.json');
+      await file.writeAsString(json.encode(data));
+    } catch (e) {
+      debugPrint("Error saving settings: $e");
+    }
+  }
+
+  void updateSettings({
+    String? dlPath,
+    String? fIp,
+    String? fUser,
+    String? fPass,
+    bool? scan,
+    String? res,
+  }) {
+    if (dlPath != null) downloadPath = dlPath;
+    if (fIp != null) ftpIp = fIp;
+    if (fUser != null) ftpUser = fUser;
+    if (fPass != null) ftpPass = fPass;
+    if (scan != null) autoScanDrives = scan;
+    if (res != null) coverResolution = res;
+    saveSettings();
+    notifyListeners();
+  }
+
+  void toggleTheme() {
+    isDarkMode = !isDarkMode;
+    saveSettings();
+    notifyListeners();
   }
 
   Future<void> verifyIALogin() async {
@@ -765,7 +840,7 @@ class AppState extends ChangeNotifier {
     isScanningLibrary = true;
     notifyListeners();
     try {
-      final res = await PythonBridge.executeCommand("scan_library", device: selectedDrive!['mount']);
+      final res = await PythonBridge.executeCommand("scan_library", device: selectedDrive!['device']);
       if (res['status'] == 'success') {
         libraryGames["360"] = res['data']['360'] ?? [];
         libraryGames["OG"] = res['data']['OG'] ?? [];
@@ -991,7 +1066,7 @@ class AppState extends ChangeNotifier {
     // ... etc. This part needs to be mapped to the actual filenames in service_bridge.py
     
     final res = await PythonBridge.installPackages(
-      selectedDrive!['mount'], 
+      selectedDrive!['device'], 
       packages
     );
 
@@ -1032,7 +1107,7 @@ class AppState extends ChangeNotifier {
     notifyListeners();
 
     final res = await PythonBridge.installPackages(
-      selectedDrive!['mount'], 
+      selectedDrive!['device'], 
       packages
     );
 
@@ -1113,7 +1188,7 @@ class AppState extends ChangeNotifier {
     isLoadingExplorer = true;
     notifyListeners();
     
-    final res = await PythonBridge.listContent(selectedDrive!['mount']);
+    final res = await PythonBridge.listContent(selectedDrive!['device']);
     if (res["status"] == "success") {
       explorerContent = Map<String, dynamic>.from(res["data"]);
     }
@@ -1129,7 +1204,7 @@ class AppState extends ChangeNotifier {
     statusMessage = "Installing Content...";
     notifyListeners();
     
-    final res = await PythonBridge.installSTFS(currentSTFSPath!, selectedDrive!['mount']);
+    final res = await PythonBridge.installSTFS(currentSTFSPath!, selectedDrive!['device']);
     
     if (res["status"] == "success") {
       statusMessage = "Installation Successful!";
@@ -1179,7 +1254,7 @@ class AppState extends ChangeNotifier {
     isLoadingInstalledGamerpics = true;
     notifyListeners();
     
-    installedGamerpics = await PythonBridge.getInstalledGamerpics(selectedDrive!['mount']);
+    installedGamerpics = await PythonBridge.getInstalledGamerpics(selectedDrive!['device']);
     
     isLoadingInstalledGamerpics = false;
     notifyListeners();
@@ -1231,7 +1306,7 @@ class AppState extends ChangeNotifier {
     statusMessage = "${tr("Injetando")} Gamerpic...";
     notifyListeners();
 
-    final res = await PythonBridge.injectGamerpic(selectedDrive!['mount'], id);
+    final res = await PythonBridge.injectGamerpic(selectedDrive!['device'], id);
     
     if (res["status"] == "success") {
       statusMessage = tr("Gamerpic injetada com sucesso!");

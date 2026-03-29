@@ -5,9 +5,18 @@ import tempfile
 import sys
 import json
 import re
-from PIL import Image
+try:
+    from PIL import Image
+except ImportError:
+    Image = None
+
 from io import BytesIO
-from .stfs_writer import STFSWriter
+
+# Use absolute import for release-ready consistency
+try:
+    from core.stfs_writer import STFSWriter
+except ImportError:
+    from .stfs_writer import STFSWriter
 
 PNG_SIG = b"\x89PNG\r\n\x1a\n"
 
@@ -20,6 +29,8 @@ class GamerpicManager:
         self.game_db    = self._load_json(os.path.join(lib_dir, "games.json"), is_list=True)
         self.meta_cache = self._load_json(os.path.join(lib_dir, "metadata_cache.json"))
         self.last_metadata = []
+        if not Image:
+            print("WARNING: PIL/Pillow not found. Gamerpic extraction may fail.", file=sys.stderr)
 
     # ──── DB helpers ─────────────────────────────────────────────────── #
 
@@ -49,88 +60,155 @@ class GamerpicManager:
 
     # ──── Scanning logic ──────────────────────────────────────────────── #
 
+    # ──── STFS Header helper ──────────────────────────────────────────── #
+
+    def _read_stfs_title_id(self, mm):
+        """Read the real Title ID from the STFS header at offset 0x360."""
+        try:
+            header = mm[0:4]
+            if header not in (b"CON ", b"LIVE", b"PIRS"):
+                return None
+            raw = mm[0x360:0x364]
+            tid = raw.hex().upper()
+            # 00000000 and FFFE07D1 mean "no game" (avatar / system)
+            if tid in ("00000000", "FFFE07D1"):
+                return None
+            return tid
+        except Exception:
+            return None
+
+    # ──── Scanning logic ──────────────────────────────────────────────── #
+
+    def _find_png_end(self, mm: mmap.mmap, start: int) -> int:
+        """Traverse PNG chunks to find the true end (after IEND)."""
+        IEND = b"IEND"
+        pos = start + 8  # skip PNG signature
+        size = len(mm)
+        while pos <= size - 12:
+            try:
+                # Read 4 bytes for chunk length
+                raw_len = mm[pos:pos+4]
+                if len(raw_len) < 4: break
+                chunk_len = struct.unpack(">I", raw_len)[0]
+                chunk_type = mm[pos+4:pos+8]
+                # sys.stderr.write(f"DEBUG: Found chunk {chunk_type} len {chunk_len} at {pos}\n")
+                
+                if chunk_len > 1_000_000: break
+                
+                pos += 8 + chunk_len + 4        # len + type + data + CRC
+                if chunk_type == IEND:
+                    return pos
+            except Exception:
+                break
+        return -1
+
+    def _collect_valid_pngs(self, mm, target_w):
+        """
+        Walk the mmap from 0x1000 forward, hopping between PNG_SIG occurrences
+        and using IEND to find true boundaries.  Returns list of (offset, data)
+        for every valid, loadable PNG whose width == target_w.
+        """
+        valid = []
+        p = 0x1000
+        while True:
+            idx = mm.find(PNG_SIG, p)
+            if idx < 0:
+                break
+            try:
+                w = struct.unpack(">I", mm[idx+16:idx+20])[0]
+                h = struct.unpack(">I", mm[idx+20:idx+24])[0]
+            except Exception:
+                p = idx + 8
+                continue
+
+            end = self._find_png_end(mm, idx)
+            if end <= idx:
+                p = idx + 8
+                continue
+
+            if w == target_w and h == target_w:   # must be square (64×64 or 32×32)
+                data = bytes(mm[idx:end])
+                try:
+                    img = Image.open(BytesIO(data))
+                    img.verify()
+                    valid.append((idx, data))
+                except Exception:
+                    pass
+            p = end   # jump past this PNG, avoiding false inner signatures
+
+        return valid
+
     def _extract_from_files(self, files):
         all_meta = []
         for pack_path in files:
             pack_name = os.path.basename(pack_path)
-            prefix    = "".join(c for c in pack_name if c.isalnum())[:8]
+            # V109: Include hash of filename to prevent ID collisions between packs with similar names
+            import hashlib
+            h = hashlib.md5(pack_name.encode()).hexdigest()[:6]
+            prefix = "".join(c for c in pack_name if c.islower() or c.isdigit())[:6] or "pkg"
+            prefix = f"{prefix}_{h}"
 
             with open(pack_path, "rb") as fh:
                 with mmap.mmap(fh.fileno(), 0, access=mmap.ACCESS_READ) as mm:
-                    # 1. Find dir offset
+                    # ── 0. Pack-level Title ID fallback ──────────────────────────
+                    pack_tid = self._read_stfs_title_id(mm)
+
+                    # ── 1. Find the STFS internal directory offset ───────────────
                     dir_off = None
                     for off in [0xCD00, 0xBD00, 0xAD00, 0x9D00, 0x24C000]:
                         sig = mm[off:off+3]
-                        if sig.startswith((b"64_", b"32_", b"gp_")): 
+                        if sig.startswith((b"64_", b"32_", b"gp_")):
                             dir_off = off; break
-                    if dir_off is None: continue
+                    if dir_off is None:
+                        continue
 
-                    # 2. Read entries (32+64)
-                    entries = []
+                    # ── 2. Read only 64px directory entries ──────────────────────
+                    entries_64 = []
                     pos = dir_off
                     for i in range(20000):
                         chunk = mm[pos:pos+0x40]; pos += 0x40
                         if not chunk or chunk[0] == 0: break
                         try:
-                            name = chunk[:0x28].decode('ascii', errors='ignore').split('\x00')[0]
-                            if not name: continue
-                            m = re.search(r"([0-9A-Fa-f]{8})", name)
-                            entries.append({
-                                "idx": i, "w": 64 if name.startswith("64_") else 32,
-                                "tid": m.group(1).upper() if m else None,
-                                "sz": struct.unpack(">I", chunk[0x34: 0x38])[0]
-                            })
-                        except: continue
+                            raw_name = chunk[:0x28].decode("ascii", errors="ignore").split("\x00")[0]
+                            if not raw_name or not raw_name.startswith("64_"):
+                                continue
+                            body = raw_name[3:]           # strip "64_"
+                            m = re.match(r"([0-9A-Fa-f]{8})", body)
+                            tid = m.group(1).upper() if m else None
+                            if tid in ("00000000", "FFFE07D1"):
+                                tid = None
+                            sz  = struct.unpack(">I", chunk[0x34:0x38])[0]
+                            entries_64.append({"idx": i, "tid": tid or pack_tid, "sz": sz})
+                        except Exception:
+                            continue
 
-                    # 3. Read all PNGs (idx, width)
-                    pngs, p = [], 0
-                    while True:
-                        idx = mm.find(PNG_SIG, p)
-                        if idx < 0: break
-                        try:
-                            w = struct.unpack(">I", mm[idx+16:idx+20])[0]
-                            pngs.append((idx, w))
-                        except: pass
-                        p = idx + 8
+                    if not entries_64:
+                        continue
 
-                    # 4. Resilient skip & match logic
-                    skip = 0
-                    for s in range(50):
-                        matches = sum(1 for j in range(min(20, len(entries))) 
-                                      if s+j < len(pngs) and entries[j]['w'] == pngs[s+j][1])
-                        if matches >= 10: skip = s; break
+                    # ── 3. Collect all valid 64×64 PNGs in file order ────────────
+                    pngs_64 = self._collect_valid_pngs(mm, 64)
 
-                    # Match each entry to the NEXT available PNG of correct width
-                    p_idx = skip
-                    for entry in entries:
-                        found_at = -1
-                        for attempt in range(p_idx, min(p_idx + 20, len(pngs))):
-                            if pngs[attempt][1] == entry['w']:
-                                found_at = attempt; break
-                        
-                        if found_at >= 0:
-                            p_idx = found_at + 1
-                            if entry['w'] == 32: continue 
-                            
-                            off = pngs[found_at][0]
-                            sz  = entry['sz']
-                            tid = entry['tid']
-                            png_data = bytes(mm[off:off+sz])
-                            
-                            if not png_data.startswith(PNG_SIG): continue
-                            
-                            game_title, genre = self._resolve(tid)
-                            icon_id = f"{prefix}_{entry['idx']}"
-                            icon_path = os.path.join(self.temp_dir, f"gp_{icon_id}.png")
-                            
-                            if not os.path.exists(icon_path):
-                                with open(icon_path, "wb") as f: f.write(png_data)
-                            
-                            all_meta.append({
-                                "id": icon_id, "name": game_title, "pack": pack_name,
-                                "genre": genre, "path": icon_path, "size": sz, 
-                                "tid": tid, "pack_path": pack_path
-                            })
+                    # ── 4. Pair by sequential position (entry[i] ↔ png[i]) ───────
+                    for i, entry in enumerate(entries_64):
+                        if i >= len(pngs_64):
+                            break
+
+                        off, png_data = pngs_64[i]
+                        tid        = entry["tid"]
+                        game_title, genre = self._resolve(tid)
+                        icon_id    = f"{prefix}_{entry['idx']}"
+                        h_cont     = hashlib.md5(png_data).hexdigest()[:8]
+                        icon_path  = os.path.join(self.temp_dir, f"gp_{icon_id}_{h_cont}.png")
+
+                        # V111: Always write the icon to ensure it's fresh
+                        with open(icon_path, "wb") as f:
+                            f.write(png_data)
+
+                        all_meta.append({
+                            "id": icon_id, "name": game_title, "pack": pack_name,
+                            "genre": genre, "path": icon_path, "size": len(png_data),
+                            "tid": tid, "pack_path": pack_path
+                        })
 
         return all_meta
 
@@ -252,31 +330,20 @@ class GamerpicManager:
             print(f"DEBUG: Icon not found or PNG path missing: {icon_id}", file=sys.stderr)
             return False
         try:
-            import struct
-            import shutil
-            # Check if it's already a custom STFS
-            if it.get("pack_path", "").endswith(".stfs"):
-                print(f"DEBUG: Copying existing STFS for {icon_id}", file=sys.stderr)
-                shutil.copy2(it["pack_path"], output_path)
-                return True
-
-            print(f"DEBUG: Creating mini-STFS for {icon_id} from {it['pack_path']}", file=sys.stderr)
-            with open(it["pack_path"], "rb") as f: h = bytearray(f.read(0xAC00))
-            with open(it["path"],      "rb") as f: d = f.read()
+            # V110: Use STFSWriter for a clean, valid package instead of manual patching
+            from .stfs_writer import STFSWriter
             
-            # ── Fix: Force FFFE07D1 Title ID and 00020000 Content Type ──────────────────
-            # This ensures it's installed in the correct Xbox 360 Gamerpic directory.
-            h[0x360:0x364] = b"\xFF\xFE\x07\xD1"
-            struct.pack_into(">I", h, 0x344, 0x00020000) 
+            with open(it["path"], "rb") as f:
+                png_data = f.read()
+            
+            display_name = it.get("name", "Gamerpic")
+            writer = STFSWriter(title_id="FFFE07D1", display_name=display_name)
+            stfs_data = writer.create_package(png_data)
             
             with open(output_path, "wb") as f:
-                f.write(h); f.write(b"\x00" * (0x10000 - len(h)))
-                f.seek(0xCD00); e = bytearray(0x40)
-                # INTERNAL FILENAME: Must start with 64_ or 32_ for best compatibility
-                n = f"64_gp_{icon_id}.png".encode("ascii", "ignore")[:39]
-                e[:len(n)] = n
-                e[0x34:0x38] = struct.pack(">I", len(d))
-                f.write(e); f.seek(0xD000); f.write(d)
+                f.write(stfs_data)
+            
+            print(f"DEBUG: Created mini-STFS for {icon_id} (size: {len(stfs_data)})", file=sys.stderr)
             return True
         except Exception as e:
             print(f"Error in create_mini_stfs: {e}")
@@ -284,4 +351,6 @@ class GamerpicManager:
 
 
 def get_manager():
-    return GamerpicManager("/home/amplimusic/Documentos/BadStickLinux/v1.1/applib")
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    applib_path = os.path.join(base_dir, "..", "applib")
+    return GamerpicManager(applib_path)

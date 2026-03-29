@@ -52,16 +52,25 @@ class X360ToolsApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final state = context.watch<AppState>();
     return MaterialApp(
       title: 'x360 Tools for Linux',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
+      theme: state.isDarkMode ? ThemeData(
         brightness: Brightness.dark,
         scaffoldBackgroundColor: const Color(0xFF0A0A0A),
         fontFamily: 'Segoe UI',
         colorScheme: const ColorScheme.dark(
           primary: Colors.green,
           surface: Color(0xFF151515),
+        ),
+      ) : ThemeData(
+        brightness: Brightness.light,
+        scaffoldBackgroundColor: const Color(0xFFF2F2F2),
+        fontFamily: 'Segoe UI',
+        colorScheme: const ColorScheme.light(
+          primary: Color(0xFF107C10),
+          surface: Colors.white,
         ),
       ),
       home: const MainShell(),
@@ -141,7 +150,7 @@ class _MainShellState extends State<MainShell> {
                 SizedBox(
                   width: 260,
                   child: Container(
-                    color: Colors.black,
+                    color: state.isDarkMode ? Colors.black : const Color(0xFFE6E6E6),
                     child: Column(
                       children: [
                         const SizedBox(height: 20),
@@ -151,7 +160,7 @@ class _MainShellState extends State<MainShell> {
                           child: Align(
                             alignment: Alignment.centerLeft,
                             child: SvgPicture.asset(
-                              'assets/x360_new_logo_white.svg',
+                              state.isDarkMode ? 'assets/x360_new_logo_white.svg' : 'assets/x360_new_logo_black.svg',
                               height: 48,
                               fit: BoxFit.contain,
                             ),
@@ -184,7 +193,7 @@ class _MainShellState extends State<MainShell> {
                         },
                         child: Container(
                           height: 50,
-                          color: const Color(0xFF0A0A0A),
+                        color: state.isDarkMode ? const Color(0xFF0A0A0A) : const Color(0xFFF2F2F2),
                           padding: const EdgeInsets.symmetric(horizontal: 20),
                           child: Row(
                             children: [
@@ -214,7 +223,7 @@ class _MainShellState extends State<MainShell> {
                       // 3. Footer Bar
                       Container(
                         height: 50,
-                        color: Colors.black,
+                        color: state.isDarkMode ? Colors.black : const Color(0xFFE6E6E6),
                         padding: const EdgeInsets.symmetric(horizontal: 20),
                         child: Row(
                           children: [
@@ -225,17 +234,21 @@ class _MainShellState extends State<MainShell> {
                                 alignment: Alignment.centerLeft,
                                 padding: const EdgeInsets.symmetric(horizontal: 10),
                                 decoration: BoxDecoration(
-                                  color: Colors.black,
-                                  border: Border.all(color: Colors.white10),
+                                  color: state.isDarkMode ? Colors.black : Colors.white,
+                                  border: Border.all(color: state.isDarkMode ? Colors.white10 : Colors.black12),
                                   borderRadius: BorderRadius.circular(4),
                                 ),
-                                child: Text("${state.tr("Status: ")}${state.statusMessage}", style: const TextStyle(fontSize: 12, color: Colors.white70)),
+                                child: Text("${state.tr("Status: ")}${state.statusMessage}", style: TextStyle(fontSize: 12, color: state.isDarkMode ? Colors.white70 : Colors.black87)),
                               ),
                             ),
                             const SizedBox(width: 10),
-                            _buildFooterButton(state.tr("Modo Escuro"), Icons.nightlight_round, Colors.yellow.shade800, () {}),
+                            _buildFooterButton(
+                                state.isDarkMode ? state.tr("Modo Escuro") : state.tr("Modo Claro"), 
+                                state.isDarkMode ? Icons.nightlight_round : Icons.wb_sunny, 
+                                state.isDarkMode ? Colors.yellow.shade800 : Colors.blue.shade700, 
+                                state.toggleTheme),
                             const SizedBox(width: 10),
-                            const Text("v1.0", style: TextStyle(color: Colors.white38, fontSize: 12)),
+                            const Text("v1.1", style: TextStyle(color: Colors.white38, fontSize: 12)),
                           ],
                         ),
                       ),
@@ -274,14 +287,14 @@ class _MainShellState extends State<MainShell> {
               Icon(
                 tab['icon'],
                 size: 20,
-                color: isSelected ? const Color(0xFF107C10) : Colors.white60,
+                color: isSelected ? const Color(0xFF107C10) : (state.isDarkMode ? Colors.white60 : Colors.black87),
               ),
               const SizedBox(width: 16),
               Expanded(
                 child: Text(
                   state.tr(tab['key']),
                   style: TextStyle(
-                    color: isSelected ? Colors.white : Colors.white60,
+                    color: isSelected ? (state.isDarkMode ? Colors.white : Colors.black) : (state.isDarkMode ? Colors.white60 : Colors.black),
                     fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                     fontSize: 14,
                   ),
