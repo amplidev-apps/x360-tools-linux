@@ -28,6 +28,7 @@ void main() async {
 
   WindowOptions windowOptions = const WindowOptions(
     size: Size(1280, 800),
+    title: 'x360 Tools',
     center: true,
     backgroundColor: Colors.transparent,
     skipTaskbar: false,
@@ -37,6 +38,7 @@ void main() async {
   windowManager.waitUntilReadyToShow(windowOptions, () async {
     await windowManager.show();
     await windowManager.focus();
+    await windowManager.setIcon('assets/x360_tools_icon.png');
   });
 
   runApp(
@@ -54,7 +56,7 @@ class X360ToolsApp extends StatelessWidget {
   Widget build(BuildContext context) {
     final state = context.watch<AppState>();
     return MaterialApp(
-      title: 'x360 Tools for Linux',
+      title: 'x360 Tools',
       debugShowCheckedModeBanner: false,
       theme: state.isDarkMode ? ThemeData(
         brightness: Brightness.dark,
