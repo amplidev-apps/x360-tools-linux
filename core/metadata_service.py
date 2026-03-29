@@ -326,20 +326,27 @@ class MetadataService:
                         "Source": "LOCAL DB",
                         "TitleUpdates": []
                     }
+                    # Resolve URLs using FreemarketEngine if they are bare filenames (V105)
+                    from core.freemarket import FreemarketEngine
+                    engine = FreemarketEngine()
+                    
                     cur.execute("SELECT media_id, version, tu_id, download_url FROM title_updates WHERE title_id = ?", (row[0],))
                     for tu in cur.fetchall():
+                        tu_url = engine._resolve_bare_url(tu[3])
                         res["TitleUpdates"].append({
-                            "MediaID": tu[0], "Version": tu[1], "TitleUpdateID": tu[2], "downloadUrl": tu[3]
+                            "MediaID": tu[0], "Version": tu[1], "TitleUpdateID": tu[2], "downloadUrl": tu_url
                         })
                     
                     # Fetch Linked DLCs (V45)
                     res["DLCs"] = []
                     cur.execute("SELECT name, download_url FROM dlcs WHERE base_title_id = ?", (row[0],))
                     for dlc in cur.fetchall():
+                        dlc_url = engine._resolve_bare_url(dlc[1])
                         res["DLCs"].append({
                             "Name": dlc[0],
-                            "DownloadUrl": dlc[1]
+                            "DownloadUrl": dlc_url
                         })
+
 
                     conn.close()
                     # Perform translation if needed (V55)

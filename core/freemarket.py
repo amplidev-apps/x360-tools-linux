@@ -99,7 +99,34 @@ class FreemarketEngine:
         clean = re.sub(r'[\s\-:_]+', ' ', clean).strip()
         return clean
 
+    def _resolve_bare_url(self, url):
+        """Resolves a bare filename to a full Archive.org URL by searching local IA DBs (V105)"""
+        if not url or url.startswith("http"):
+            return url
+            
+        import urllib.parse
+        filename = url
+        # Search in all IA databases
+        if not os.path.exists(self.ia_dbs_dir):
+            return url # Fallback to original
+            
+        for db_name in os.listdir(self.ia_dbs_dir):
+            if not db_name.endswith("_meta.sqlite"): continue
+            ia_id = db_name.replace("_meta.sqlite", "")
+            db_path = os.path.join(self.ia_dbs_dir, db_name)
+            try:
+                # Use a separate connection to avoid locking issues
+                with sqlite3.connect(db_path, timeout=5) as conn:
+                    cur = conn.cursor()
+                    cur.execute("SELECT s3key FROM s3api_per_key_metadata WHERE s3key = ? LIMIT 1", (filename,))
+                    row = cur.fetchone()
+                    if row:
+                        return f"https://archive.org/download/{ia_id}/{urllib.parse.quote(row[0])}"
+            except: pass
+        return url # Return original if not found
+
     def fetch_game_list(self, platform="360", force_refresh=False):
+
         """Fetch game list from IA SQLites. Uses per-platform cache files (V97)."""
         import sys
         raw_games = []
@@ -431,7 +458,11 @@ class FreemarketEngine:
         return True
 
     def install_title_update(self, tu_url, tu_name, title_id, dest_drive, progress_cb=None):
+        # Resolve bare URL if needed (V105)
+        tu_url = self._resolve_bare_url(tu_url)
+        
         has_error = False
+
         if not title_id or title_id == "Desconhecido":
              if progress_cb: progress_cb("Error: Title ID inválido para instalação de TU.")
              return False
@@ -467,6 +498,9 @@ class FreemarketEngine:
             if progress_cb: progress_cb(f"PHASE:Erro: {e}")
             return False
     def install_dlc(self, dlc_url, dlc_name, title_id, dest_drive, progress_cb=None, task_id=None):
+        # Resolve bare URL if needed (V105)
+        dlc_url = self._resolve_bare_url(dlc_url)
+        
         has_error = False
         if not title_id or title_id == "Desconhecido":
              if progress_cb: progress_cb("PHASE:Erro: Title ID inválido para instalação de DLC.")
