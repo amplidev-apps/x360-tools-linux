@@ -55,6 +55,8 @@ class PythonBridge {
       String? cookie,
       String? user,
       String? password,
+      String? iaUser,
+      String? iaPass,
   }) async {
     final List<String> args = ['python3', bridgeScript, '--cmd', cmd];
     if (arg != null) args.addAll(['--arg', arg]);
@@ -70,8 +72,10 @@ class PythonBridge {
     if (id != null) args.addAll(['--id', id]);
     if (name != null) args.addAll(['--name', name]);
     if (crop != null) args.addAll(['--crop', crop]);
-    if (user != null) args.addAll(['--ia-user', user]);
-    if (password != null) args.addAll(['--ia-pass', password]);
+    if (user != null) args.addAll(['--user', user]); // FTP User
+    if (password != null) args.addAll(['--passwd', password]); // FTP Pass
+    if (iaUser != null) args.addAll(['--ia-user', iaUser]); // IA User
+    if (iaPass != null) args.addAll(['--ia-pass', iaPass]); // IA Pass
     if (gallery) args.add('--gallery');
     if (lang != null) args.addAll(['--lang', lang]);
     if (host != null) args.addAll(['--host', host]);
@@ -174,16 +178,48 @@ class PythonBridge {
   }
 
   // --- Added Generic & FTP Commands ---
-  static Future<Map<String, dynamic>> executeCommand(String cmd, {String? arg, String? src, String? type, String? device, String? dest, String? cookie, String? user, String? password}) async {
-    return await _runCommand(cmd, arg: arg, src: src, type: type, device: device, dest: dest, cookie: cookie, user: user, password: password);
+  static Future<Map<String, dynamic>> executeCommand(String cmd, {
+    String? arg, 
+    String? src, 
+    String? type, 
+    String? device, 
+    String? dest, 
+    String? cookie, 
+    String? user, 
+    String? password,
+    String? iaUser,
+    String? iaPass,
+  }) async {
+    return await _runCommand(
+      cmd, 
+      arg: arg, 
+      src: src, 
+      type: type, 
+      device: device, 
+      dest: dest, 
+      cookie: cookie, 
+      user: user, 
+      password: password,
+      iaUser: iaUser,
+      iaPass: iaPass,
+    );
   }
 
-  static Future<Map<String, dynamic>> ftpCommand(String cmd, {String? host, String? remotePath, String? localPath, bool isDir = false}) async {
+  static Future<Map<String, dynamic>> ftpCommand(String cmd, {
+    String? host, 
+    String? remotePath, 
+    String? localPath, 
+    String? user,
+    String? password,
+    bool isDir = false,
+  }) async {
     return await _runCommand(
       cmd, 
       host: host, 
       remotePath: remotePath, 
       localPath: localPath, 
+      user: user,
+      password: password,
       isDir: isDir
     );
   }

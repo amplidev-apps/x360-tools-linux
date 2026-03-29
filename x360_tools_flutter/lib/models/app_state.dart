@@ -300,8 +300,8 @@ class AppState extends ChangeNotifier {
     try {
       final res = await PythonBridge.executeCommand(
         "login_ia", 
-        ia_user: archiveEmail, 
-        ia_pass: archivePassword
+        iaUser: archiveEmail, 
+        iaPass: archivePassword
       );
       
       if (res["status"] == "success") {
