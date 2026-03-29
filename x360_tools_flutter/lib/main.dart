@@ -72,7 +72,13 @@ class X360ToolsApp extends StatelessWidget {
         fontFamily: 'Segoe UI',
         colorScheme: const ColorScheme.light(
           primary: Color(0xFF107C10),
+          onPrimary: Colors.white,
           surface: Colors.white,
+        ),
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            foregroundColor: Colors.white,
+          ),
         ),
       ),
       home: const MainShell(),

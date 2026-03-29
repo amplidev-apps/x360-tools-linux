@@ -909,7 +909,7 @@ class _FreemarketViewState extends State<FreemarketView> {
               padding: const EdgeInsets.symmetric(horizontal: 16),
             ),
             icon: const Icon(Icons.download, size: 14),
-            label: Text(state.tr("BAIXAR E INSTALAR")),
+            label: Text(state.tr("BAIXAR E INSTALAR"), style: const TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -929,10 +929,10 @@ class _FreemarketViewState extends State<FreemarketView> {
         ),
         child: Column(
           children: [
-            Icon(icon, color: isSecondary ? Colors.white54 : Colors.white),
+            Icon(icon, color: isSecondary ? (state.isDarkMode ? Colors.white54 : Colors.black54) : Colors.white),
             const SizedBox(height: 12),
-            Text(title, textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-            Text(subtitle, style: TextStyle(fontSize: 11, color: isSecondary ? Colors.white38 : Colors.white70)),
+            Text(title, textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: isSecondary ? (state.isDarkMode ? Colors.white70 : Colors.black87) : Colors.white)),
+            Text(subtitle, style: TextStyle(fontSize: 11, color: isSecondary ? (state.isDarkMode ? Colors.white38 : Colors.black38) : Colors.white70)),
           ],
         ),
       ),
@@ -1175,7 +1175,7 @@ class _FreemarketViewState extends State<FreemarketView> {
                     children: [
                       const Icon(Icons.search, size: 20),
                       const SizedBox(width: 12),
-                      Text(state.tr("Explorar x360 Freemarket"), style: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.1)),
+                      Text(state.tr("Explorar x360 Freemarket"), style: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.1, color: Colors.white)),
                     ],
                   ),
                 ),
@@ -1347,8 +1347,11 @@ class _FreemarketViewState extends State<FreemarketView> {
                 Navigator.pop(context);
               }
             },
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF107C10)),
-            child: const Text("ENTRAR"),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF107C10),
+              foregroundColor: Colors.white,
+            ),
+            child: const Text("ENTRAR", style: TextStyle(color: Colors.white)),
           ),
         ],
       ),

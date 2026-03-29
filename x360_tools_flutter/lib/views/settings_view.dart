@@ -149,11 +149,12 @@ class SettingsView extends StatelessWidget {
                   onPressed: state.isArchiveLoggingIn ? null : state.loginToArchive,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF107C10),
+                    foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                   ),
                   child: state.isArchiveLoggingIn 
                     ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                    : Text(state.tr("ENTRAR")),
+                    : Text(state.tr("ENTRAR"), style: const TextStyle(color: Colors.white)),
                 ),
                 const SizedBox(width: 16),
                 if (state.archiveLoginMessage.isNotEmpty)
@@ -209,8 +210,11 @@ class SettingsView extends StatelessWidget {
                 // Future: implementation of log viewer
                 ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Visualizador de Logs em breve!")));
               },
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF107C10)),
-              child: Text(state.tr("VER LOGS")),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF107C10),
+                foregroundColor: Colors.white,
+              ),
+              child: Text(state.tr("VER LOGS"), style: const TextStyle(color: Colors.white)),
             ),
           ),
           _buildSettingCard(

@@ -294,9 +294,10 @@ class HomeView extends StatelessWidget {
             onPressed: () => onNavigate(1),
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF107C10), 
+              foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 20)
             ),
-            child: const Text("IR PARA INSTALAÇÃO", style: TextStyle(fontWeight: FontWeight.bold)),
+            child: const Text("IR PARA INSTALAÇÃO", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
           ),
         ],
       ),

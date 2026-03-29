@@ -67,9 +67,10 @@ class WizardView extends StatelessWidget {
                                 : state.nextWizardStep,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF107C10),
+                      foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 24),
                     ),
-                    child: Text(state.wizardStep == 5 ? state.tr("INSTALL NOW") : state.tr("CONTINUE")),
+                    child: Text(state.wizardStep == 5 ? state.tr("INSTALL NOW") : state.tr("CONTINUE"), style: const TextStyle(color: Colors.white)),
                   ),
                 ],
               ),
