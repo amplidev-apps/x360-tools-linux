@@ -188,6 +188,8 @@ class AppState extends ChangeNotifier {
   bool autoScanDrives = true;
   String coverResolution = "Média";
   bool isDarkMode = true;
+  String archiveEmail = "";
+  String archivePassword = "";
 
   AppState() {
     _init();
@@ -215,6 +217,8 @@ class AppState extends ChangeNotifier {
         autoScanDrives = data['autoScanDrives'] ?? true;
         coverResolution = data['coverResolution'] ?? "Média";
         isDarkMode = data['isDarkMode'] ?? true;
+        archiveEmail = data['archiveEmail'] ?? "";
+        archivePassword = data['archivePassword'] ?? "";
         notifyListeners();
       }
     } catch (e) {
@@ -232,6 +236,8 @@ class AppState extends ChangeNotifier {
         'autoScanDrives': autoScanDrives,
         'coverResolution': coverResolution,
         'isDarkMode': isDarkMode,
+        'archiveEmail': archiveEmail,
+        'archivePassword': archivePassword,
       };
       final file = File('config.json');
       await file.writeAsString(json.encode(data));
@@ -247,6 +253,8 @@ class AppState extends ChangeNotifier {
     String? fPass,
     bool? scan,
     String? res,
+    String? aEmail,
+    String? aPass,
   }) {
     if (dlPath != null) downloadPath = dlPath;
     if (fIp != null) ftpIp = fIp;
@@ -254,6 +262,8 @@ class AppState extends ChangeNotifier {
     if (fPass != null) ftpPass = fPass;
     if (scan != null) autoScanDrives = scan;
     if (res != null) coverResolution = res;
+    if (aEmail != null) archiveEmail = aEmail;
+    if (aPass != null) archivePassword = aPass;
     saveSettings();
     notifyListeners();
   }

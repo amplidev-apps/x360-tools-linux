@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=x360 Tools
+Comment=Professional Xbox 360 Management Suite for Linux
+Exec=/home/amplimusic/Documentos/BadStickLinux/v1.1/run_flutter.sh
+Icon=/home/amplimusic/Documentos/BadStickLinux/v1.1/x360_tools_flutter/assets/x360_tools_icon.png
+Terminal=false
+Categories=Utility;Game;
+Keywords=xbox;360;tools;rgh;jtag;
+StartupWMClass=x360tools

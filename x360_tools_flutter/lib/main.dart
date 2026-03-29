@@ -38,7 +38,7 @@ void main() async {
   windowManager.waitUntilReadyToShow(windowOptions, () async {
     await windowManager.show();
     await windowManager.focus();
-    await windowManager.setIcon('assets/x360_tools_icon.png');
+    await windowManager.setIcon('/home/amplimusic/Documentos/BadStickLinux/v1.1/x360_tools_flutter/assets/x360_tools_icon.png');
   });
 
   runApp(

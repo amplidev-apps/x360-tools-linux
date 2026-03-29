@@ -108,6 +108,39 @@ class SettingsView extends StatelessWidget {
             ),
           ),
 
+          _buildSettingCard(
+            context,
+            state,
+            isExpandable: true,
+            title: state.tr("Archive.org Account"),
+            description: state.tr("Insira suas credenciais para acessar o acervo completo."),
+            content: Padding(
+              padding: const EdgeInsets.only(top: 16),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: _buildTextField(
+                      state,
+                      label: state.tr("E-mail"),
+                      initialValue: state.archiveEmail,
+                      onChanged: (val) => state.updateSettings(aEmail: val),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: _buildTextField(
+                      state,
+                      label: state.tr("Senha"),
+                      initialValue: state.archivePassword,
+                      onChanged: (val) => state.updateSettings(aPass: val),
+                      isPassword: true,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
           const SizedBox(height: 32),
           _buildSectionHeader(state, state.tr("Biblioteca")),
           _buildSettingCard(
