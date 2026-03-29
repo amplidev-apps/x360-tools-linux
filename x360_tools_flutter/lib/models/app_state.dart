@@ -168,6 +168,8 @@ class AppState extends ChangeNotifier {
     "TU": []
   };
   bool isLoggedInIA = false;
+  bool isArchiveLoggingIn = false;
+  String archiveLoginMessage = "";
 
   // --- FTP State ---
   bool isFtpConnected = false;
@@ -282,6 +284,47 @@ class AppState extends ChangeNotifier {
         notifyListeners();
       }
     } catch (_) {}
+  }
+  
+  Future<void> loginToArchive() async {
+    if (archiveEmail.isEmpty || archivePassword.isEmpty) {
+      archiveLoginMessage = "E-mail e senha são obrigatórios.";
+      notifyListeners();
+      return;
+    }
+
+    isArchiveLoggingIn = true;
+    archiveLoginMessage = "Autenticando...";
+    notifyListeners();
+
+    try {
+      final res = await PythonBridge.executeCommand(
+        "login_ia", 
+        ia_user: archiveEmail, 
+        ia_pass: archivePassword
+      );
+      
+      if (res["status"] == "success") {
+        isLoggedInIA = true;
+        archiveLoginMessage = "Login concluído com sucesso!";
+      } else {
+        isLoggedInIA = false;
+        archiveLoginMessage = "Erro: ${res["message"]}";
+      }
+    } catch (e) {
+      isLoggedInIA = false;
+      archiveLoginMessage = "Falha na conexão: $e";
+    } finally {
+      isArchiveLoggingIn = false;
+      notifyListeners();
+      // Auto-clear message after 5s if successful
+      if (isLoggedInIA) {
+        Future.delayed(const Duration(seconds: 5), () {
+          archiveLoginMessage = "";
+          notifyListeners();
+        });
+      }
+    }
   }
 
   // --- Save Manager Methods ---

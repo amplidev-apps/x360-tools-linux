@@ -140,8 +140,38 @@ class SettingsView extends StatelessWidget {
               ),
             ),
           ),
+          // Login Button and Status
+          Padding(
+            padding: const EdgeInsets.only(top: 8, left: 4, bottom: 24),
+            child: Row(
+              children: [
+                ElevatedButton(
+                  onPressed: state.isArchiveLoggingIn ? null : state.loginToArchive,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF107C10),
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  ),
+                  child: state.isArchiveLoggingIn 
+                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                    : Text(state.tr("ENTRAR")),
+                ),
+                const SizedBox(width: 16),
+                if (state.archiveLoginMessage.isNotEmpty)
+                  Expanded(
+                    child: Text(
+                      state.archiveLoginMessage,
+                      style: TextStyle(
+                        color: state.isLoggedInIA ? Colors.green : Colors.orangeAccent,
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
 
-          const SizedBox(height: 32),
+          const SizedBox(height: 8),
           _buildSectionHeader(state, state.tr("Biblioteca")),
           _buildSettingCard(
             context,
