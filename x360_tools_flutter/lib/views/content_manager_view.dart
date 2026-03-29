@@ -155,7 +155,7 @@ class _ContentManagerViewState extends State<ContentManagerView> {
             child: ElevatedButton.icon(
               onPressed: () {},
               icon: const Icon(Icons.download),
-              label: const Text("EXTRACT TO PC"),
+              label: Text(state.tr("EXTRACT TO PC")),
               style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF252525)),
             ),
           ),

@@ -43,7 +43,7 @@ class DownloadItem {
     required this.destPath,
     this.type = "game",
     this.phase = DownloadPhase.waiting,
-    this.statusMessage = "Aguardando...",
+    this.statusMessage = "Aguardando...", // Internal key
     this.progress = 0.0,
     this.localPath,
     this.coverUrl,
@@ -313,7 +313,7 @@ class AppState extends ChangeNotifier {
       }
     } catch (e) {
       isLoggedInIA = false;
-      archiveLoginMessage = "Falha na conexão: $e";
+      archiveLoginMessage = "${tr("Falha na conexão")}: $e";
     } finally {
       isArchiveLoggingIn = false;
       notifyListeners();
@@ -337,7 +337,7 @@ class AppState extends ChangeNotifier {
         saves = res['data'] ?? [];
       }
     } catch (e) {
-      statusMessage = "Erro ao buscar saves: $e";
+      statusMessage = "${tr("Erro ao buscar saves:")} $e";
     } finally {
       isLoadingSaves = false;
       notifyListeners();
@@ -345,7 +345,7 @@ class AppState extends ChangeNotifier {
   }
 
   Future<void> saveImport(String filePath) async {
-    statusMessage = "Importando Save/Perfil...";
+    statusMessage = tr("Importando Save/Perfil...");
     notifyListeners();
     try {
       final res = await PythonBridge.executeCommand("save_import", src: filePath);
@@ -362,7 +362,7 @@ class AppState extends ChangeNotifier {
   }
 
   Future<void> saveDelete(String fileName) async {
-    statusMessage = "Apagando save...";
+    statusMessage = tr("Apagando save...");
     notifyListeners();
     try {
       final res = await PythonBridge.executeCommand("save_delete", arg: fileName);
@@ -381,7 +381,7 @@ class AppState extends ChangeNotifier {
   // --- FTP Methods ---
   Future<Map<String, dynamic>> ftpConnect(String host) async {
     isLoadingFtp = true;
-    statusMessage = "Conectando ao Xbox (FTP)...";
+    statusMessage = tr("Conectando ao Xbox (FTP)...");
     notifyListeners();
     try {
       final res = await PythonBridge.ftpCommand("ftp_connect", host: host);
@@ -426,10 +426,10 @@ class AppState extends ChangeNotifier {
   }
 
   Future<Map<String, dynamic>> ftpUpload(String localPath, String remotePath) async {
-    statusMessage = "Enviando arquivo via FTP...";
+    statusMessage = tr("Enviando arquivo via FTP...");
     notifyListeners();
     final res = await PythonBridge.ftpCommand("ftp_upload", host: ftpHost, localPath: localPath, remotePath: remotePath);
-    statusMessage = res['status'] == 'success' ? "Envio concluído!" : "Erro de envio FTP";
+    statusMessage = res['status'] == 'success' ? tr("Envio concluído!") : tr("Erro de envio FTP");
     notifyListeners();
     if (res['status'] == 'success') await ftpList(ftpCurrentPath);
     return res;
@@ -452,7 +452,7 @@ class AppState extends ChangeNotifier {
   }
 
   Future<void> refreshDrives() async {
-    statusMessage = "Atualizando dispositivos...";
+    statusMessage = tr("Atualizando dispositivos...");
     notifyListeners();
     drives = await PythonBridge.listDrives();
     if (drives.isNotEmpty && selectedDrive == null) {
@@ -464,14 +464,14 @@ class AppState extends ChangeNotifier {
 
   Future<void> fetchGames({String platform = "360", bool refresh = false}) async {
     isLoadingGames = true;
-    statusMessage = refresh ? "Atualizando catálogo ($platform)..." : "Buscando jogos ($platform)...";
+    statusMessage = refresh ? "${tr("Atualizando catálogo")} ($platform)..." : "${tr("Buscando jogos")} ($platform)...";
     notifyListeners();
     
     try {
       games = await PythonBridge.fetchGames(platform, refresh: refresh);
-      statusMessage = "Lista de jogos carregada.";
+      statusMessage = tr("Lista de jogos carregada.");
     } catch (e) {
-      statusMessage = "Erro ao buscar jogos: $e";
+      statusMessage = "${tr("Erro ao buscar jogos:")} $e";
     }
     
     isLoadingGames = false;
@@ -1190,18 +1190,18 @@ class AppState extends ChangeNotifier {
   }
 
   Future<void> clearTemporaryCache() async {
-    statusMessage = "Limpando cache...";
+    statusMessage = tr("Limpar Cache Temporário");
     notifyListeners();
     await Future.delayed(const Duration(seconds: 1)); // Mock
-    statusMessage = "Cache limpo.";
+    statusMessage = tr("Concluído.");
     notifyListeners();
   }
 
   Future<void> uninstallX360Tools() async {
-    statusMessage = "Desinstalando...";
+    statusMessage = tr("Desinstalar x360 Tools");
     notifyListeners();
     await Future.delayed(const Duration(seconds: 1)); // Mock
-    statusMessage = "Desinstalação concluída.";
+    statusMessage = tr("Concluído.");
     notifyListeners();
   }
 
@@ -1424,12 +1424,12 @@ class AppState extends ChangeNotifier {
 
   Future<void> loginIA(String email, String password) async {
     try {
-      statusMessage = "PHASE:Autenticando no Archive.org...";
+      statusMessage = "PHASE:${tr("Autenticando...")}";
       notifyListeners();
       
       final res = await PythonBridge.executeCommand("login_ia", user: email, password: password);
       if (res["status"] == "success") {
-        statusMessage = "PHASE:Login realizado com sucesso!";
+        statusMessage = "PHASE:${tr("Login concluído com sucesso!")}";
         isLoggedInIA = true;
         notifyListeners();
       } else {
@@ -1437,7 +1437,7 @@ class AppState extends ChangeNotifier {
         throw res["message"];
       }
     } catch (e) {
-      statusMessage = "PHASE:Erro no Login: $e";
+      statusMessage = "PHASE:${tr("Erro no Login:")} $e";
       notifyListeners();
     }
   }

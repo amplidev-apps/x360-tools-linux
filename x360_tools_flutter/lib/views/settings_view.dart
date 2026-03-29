@@ -52,7 +52,7 @@ class SettingsView extends StatelessWidget {
               children: [
                 Text(
                   state.downloadPath.isEmpty ? "Padrão (Downloads)" : state.downloadPath,
-                  style: TextStyle(color: state.isDarkMode ? Colors.white54 : Colors.black54, fontSize: 13),
+                  style: TextStyle(color: state.isDarkMode ? Colors.white54 : Colors.black87, fontSize: 13),
                 ),
                 const SizedBox(width: 8),
                 IconButton(
@@ -162,7 +162,9 @@ class SettingsView extends StatelessWidget {
                     child: Text(
                       state.archiveLoginMessage,
                       style: TextStyle(
-                        color: state.isLoggedInIA ? Colors.green : Colors.orangeAccent,
+                        color: state.isLoggedInIA 
+                            ? (state.isDarkMode ? Colors.green : Colors.green[800]) 
+                            : (state.isDarkMode ? Colors.orangeAccent : Colors.orange[900]),
                         fontSize: 13,
                         fontWeight: FontWeight.bold,
                       ),
@@ -208,7 +210,7 @@ class SettingsView extends StatelessWidget {
             trailing: ElevatedButton(
               onPressed: () {
                 // Future: implementation of log viewer
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Visualizador de Logs em breve!")));
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(state.tr("Visualizador de Logs em breve!"))));
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF107C10),
@@ -225,7 +227,7 @@ class SettingsView extends StatelessWidget {
             trailing: ElevatedButton(
               onPressed: state.uninstallX360Tools,
               style: ElevatedButton.styleFrom(backgroundColor: Colors.red.withOpacity(0.2)),
-              child: Text(state.tr("DESINSTALAR"), style: const TextStyle(color: Colors.redAccent)),
+              child: Text(state.tr("DESINSTALAR"), style: TextStyle(color: state.isDarkMode ? Colors.redAccent : Colors.red[700])),
             ),
           ),
           const SizedBox(height: 60),
@@ -275,7 +277,7 @@ class SettingsView extends StatelessWidget {
                   children: [
                     Text(title, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: state.isDarkMode ? Colors.white : Colors.black)),
                     const SizedBox(height: 4),
-                    Text(description, style: TextStyle(fontSize: 13, color: state.isDarkMode ? Colors.white54 : Colors.black54)),
+                    Text(description, style: TextStyle(fontSize: 13, color: state.isDarkMode ? Colors.white54 : Colors.black87)),
                   ],
                 ),
               ),
@@ -305,7 +307,7 @@ class SettingsView extends StatelessWidget {
       decoration: BoxDecoration(
         color: state.isDarkMode ? Colors.black : Colors.white,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: state.isDarkMode ? Colors.white10 : Colors.black12),
+        border: Border.all(color: state.isDarkMode ? Colors.white10 : Colors.black26),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
@@ -377,7 +379,7 @@ class _SettingsTextFieldState extends State<SettingsTextField> {
       style: TextStyle(color: widget.isDarkMode ? Colors.white : Colors.black, fontSize: 14),
       decoration: InputDecoration(
         labelText: widget.label,
-        labelStyle: TextStyle(color: widget.isDarkMode ? Colors.white38 : Colors.black45),
+        labelStyle: TextStyle(color: widget.isDarkMode ? Colors.white38 : Colors.black87),
         enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: widget.isDarkMode ? Colors.white10 : Colors.black12), borderRadius: BorderRadius.circular(8)),
         focusedBorder: OutlineInputBorder(borderSide: const BorderSide(color: Color(0xFF107C10)), borderRadius: BorderRadius.circular(8)),
         filled: true,

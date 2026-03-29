@@ -51,7 +51,7 @@ class _LibraryViewState extends State<LibraryView> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(state.tr("Minha Biblioteca"), style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: state.isDarkMode ? Colors.white : Colors.black)),
-                  Text(state.tr("Jogos e conteúdos instalados no dispositivo"), style: TextStyle(color: state.isDarkMode ? Colors.white38 : Colors.black45, fontSize: 13)),
+                  Text(state.tr("Jogos e conteúdos instalados no dispositivo"), style: TextStyle(color: state.isDarkMode ? Colors.white38 : Colors.black87, fontSize: 13)),
                 ],
               ),
               const Spacer(),
@@ -83,7 +83,7 @@ class _LibraryViewState extends State<LibraryView> {
               children: [
                 Icon(Icons.usb_rounded, color: const Color(0xFF107C10), size: 22),
                 const SizedBox(width: 12),
-                Text("${state.tr("Dispositivo")}:", style: TextStyle(color: state.isDarkMode ? Colors.white54 : Colors.black54, fontSize: 14)),
+                Text("${state.tr("Dispositivo")}:", style: TextStyle(color: state.isDarkMode ? Colors.white54 : Colors.black87, fontSize: 14)),
                 const SizedBox(width: 16),
                 Expanded(
                       child: state.drives.isEmpty
@@ -91,9 +91,9 @@ class _LibraryViewState extends State<LibraryView> {
                       : DropdownButton<String>(
                           value: state.selectedDrive?['device'],
                           isExpanded: true,
-                          dropdownColor: const Color(0xFF1A1A1A),
+                          dropdownColor: state.isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
                           underline: const SizedBox(),
-                          style: const TextStyle(color: Colors.white, fontSize: 14),
+                          style: TextStyle(color: state.isDarkMode ? Colors.white : Colors.black, fontSize: 14),
                           items: state.drives.map<DropdownMenuItem<String>>((d) {
                             final drive = d as Map<String, dynamic>;
                             return DropdownMenuItem<String>(
@@ -123,8 +123,8 @@ class _LibraryViewState extends State<LibraryView> {
                   TabBar(
                     dividerColor: Colors.transparent,
                     indicatorColor: const Color(0xFF107C10),
-                    labelColor: Colors.white,
-                    unselectedLabelColor: Colors.white38,
+                    labelColor: state.isDarkMode ? Colors.white : Colors.black,
+                    unselectedLabelColor: state.isDarkMode ? Colors.white38 : Colors.black38,
                     labelStyle: const TextStyle(fontWeight: FontWeight.bold),
                     onTap: (index) => state.setLibraryTab(index),
                     tabs: [
@@ -166,7 +166,7 @@ class _LibraryViewState extends State<LibraryView> {
           children: [
             Icon(Icons.folder_off_outlined, size: 64, color: state.isDarkMode ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.05)),
             const SizedBox(height: 16),
-            Text("${state.tr("Nenhum")} $type ${state.tr("encontrado")}.", style: TextStyle(color: state.isDarkMode ? Colors.white38 : Colors.black45)),
+            Text("${state.tr("Nenhum")} $type ${state.tr("encontrado")}.", style: TextStyle(color: state.isDarkMode ? Colors.white38 : Colors.black87)),
           ],
         ),
       );
@@ -205,10 +205,10 @@ class _LibraryViewState extends State<LibraryView> {
                 "TitleID: ${item['titleId'] ?? 'XEX/XBE'} | Path: ${item['path']}",
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(color: state.isDarkMode ? Colors.white38 : Colors.black45, fontSize: 11),
+                style: TextStyle(color: state.isDarkMode ? Colors.white38 : Colors.black54, fontSize: 11),
               ),
               trailing: IconButton(
-                icon: const Icon(Icons.more_vert, color: Colors.white24),
+                icon: Icon(Icons.more_vert, color: state.isDarkMode ? Colors.white24 : Colors.black54),
                 onPressed: () {}, // Handled by gesture detector
               ),
             ),
@@ -224,7 +224,7 @@ class _LibraryViewState extends State<LibraryView> {
     showMenu<dynamic>(
       context: context,
       position: RelativeRect.fromLTRB(position.dx, position.dy, position.dx, position.dy),
-      color: const Color(0xFF1A1A1A),
+      color: state.isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
       elevation: 8,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       items: <PopupMenuEntry<dynamic>>[
@@ -232,9 +232,9 @@ class _LibraryViewState extends State<LibraryView> {
           onTap: () => state.exploreLibraryItem(item),
           child: Row(
             children: [
-              const Icon(Icons.folder_open_rounded, color: Colors.white70, size: 18),
+              Icon(Icons.folder_open_rounded, color: state.isDarkMode ? Colors.white70 : Colors.black54, size: 18),
               const SizedBox(width: 12),
-              Text(state.tr("Abrir local do arquivo"), style: const TextStyle(color: Colors.white, fontSize: 13)),
+              Text(state.tr("Abrir local do arquivo"), style: TextStyle(color: state.isDarkMode ? Colors.white : Colors.black, fontSize: 13)),
             ],
           ),
         ),
@@ -243,9 +243,9 @@ class _LibraryViewState extends State<LibraryView> {
             onTap: () => state.navigateToFtp(item['path']),
             child: Row(
               children: [
-                const Icon(Icons.wifi_tethering, color: Colors.white70, size: 18),
+                Icon(Icons.wifi_tethering, color: state.isDarkMode ? Colors.white70 : Colors.black54, size: 18),
                 const SizedBox(width: 12),
-                Text(state.tr("Abrir no FTP (Console)"), style: const TextStyle(color: Colors.white, fontSize: 13)),
+                Text(state.tr("Abrir no FTP (Console)"), style: TextStyle(color: state.isDarkMode ? Colors.white : Colors.black, fontSize: 13)),
               ],
             ),
           ),
@@ -254,9 +254,9 @@ class _LibraryViewState extends State<LibraryView> {
             onTap: () => Future.microtask(() => _showMetadataDialog(context, item, state)),
             child: Row(
               children: [
-                const Icon(Icons.info_outline_rounded, color: Colors.white70, size: 18),
+                Icon(Icons.info_outline_rounded, color: state.isDarkMode ? Colors.white70 : Colors.black54, size: 18),
                 const SizedBox(width: 12),
-                Text(state.tr("Ver Metadados STFS"), style: const TextStyle(color: Colors.white, fontSize: 13)),
+                Text(state.tr("Ver Metadados STFS"), style: TextStyle(color: state.isDarkMode ? Colors.white : Colors.black, fontSize: 13)),
               ],
             ),
           ),
@@ -286,9 +286,9 @@ class _LibraryViewState extends State<LibraryView> {
           onTap: () => Future.microtask(() => _showRenameDialog(context, item, state)),
           child: Row(
             children: [
-              const Icon(Icons.edit_note_rounded, color: Colors.white70, size: 18),
+              Icon(Icons.edit_outlined, color: state.isDarkMode ? Colors.white70 : Colors.black54, size: 18),
               const SizedBox(width: 12),
-              Text(state.tr("Renomear"), style: const TextStyle(color: Colors.white, fontSize: 13)),
+              Text(state.tr("Renomear"), style: TextStyle(color: state.isDarkMode ? Colors.white : Colors.black, fontSize: 13)),
             ],
           ),
         ),
@@ -312,7 +312,7 @@ class _LibraryViewState extends State<LibraryView> {
             children: [
               const Icon(Icons.delete_outline_rounded, color: Colors.redAccent, size: 18),
               const SizedBox(width: 12),
-              Text(state.tr("Excluir"), style: const TextStyle(color: Colors.redAccent, fontSize: 13)),
+              Text(state.tr("Remover do Disco"), style: TextStyle(color: state.isDarkMode ? Colors.white : Colors.black, fontSize: 13)),
             ],
           ),
         ),
@@ -327,39 +327,39 @@ class _LibraryViewState extends State<LibraryView> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1A1A1A),
-        title: Text(state.tr("Metadados STFS"), style: const TextStyle(color: Colors.white)),
+        backgroundColor: state.isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
+        title: Text(state.tr("Metadados STFS"), style: TextStyle(color: state.isDarkMode ? Colors.white : Colors.black, fontWeight: FontWeight.bold)),
         content: meta['status'] == 'success' 
           ? SingleChildScrollView(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  _metaRow("Title ID", meta['data']['title_id']),
-                  _metaRow("Media ID", meta['data']['media_id']),
-                  _metaRow("Console ID", meta['data']['console_id']),
-                  _metaRow("Profile ID", meta['data']['profile_id']),
-                  _metaRow("Type", meta['data']['type_name']),
+                  _metaRow(state, "Title ID", meta['data']['title_id']),
+                  _metaRow(state, "Media ID", meta['data']['media_id']),
+                  _metaRow(state, "Console ID", meta['data']['console_id']),
+                  _metaRow(state, "Profile ID", meta['data']['profile_id']),
+                  _metaRow(state, "Type", meta['data']['type_name']),
                 ],
               ),
             )
           : Text(state.tr("Erro ao ler metadados"), style: const TextStyle(color: Colors.redAccent)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: Text(state.tr("FECHAR"), style: const TextStyle(color: Color(0xFF107C10)))),
+          TextButton(onPressed: () => Navigator.pop(context), child: Text(state.tr("FECHAR"), style: const TextStyle(color: Color(0xFF107C10), fontWeight: FontWeight.bold))),
         ],
       ),
     );
   }
 
-  Widget _metaRow(String label, String? value) {
+  Widget _metaRow(AppState state, String label, String? value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: const TextStyle(color: Colors.white38, fontSize: 11)),
-          Text(value ?? "N/A", style: const TextStyle(color: Colors.white, fontSize: 14, fontFamily: 'monospace')),
-          const Divider(color: Colors.white10),
+          Text(label, style: TextStyle(color: state.isDarkMode ? Colors.white38 : Colors.black45, fontSize: 11)),
+          Text(value ?? "N/A", style: TextStyle(color: state.isDarkMode ? Colors.white : Colors.black87, fontSize: 14, fontFamily: 'monospace')),
+          Divider(color: state.isDarkMode ? Colors.white10 : Colors.black12),
         ],
       ),
     );
@@ -401,21 +401,21 @@ class _LibraryViewState extends State<LibraryView> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF141414),
-        title: Text(state.tr("Renomear Item"), style: const TextStyle(color: Colors.white)),
+        backgroundColor: state.isDarkMode ? const Color(0xFF141414) : Colors.white,
+        title: Text(state.tr("Renomear Item"), style: TextStyle(color: state.isDarkMode ? Colors.white : Colors.black)),
         content: TextField(
           controller: controller,
           autofocus: true,
-          style: const TextStyle(color: Colors.white),
+          style: TextStyle(color: state.isDarkMode ? Colors.white : Colors.black),
           decoration: InputDecoration(
             hintText: state.tr("Novo nome"),
-            hintStyle: const TextStyle(color: Colors.white24),
-            enabledBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Colors.white10)),
+            hintStyle: TextStyle(color: state.isDarkMode ? Colors.white24 : Colors.black26),
+            enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: state.isDarkMode ? Colors.white10 : Colors.black12)),
             focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Color(0xFF107C10))),
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: Text(state.tr("CANCELAR"), style: const TextStyle(color: Colors.white38))),
+          TextButton(onPressed: () => Navigator.pop(context), child: Text(state.tr("CANCELAR"), style: TextStyle(color: state.isDarkMode ? Colors.white38 : Colors.black54))),
           ElevatedButton(
             onPressed: () {
               state.renameLibraryItem(item, controller.text);
@@ -433,11 +433,11 @@ class _LibraryViewState extends State<LibraryView> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF141414),
-        title: Text(state.tr("Excluir Conteúdo"), style: const TextStyle(color: Colors.white)),
-        content: Text("${state.tr("Tem certeza que deseja excluir")} '${item['name']}' ${state.tr("permanentemente do disco?")}", style: const TextStyle(color: Colors.white70)),
+        backgroundColor: state.isDarkMode ? const Color(0xFF141414) : Colors.white,
+        title: Text(state.tr("Excluir Conteúdo"), style: TextStyle(color: state.isDarkMode ? Colors.white : Colors.black)),
+        content: Text("${state.tr("Tem certeza que deseja excluir")} '${item['name']}' ${state.tr("permanentemente do disco?")}", style: TextStyle(color: state.isDarkMode ? Colors.white70 : Colors.black87)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: Text(state.tr("CANCELAR"), style: const TextStyle(color: Colors.white38))),
+          TextButton(onPressed: () => Navigator.pop(context), child: Text(state.tr("CANCELAR"), style: TextStyle(color: state.isDarkMode ? Colors.white38 : Colors.black54))),
           ElevatedButton(
             onPressed: () {
               state.deleteLibraryItem(item);

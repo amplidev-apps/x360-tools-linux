@@ -243,7 +243,7 @@ class _MainShellState extends State<MainShell> {
                                 padding: const EdgeInsets.symmetric(horizontal: 10),
                                 decoration: BoxDecoration(
                                   color: state.isDarkMode ? Colors.black : Colors.white,
-                                  border: Border.all(color: state.isDarkMode ? Colors.white10 : Colors.black12),
+                                  border: Border.all(color: state.isDarkMode ? Colors.white10 : Colors.black26),
                                   borderRadius: BorderRadius.circular(4),
                                 ),
                                 child: Text("${state.tr("Status: ")}${state.statusMessage}", style: TextStyle(fontSize: 12, color: state.isDarkMode ? Colors.white70 : Colors.black87)),

@@ -42,7 +42,7 @@ class _HorizonInjectorViewState extends State<HorizonInjectorView> {
                       state.tr(_isExplorerMode 
                         ? "Explore e extraia conteúdo do seu dispositivo USB." 
                         : "Injete DLCs, TUs e Saves diretamente no seu Xbox 360."),
-                      style: TextStyle(fontSize: 16, color: state.isDarkMode ? Colors.white.withOpacity(0.5) : Colors.black.withOpacity(0.5)),
+                      style: TextStyle(fontSize: 16, color: state.isDarkMode ? Colors.white.withOpacity(0.5) : Colors.black87),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -93,7 +93,7 @@ class _HorizonInjectorViewState extends State<HorizonInjectorView> {
         child: Text(
           label,
           style: TextStyle(
-            color: active ? Colors.white : (state.isDarkMode ? Colors.white54 : Colors.black54),
+            color: active ? Colors.white : (state.isDarkMode ? Colors.white54 : Colors.black87),
             fontWeight: FontWeight.bold,
             fontSize: 12,
           ),
@@ -126,7 +126,7 @@ class _HorizonInjectorViewState extends State<HorizonInjectorView> {
                       children: [
                         Icon(Icons.add_circle_outline, size: 48, color: state.isDarkMode ? Colors.white.withOpacity(0.3) : Colors.black.withOpacity(0.2)),
                         const SizedBox(height: 16),
-                        Text(state.tr("Clique para selecionar um arquivo STFS"), style: TextStyle(color: state.isDarkMode ? Colors.white54 : Colors.black54)),
+                        Text(state.tr("Clique para selecionar um arquivo STFS"), style: TextStyle(color: state.isDarkMode ? Colors.white54 : Colors.black87)),
                         if (state.currentSTFSPath != null)
                           Padding(
                             padding: const EdgeInsets.all(16.0),
@@ -156,7 +156,7 @@ class _HorizonInjectorViewState extends State<HorizonInjectorView> {
                 children: [
                   Text(state.tr("OPÇÕES DE INJEÇÃO"), style: const TextStyle(color: Color(0xFF107C10), fontWeight: FontWeight.bold, fontSize: 12)),
                   const SizedBox(height: 24),
-                  Text(state.tr("Dispositivo Destino:"), style: TextStyle(color: state.isDarkMode ? Colors.white54 : Colors.black54, fontSize: 14)),
+                  Text(state.tr("Dispositivo Destino:"), style: TextStyle(color: state.isDarkMode ? Colors.white54 : Colors.black87, fontSize: 14)),
                   const SizedBox(height: 8),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -265,7 +265,7 @@ class _HorizonInjectorViewState extends State<HorizonInjectorView> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(state.tr(label), style: TextStyle(fontSize: 10, color: state.isDarkMode ? Colors.white38 : Colors.black45, fontWeight: FontWeight.bold)),
+        Text(state.tr(label), style: TextStyle(fontSize: 10, color: state.isDarkMode ? Colors.white38 : Colors.black87, fontWeight: FontWeight.bold)),
         const SizedBox(height: 4),
         Text(value, style: TextStyle(fontSize: 14, color: state.isDarkMode ? Colors.white : Colors.black, fontFamily: 'monospace')),
       ],
@@ -284,7 +284,7 @@ class _HorizonInjectorViewState extends State<HorizonInjectorView> {
           children: [
             Icon(Icons.folder_open, size: 64, color: state.isDarkMode ? Colors.white10 : Colors.black12),
             const SizedBox(height: 16),
-            Text(state.tr("Nenhum conteúdo encontrado no dispositivo."), style: TextStyle(color: state.isDarkMode ? Colors.white24 : Colors.black38)),
+            Text(state.tr("Nenhum conteúdo encontrado no dispositivo."), style: TextStyle(color: state.isDarkMode ? Colors.white24 : Colors.black54)),
           ],
         ),
       );
@@ -382,10 +382,10 @@ class _HorizonInjectorViewState extends State<HorizonInjectorView> {
             itemBuilder: (context, index) {
               final item = game['items'][index];
               return ListTile(
-                title: Text(item['display_name'], style: const TextStyle(color: Colors.white, fontSize: 14)),
+                title: Text(item['display_name'], style: TextStyle(color: state.isDarkMode ? Colors.white : Colors.black, fontSize: 14)),
                 subtitle: Text(item['type_name'], style: const TextStyle(color: Color(0xFF107C10), fontSize: 11)),
                 trailing: IconButton(
-                  icon: const Icon(Icons.download, color: Colors.white54, size: 18),
+                  icon: Icon(Icons.download, color: state.isDarkMode ? Colors.white54 : Colors.black54, size: 18),
                   onPressed: () {
                     Navigator.pop(context);
                     state.extractSTFSContent(item['file_path']);
@@ -396,7 +396,7 @@ class _HorizonInjectorViewState extends State<HorizonInjectorView> {
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: Text(state.tr("FECHAR"), style: const TextStyle(color: Colors.white54))),
+          TextButton(onPressed: () => Navigator.pop(context), child: Text(state.tr("FECHAR"), style: TextStyle(color: state.isDarkMode ? Colors.white54 : Colors.black54))),
         ],
       ),
     );

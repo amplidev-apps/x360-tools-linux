@@ -79,7 +79,7 @@ class _ProfilePicsViewState extends State<ProfilePicsView> with SingleTickerProv
             child: TabBar(
               controller: _tabController,
               labelColor: const Color(0xFF107C10),
-              unselectedLabelColor: state.isDarkMode ? Colors.white54 : Colors.black54,
+              unselectedLabelColor: state.isDarkMode ? Colors.white54 : Colors.black87,
               indicatorColor: const Color(0xFF107C10),
               indicatorSize: TabBarIndicatorSize.tab,
               dividerColor: Colors.transparent,
@@ -162,7 +162,7 @@ class _ProfilePicsViewState extends State<ProfilePicsView> with SingleTickerProv
             const SizedBox(height: 8),
             Text(
               state.tr("Selecione um heroi para injetar no seu dispositivo."),
-              style: TextStyle(fontSize: 14, color: state.isDarkMode ? Colors.white.withOpacity(0.6) : Colors.black.withOpacity(0.6)),
+              style: TextStyle(fontSize: 14, color: state.isDarkMode ? Colors.white.withOpacity(0.6) : Colors.black87),
             ),
           ],
         ),
@@ -281,8 +281,8 @@ class _ProfilePicsViewState extends State<ProfilePicsView> with SingleTickerProv
               style: TextStyle(color: state.isDarkMode ? Colors.white : Colors.black),
               decoration: InputDecoration(
                 hintText: state.tr("Procurar Herois"),
-                hintStyle: TextStyle(color: state.isDarkMode ? Colors.white.withOpacity(0.3) : Colors.black.withOpacity(0.3)),
-                prefixIcon: Icon(Icons.search, color: state.isDarkMode ? Colors.white.withOpacity(0.3) : Colors.black.withOpacity(0.3)),
+                hintStyle: TextStyle(color: state.isDarkMode ? Colors.white.withOpacity(0.3) : Colors.black45),
+                prefixIcon: Icon(Icons.search, color: state.isDarkMode ? Colors.white.withOpacity(0.3) : Colors.black45),
                 border: InputBorder.none,
                 contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               ),
@@ -328,7 +328,7 @@ class _ProfilePicsViewState extends State<ProfilePicsView> with SingleTickerProv
                 dropdownColor: state.isDarkMode ? const Color(0xFF151515) : Colors.white,
                 isExpanded: true,
                 style: TextStyle(color: state.isDarkMode ? Colors.white : Colors.black, fontSize: 13),
-                icon: Icon(Icons.usb, size: 16, color: state.isDarkMode ? Colors.white54 : Colors.black54),
+                icon: Icon(Icons.usb, size: 16, color: state.isDarkMode ? Colors.white54 : Colors.black87),
                 onChanged: (val) {
                   if (val != null) {
                     final drive = state.drives.firstWhere((d) => d['device'] == val);
@@ -519,11 +519,11 @@ class _ProfilePicsViewState extends State<ProfilePicsView> with SingleTickerProv
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.photo_library_outlined, size: 64, color: state.isDarkMode ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.1)),
+          Icon(Icons.photo_library_outlined, size: 64, color: state.isDarkMode ? Colors.white.withOpacity(0.1) : Colors.black26),
           const SizedBox(height: 16),
           Text(
             state.tr(message),
-            style: TextStyle(color: state.isDarkMode ? Colors.white.withOpacity(0.3) : Colors.black.withOpacity(0.3)),
+            style: TextStyle(color: state.isDarkMode ? Colors.white.withOpacity(0.3) : Colors.black54),
             textAlign: TextAlign.center,
           ),
         ],

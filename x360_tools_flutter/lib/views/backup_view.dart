@@ -74,7 +74,7 @@ class _BackupViewState extends State<BackupView> {
                 isRestore 
                   ? "Os seguintes itens serão instalados no seu dispositivo. O dispositivo será TOTALMENTE LIMPO antes da instalação."
                   : "Os seguintes itens foram identificados para o backup:",
-                style: TextStyle(color: state.isDarkMode ? Colors.white.withOpacity(0.7) : Colors.black.withOpacity(0.7)),
+                style: TextStyle(color: state.isDarkMode ? Colors.white.withOpacity(0.7) : Colors.black87),
               ),
               const SizedBox(height: 20),
               Flexible(
@@ -94,7 +94,7 @@ class _BackupViewState extends State<BackupView> {
                         return ListTile(
                           leading: Icon(_getIconData(item['icon']), color: const Color(0xFF107C10)),
                           title: Text(item['name'], style: TextStyle(color: state.isDarkMode ? Colors.white : Colors.black, fontWeight: FontWeight.bold)),
-                          subtitle: Text("${item['category']} • ${_formatSize(item['size_bytes'])}", style: TextStyle(color: state.isDarkMode ? Colors.white54 : Colors.black54)),
+                          subtitle: Text("${item['category']} • ${_formatSize(item['size_bytes'])}", style: TextStyle(color: state.isDarkMode ? Colors.white54 : Colors.black87)),
                         );
                       },
                     ),
@@ -209,9 +209,9 @@ class _BackupViewState extends State<BackupView> {
       bool? wantRename = await showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
-          backgroundColor: const Color(0xFF1A1A1A),
-          title: const Text("Nome do Backup Detectado", style: TextStyle(color: Colors.white)),
-          content: Text("Este backup possui o nome \"$finalLabel\". O nome do seu dispositivo terá esse mesmo nome, deseja renomear?", style: const TextStyle(color: Colors.white70)),
+          backgroundColor: state.isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
+          title: Text("Nome do Backup Detectado", style: TextStyle(color: state.isDarkMode ? Colors.white : Colors.black)),
+          content: Text("Este backup possui o nome \"$finalLabel\". O nome do seu dispositivo terá esse mesmo nome, deseja renomear?", style: TextStyle(color: state.isDarkMode ? Colors.white70 : Colors.black87)),
           actions: [
             TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("MANTER NOME", style: TextStyle(color: Colors.green))),
             TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text("RENOMEAR", style: TextStyle(color: Colors.white70))),
@@ -224,26 +224,26 @@ class _BackupViewState extends State<BackupView> {
         final String? newName = await showDialog<String>(
           context: context,
           builder: (ctx) => AlertDialog(
-            backgroundColor: const Color(0xFF1A1A1A),
-            title: const Text("Novo nome para o dispositivo", style: TextStyle(color: Colors.white)),
+            backgroundColor: state.isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
+            title: Text("Novo nome para o dispositivo", style: TextStyle(color: state.isDarkMode ? Colors.white : Colors.black)),
             content: TextField(
               controller: renameCtrl,
               autofocus: true,
-              style: const TextStyle(color: Colors.white),
-              decoration: const InputDecoration(
+              style: TextStyle(color: state.isDarkMode ? Colors.white : Colors.black),
+              decoration: InputDecoration(
                 hintText: "Máximo 11 caracteres",
-                hintStyle: TextStyle(color: Colors.white24),
-                enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white10)),
-                focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Color(0xFF107C10))),
+                hintStyle: TextStyle(color: state.isDarkMode ? Colors.white24 : Colors.black26),
+                enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: state.isDarkMode ? Colors.white10 : Colors.black12)),
+                focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Color(0xFF107C10))),
               ),
               maxLength: 11,
             ),
             actions: [
-              TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("CANCELAR", style: TextStyle(color: Colors.white54))),
+              TextButton(onPressed: () => Navigator.pop(ctx), child: Text("CANCELAR", style: TextStyle(color: state.isDarkMode ? Colors.white54 : Colors.black54))),
               ElevatedButton(
                 onPressed: () => Navigator.pop(ctx, renameCtrl.text), 
                 style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF107C10)),
-                child: const Text("DEFINIR NOME"),
+                child: Text(state.tr("DEFINIR NOME")),
               ),
             ],
           )
@@ -309,7 +309,7 @@ class _BackupViewState extends State<BackupView> {
                   Text(state.tr("Backup e Restauração"), style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: state.isDarkMode ? Colors.white : Colors.black)),
                   Text(
                     state.tr("Salve ou restaure a configuração completa do seu dispositivo."),
-                    style: TextStyle(fontSize: 16, color: state.isDarkMode ? Colors.white.withOpacity(0.5) : Colors.black.withOpacity(0.5)),
+                    style: TextStyle(fontSize: 16, color: state.isDarkMode ? Colors.white.withOpacity(0.5) : Colors.black87),
                   ),
                 ],
               ),
@@ -477,7 +477,7 @@ class _BackupViewState extends State<BackupView> {
               const SizedBox(height: 24),
               Text(title, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, letterSpacing: 1.5, color: state.isDarkMode ? Colors.white : Colors.black)),
               const SizedBox(height: 8),
-              Text(subtitle, textAlign: TextAlign.center, style: TextStyle(color: state.isDarkMode ? Colors.white.withOpacity(0.4) : Colors.black.withOpacity(0.4), fontSize: 13)),
+              Text(subtitle, textAlign: TextAlign.center, style: TextStyle(color: state.isDarkMode ? Colors.white.withOpacity(0.4) : Colors.black87, fontSize: 13)),
             ],
           ),
         ),

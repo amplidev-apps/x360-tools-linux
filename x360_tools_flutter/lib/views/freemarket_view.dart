@@ -84,6 +84,7 @@ class _AsyncCoverImageState extends State<AsyncCoverImage> {
 
   @override
   Widget build(BuildContext context) {
+    final state = context.watch<AppState>();
     // 1. Try LOCAL CACHE (Highest priority if path provided by backend)
     if (localPath != null && localPath!.isNotEmpty && File(localPath!).existsSync()) {
       return Image.file(
@@ -92,13 +93,13 @@ class _AsyncCoverImageState extends State<AsyncCoverImage> {
         height: double.infinity,
         fit: BoxFit.cover,
         alignment: Alignment.centerRight,
-        errorBuilder: (context, error, stackTrace) => _buildAssetFallback(),
+        errorBuilder: (context, error, stackTrace) => _buildAssetFallback(state),
       );
     }
-    return _buildAssetFallback();
+    return _buildAssetFallback(state);
   }
 
-  Widget _buildAssetFallback() {
+  Widget _buildAssetFallback(AppState state) {
     if (tid != null && tid != "Desconhecido") {
       // Try JPG then PNG
       return Image.asset(
@@ -114,15 +115,15 @@ class _AsyncCoverImageState extends State<AsyncCoverImage> {
              height: double.infinity,
              fit: BoxFit.cover,
              alignment: Alignment.centerRight,
-             errorBuilder: (context, error, stackTrace) => _buildNetworkFallback(),
+             errorBuilder: (context, error, stackTrace) => _buildNetworkFallback(state),
            );
         },
       );
     }
-    return _buildNetworkFallback();
+    return _buildNetworkFallback(state);
   }
 
-  Widget _buildNetworkFallback() {
+  Widget _buildNetworkFallback(AppState state) {
     final cvr = (coverUrl != null && coverUrl!.isNotEmpty)
         ? coverUrl!
         : "https://xboxunity.net/Resources/Lib/Images/Covers/4B4D07E2.jpg";
@@ -133,11 +134,11 @@ class _AsyncCoverImageState extends State<AsyncCoverImage> {
       height: double.infinity,
       fit: BoxFit.cover,
       alignment: Alignment.centerRight,
-      errorBuilder: (context, error, stackTrace) => _buildFallback(),
+      errorBuilder: (context, error, stackTrace) => _buildFallback(state),
     );
   }
 
-  Widget _buildFallback() {
+  Widget _buildFallback(AppState state) {
     // Attempt to load the user's preferred placeholder from BUNDLED ASSETS (Highest reliability)
     return Image.asset(
       'assets/gamecovers/4B4D07E2.jpg',
@@ -146,14 +147,14 @@ class _AsyncCoverImageState extends State<AsyncCoverImage> {
       fit: BoxFit.cover,
       alignment: Alignment.centerRight,
       errorBuilder: (context, error, stackTrace) => Container(
-        color: Colors.black26,
-        child: const Center(
+        color: state.isDarkMode ? Colors.black26 : Colors.black.withOpacity(0.05),
+        child: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.broken_image_outlined, color: Colors.white12, size: 32),
-              SizedBox(height: 8),
-              Text("NO COVER", style: TextStyle(color: Colors.white10, fontSize: 10, fontWeight: FontWeight.bold)),
+              Icon(Icons.broken_image_outlined, color: state.isDarkMode ? Colors.white12 : Colors.black12, size: 32),
+              const SizedBox(height: 8),
+              Text("NO COVER", style: TextStyle(color: state.isDarkMode ? Colors.white10 : Colors.black26, fontSize: 10, fontWeight: FontWeight.bold)),
             ],
           ),
         ),
@@ -363,9 +364,9 @@ class _FreemarketViewState extends State<FreemarketView> {
           const SizedBox(height: 100),
           Icon(Icons.search_off_rounded, size: 64, color: state.isDarkMode ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.1)),
           const SizedBox(height: 24),
-          Text(state.tr("Nenhuma sinopse disponível."), style: TextStyle(color: state.isDarkMode ? Colors.white38 : Colors.black38, fontSize: 18)),
+          Text(state.tr("Nenhuma sinopse disponível."), style: TextStyle(color: state.isDarkMode ? Colors.white38 : Colors.black54, fontSize: 18)),
           const SizedBox(height: 8),
-          Text(state.tr("Tente alterar o termo de busca ou a categoria da plataforma."), style: TextStyle(color: state.isDarkMode ? Colors.white12 : Colors.black12, fontSize: 14)),
+          Text(state.tr("Tente alterar o termo de busca ou a categoria da plataforma."), style: TextStyle(color: state.isDarkMode ? Colors.white12 : Colors.black26, fontSize: 14)),
         ],
       ),
     );
@@ -506,9 +507,9 @@ class _FreemarketViewState extends State<FreemarketView> {
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
         children: [
-          Icon(icon, size: 14, color: state.isDarkMode ? Colors.white38 : Colors.black38),
+          Icon(icon, size: 14, color: state.isDarkMode ? Colors.white38 : Colors.black54),
           const SizedBox(width: 12),
-          Text("$label:", style: TextStyle(fontSize: 13, color: state.isDarkMode ? Colors.white38 : Colors.black38)),
+          Text("$label:", style: TextStyle(fontSize: 13, color: state.isDarkMode ? Colors.white38 : Colors.black54)),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
@@ -565,7 +566,7 @@ class _FreemarketViewState extends State<FreemarketView> {
             const Icon(Icons.star, color: Colors.orange, size: 16),
             const Icon(Icons.star_half, color: Colors.orange, size: 16),
             const SizedBox(width: 12),
-            Text("${state.tr("Avaliação")}: ${_selectedGameDetails?['rating'] ?? '4.8'}/5.0", style: TextStyle(color: state.isDarkMode ? Colors.white.withOpacity(0.4) : Colors.black.withOpacity(0.4), fontSize: 13)),
+            Text("${state.tr("Avaliação")}: ${_selectedGameDetails?['rating'] ?? '4.8'}/5.0", style: TextStyle(color: state.isDarkMode ? Colors.white.withOpacity(0.4) : Colors.black.withOpacity(0.6), fontSize: 13)),
             const SizedBox(width: 16),
             if (_selectedGameDetails?['source'] != null)
               Text("${state.tr("ORIGEM")}: ${_selectedGameDetails!['source']}", style: const TextStyle(color: Colors.orange, fontSize: 10, fontWeight: FontWeight.bold)),
@@ -703,7 +704,7 @@ class _FreemarketViewState extends State<FreemarketView> {
 
   Future<void> _handleFtpInstall(AppState state) async {
     if (!state.isFtpConnected) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Conecte-se ao Xbox no FTP Manager primeiro.")));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(state.tr("Conecte-se ao Xbox no FTP Manager primeiro."))));
       return;
     }
 
@@ -781,9 +782,9 @@ class _FreemarketViewState extends State<FreemarketView> {
         const SizedBox(height: 16),
         Container(
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.02),
+            color: state.isDarkMode ? Colors.white.withOpacity(0.02) : Colors.black.withOpacity(0.02),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.white10),
+            border: Border.all(color: state.isDarkMode ? Colors.white10 : Colors.black12),
           ),
           child: Column(
             children: dlcs.map((dlc) => _buildDLCRow(state, dlc as Map<String, dynamic>)).toList(),
@@ -814,7 +815,7 @@ class _FreemarketViewState extends State<FreemarketView> {
                 ),
                 Text(
                   dlc['DownloadUrl'] != null ? "Download via Internet Archive" : (dlc['description'] ?? "Conteúdo Adicional"),
-                  style: TextStyle(fontSize: 12, color: state.isDarkMode ? Colors.white30 : Colors.black38),
+                  style: TextStyle(fontSize: 12, color: state.isDarkMode ? Colors.white30 : Colors.black54),
                 ),
               ],
             ),
@@ -833,7 +834,7 @@ class _FreemarketViewState extends State<FreemarketView> {
                   content: Row(children: [
                     const Icon(Icons.download_rounded, color: Colors.white, size: 16),
                     const SizedBox(width: 10),
-                    Expanded(child: Text("Download iniciado: ${dlc['name'] ?? dlc['Name'] ?? 'DLC'}", style: const TextStyle(fontWeight: FontWeight.bold))),
+                    Expanded(child: Text("${state.tr("Download iniciado:")} ${dlc['name'] ?? dlc['Name'] ?? 'DLC'}", style: const TextStyle(fontWeight: FontWeight.bold))),
                   ]),
                   backgroundColor: const Color(0xFF107C10),
                   behavior: SnackBarBehavior.floating,
@@ -842,7 +843,7 @@ class _FreemarketViewState extends State<FreemarketView> {
                 ));
                 setState(() => _currentTab = FreemarketTab.downloads);
               } else {
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Erro: Title ID não resolvido.")));
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(state.tr("Erro: Title ID não resolvido."))));
               }
             },
             style: ElevatedButton.styleFrom(
@@ -879,8 +880,8 @@ class _FreemarketViewState extends State<FreemarketView> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text("TU Version $version", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                Text("Media ID: $mediaId", style: TextStyle(fontSize: 11, color: state.isDarkMode ? Colors.white24 : Colors.black26)),
+                Text("${state.tr("TU Versão")} $version", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                Text("Media ID: $mediaId", style: TextStyle(fontSize: 11, color: state.isDarkMode ? Colors.white24 : Colors.black54)),
               ],
             ),
           ),
@@ -902,7 +903,7 @@ class _FreemarketViewState extends State<FreemarketView> {
                 ));
                 setState(() => _currentTab = FreemarketTab.downloads);
               } else {
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Erro: Title ID não resolvido.")));
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(state.tr("Erro: Title ID não resolvido."))));
               }
             },
             style: ElevatedButton.styleFrom(
@@ -946,7 +947,7 @@ class _FreemarketViewState extends State<FreemarketView> {
     String? destPath;
     if (onDevice) {
       if (state.selectedDrive == null) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Erro: Nenhum dispositivo selecionado.")));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(state.tr("Erro: Nenhum dispositivo selecionado."))));
         return;
       }
       destPath = state.selectedDrive!['mount'];
@@ -1023,7 +1024,7 @@ class _FreemarketViewState extends State<FreemarketView> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(state.tr("x360 FREEMARKET"), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, letterSpacing: 1.2, color: Color(0xFF107C10))),
-                  Text(state.tr("The ultimate Xbox marketplace"), style: TextStyle(fontSize: 12, color: state.isDarkMode ? Colors.white38 : Colors.black54)),
+                  Text(state.tr("The ultimate Xbox marketplace"), style: TextStyle(fontSize: 12, color: state.isDarkMode ? Colors.white38 : Colors.black87)),
                 ],
               ),
               const Spacer(),
@@ -1057,8 +1058,8 @@ class _FreemarketViewState extends State<FreemarketView> {
                     style: TextStyle(color: state.isDarkMode ? Colors.white : Colors.black, fontSize: 13),
                     decoration: InputDecoration(
                       hintText: state.tr("Search Games, DLCs & Apps..."),
-                      hintStyle: TextStyle(color: state.isDarkMode ? Colors.white24 : Colors.black26, fontSize: 13),
-                      prefixIcon: Icon(Icons.search, color: state.isDarkMode ? Colors.white38 : Colors.black38, size: 18),
+                      hintStyle: TextStyle(color: state.isDarkMode ? Colors.white24 : Colors.black45, fontSize: 13),
+                      prefixIcon: Icon(Icons.search, color: state.isDarkMode ? Colors.white38 : Colors.black54, size: 18),
                       border: InputBorder.none,
                       contentPadding: const EdgeInsets.symmetric(vertical: 10),
                     ),
@@ -1199,14 +1200,14 @@ class _FreemarketViewState extends State<FreemarketView> {
         duration: const Duration(milliseconds: 300),
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF107C10) : Colors.white.withOpacity(0.05),
+          color: isSelected ? const Color(0xFF107C10) : (state.isDarkMode ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.05)),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: isSelected ? Colors.transparent : Colors.white10),
+          border: Border.all(color: isSelected ? Colors.transparent : (state.isDarkMode ? Colors.white10 : Colors.black12)),
         ),
         child: Text(
           label,
           style: TextStyle(
-            color: isSelected ? Colors.white : (state.isDarkMode ? Colors.white54 : Colors.black54),
+            color: isSelected ? Colors.white : (state.isDarkMode ? Colors.white54 : Colors.black87),
             fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
             fontSize: 13,
           ),
@@ -1228,8 +1229,8 @@ class _FreemarketViewState extends State<FreemarketView> {
               child: Container(
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(12),
-                  color: Colors.white.withOpacity(0.03),
-                  border: Border.all(color: Colors.white10),
+                  color: state.isDarkMode ? Colors.white.withOpacity(0.03) : Colors.black.withOpacity(0.03),
+                  border: Border.all(color: state.isDarkMode ? Colors.white10 : Colors.black12),
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(12),
@@ -1275,7 +1276,7 @@ class _FreemarketViewState extends State<FreemarketView> {
             const SizedBox(height: 4),
             Row(
               children: [
-                Text(game['platform'] == '360' ? "Xbox 360" : "Original Xbox", style: TextStyle(fontSize: 11, color: state.isDarkMode ? Colors.white38 : Colors.black38)),
+                Text(game['platform'] == '360' ? "Xbox 360" : "Original Xbox", style: TextStyle(fontSize: 11, color: state.isDarkMode ? Colors.white38 : Colors.black54)),
                 const Spacer(),
                 const Icon(Icons.cloud_download, size: 12, color: Color(0xFF107C10)),
               ],
@@ -1294,7 +1295,7 @@ class _FreemarketViewState extends State<FreemarketView> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF107C10) : Colors.white.withOpacity(0.05),
+          color: isSelected ? const Color(0xFF107C10) : (state.isDarkMode ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.05)),
           borderRadius: BorderRadius.circular(8),
         ),
         child: Row(
@@ -1322,27 +1323,27 @@ class _FreemarketViewState extends State<FreemarketView> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1E1E1E),
-        title: const Text("Archive.org Login"),
+        backgroundColor: state.isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
+        title: Text("Archive.org Login", style: TextStyle(color: state.isDarkMode ? Colors.white : Colors.black)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text("Insira seu E-mail e Senha do Archive.org para habilitar downloads restritos.", 
-              style: TextStyle(fontSize: 12, color: Colors.white70)),
+            Text("Insira seu E-mail e Senha do Archive.org para habilitar downloads restritos.", 
+              style: TextStyle(fontSize: 12, color: state.isDarkMode ? Colors.white70 : Colors.black87)),
             const SizedBox(height: 16),
             
-            _buildDialogField("E-mail:", emailController, "seu@email.com"),
+            _buildDialogField(state, "E-mail:", emailController, "seu@email.com"),
             const SizedBox(height: 12),
-            _buildDialogField("Senha:", passwordController, "sua senha", isPassword: true),
+            _buildDialogField(state, "Senha:", passwordController, "sua senha", isPassword: true),
             
             const SizedBox(height: 12),
-            const Text("Suas credenciais são usadas apenas para autenticar diretamente no Archive.org.", 
-              style: TextStyle(fontSize: 10, color: Colors.white38)),
+            Text("Suas credenciais são usadas apenas para autenticar diretamente no Archive.org.", 
+              style: TextStyle(fontSize: 10, color: state.isDarkMode ? Colors.white38 : Colors.black45)),
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("CANCELAR")),
+          TextButton(onPressed: () => Navigator.pop(context), child: Text(state.tr("CANCELAR"))),
           ElevatedButton(
             onPressed: () {
               if (emailController.text.isNotEmpty && passwordController.text.isNotEmpty) {
@@ -1361,24 +1362,24 @@ class _FreemarketViewState extends State<FreemarketView> {
     );
   }
 
-  Widget _buildDialogField(String label, TextEditingController controller, String hint, {bool isPassword = false}) {
+  Widget _buildDialogField(AppState state, String label, TextEditingController controller, String hint, {bool isPassword = false}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(fontSize: 11, color: Colors.white60, fontWeight: FontWeight.bold)),
+        Text(label, style: TextStyle(fontSize: 11, color: state.isDarkMode ? Colors.white60 : Colors.black87, fontWeight: FontWeight.bold)),
         const SizedBox(height: 4),
         TextField(
           controller: controller,
           obscureText: isPassword,
-          style: const TextStyle(color: Colors.white, fontSize: 13),
+          style: TextStyle(color: state.isDarkMode ? Colors.white : Colors.black, fontSize: 13),
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: const TextStyle(color: Colors.white10),
-            fillColor: Colors.black26,
+            hintStyle: TextStyle(color: state.isDarkMode ? Colors.white10 : Colors.black45),
+            fillColor: state.isDarkMode ? Colors.black26 : Colors.black.withOpacity(0.05),
             filled: true,
             isDense: true,
             contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-            border: const OutlineInputBorder(),
+            border: OutlineInputBorder(borderSide: BorderSide(color: state.isDarkMode ? Colors.white10 : Colors.black26)),
           ),
         ),
       ],
@@ -1391,13 +1392,13 @@ class _FreemarketViewState extends State<FreemarketView> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.download_for_offline_outlined, size: 80, color: Colors.white.withOpacity(0.05)),
+            Icon(Icons.download_for_offline_outlined, size: 80, color: state.isDarkMode ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.05)),
             const SizedBox(height: 24),
-            Text("Nenhum download ativo ou concluído", style: TextStyle(color: Colors.white.withOpacity(0.2), fontSize: 16)),
+            Text("Nenhum download ativo ou concluído", style: TextStyle(color: state.isDarkMode ? Colors.white.withOpacity(0.2) : Colors.black87, fontSize: 16)),
             const SizedBox(height: 24),
             TextButton.icon(
               onPressed: () => _showLoginDialog(state),
-              icon: Icon(state.isLoggedInIA ? Icons.check_circle : Icons.login, size: 16, color: state.isLoggedInIA ? const Color(0xFF107C10) : Colors.white38),
+              icon: Icon(state.isLoggedInIA ? Icons.check_circle : Icons.login, size: 16, color: state.isLoggedInIA ? const Color(0xFF107C10) : (state.isDarkMode ? Colors.white38 : Colors.black54)),
               label: Text(state.isLoggedInIA ? "Archive.org: Conectado" : "Archive.org Login"),
               style: TextButton.styleFrom(foregroundColor: state.isLoggedInIA ? const Color(0xFF107C10) : Colors.white38),
             ),

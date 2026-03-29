@@ -39,7 +39,7 @@ class SavesView extends StatelessWidget {
                     const SizedBox(height: 8),
                     Text(
                       state.tr("Gerencie seus saves e perfis de Xbox 360 localmente e exporte para outros dispositivos."),
-                      style: TextStyle(fontSize: 14, color: state.isDarkMode ? Colors.white54 : Colors.black54),
+                      style: TextStyle(fontSize: 14, color: state.isDarkMode ? Colors.white54 : Colors.black87),
                     ),
                   ],
                 ),
@@ -126,7 +126,7 @@ class SavesView extends StatelessWidget {
                             const SizedBox(height: 24),
                             Text(
                               state.tr("Nenhum save encontrado no cofre."),
-                              style: TextStyle(color: state.isDarkMode ? Colors.white38 : Colors.black45, fontSize: 18),
+                              style: TextStyle(color: state.isDarkMode ? Colors.white38 : Colors.black87, fontSize: 18),
                             ),
                           ],
                         ),
@@ -186,7 +186,7 @@ class SavesView extends StatelessWidget {
                   : null,
             ),
             child: iconPath.isEmpty || !File(iconPath).existsSync()
-                ? Icon(Icons.videogame_asset, color: state.isDarkMode ? Colors.white38 : Colors.black45, size: 32)
+                ? Icon(Icons.videogame_asset, color: state.isDarkMode ? Colors.white38 : Colors.black87, size: 32)
                 : null,
           ),
           const SizedBox(width: 16),
@@ -210,7 +210,7 @@ class SavesView extends StatelessWidget {
                       description.isNotEmpty ? description : "Title ID: $titleId",
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(color: state.isDarkMode ? Colors.white54 : Colors.black54, fontSize: 13),
+                      style: TextStyle(color: state.isDarkMode ? Colors.white54 : Colors.black87, fontSize: 13),
                     ),
                   ],
                 ),
@@ -225,7 +225,7 @@ class SavesView extends StatelessWidget {
                       children: [
                         // Tooltip & Export disabled for now as mocked, but visually present
                         IconButton(
-                          icon: Icon(Icons.cloud_upload, color: state.isDarkMode ? Colors.white38 : Colors.black45, size: 20),
+                          icon: Icon(Icons.cloud_upload, color: state.isDarkMode ? Colors.white38 : Colors.black54, size: 20),
                           tooltip: state.tr("Backup em Nuvem (Em Breve)"),
                           onPressed: () {
                              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(state.tr("Cloud Sync chegará em uma atualização futura."))));

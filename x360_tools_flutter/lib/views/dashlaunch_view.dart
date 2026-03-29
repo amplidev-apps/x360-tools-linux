@@ -61,7 +61,7 @@ class _DashLaunchViewState extends State<DashLaunchView> {
     setState(() => _isLoading = false);
     
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Arquivo launch.ini salvo com sucesso!")),
+      SnackBar(content: Text(state.tr("Arquivo launch.ini salvo com sucesso!"))),
     );
   }
 
@@ -87,7 +87,7 @@ class _DashLaunchViewState extends State<DashLaunchView> {
                 decoration: BoxDecoration(
                   color: state.isDarkMode ? const Color(0xFF151515) : Colors.white70,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: state.isDarkMode ? Colors.white.withOpacity(0.1) : Colors.black12),
+                  border: Border.all(color: state.isDarkMode ? Colors.white.withOpacity(0.1) : Colors.black26),
                 ),
                 child: DropdownButtonHideUnderline(
                   child: DropdownButton<String>(
@@ -121,14 +121,14 @@ class _DashLaunchViewState extends State<DashLaunchView> {
               ElevatedButton.icon(
                 onPressed: _isLoading || state.selectedDrive == null ? null : _loadIni,
                 icon: const Icon(Icons.file_open_rounded),
-                label: const Text("CARREGAR .INI"),
+                label: Text(state.tr("CARREGAR .INI")),
                 style: ElevatedButton.styleFrom(backgroundColor: Colors.white10),
               ),
               const SizedBox(width: 12),
               ElevatedButton.icon(
                 onPressed: _isLoading || _iniData == null || state.selectedDrive == null ? null : _saveIni,
                 icon: const Icon(Icons.save_rounded),
-                label: const Text("SALVAR NO USB"),
+                label: Text(state.tr("SALVAR NO USB")),
                 style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF107C10)),
               ),
             ],
@@ -136,11 +136,11 @@ class _DashLaunchViewState extends State<DashLaunchView> {
           const SizedBox(height: 8),
           Text(
             _currentPath ?? "Selecione um dispositivo e carregue o arquivo launch.ini",
-            style: TextStyle(color: state.isDarkMode ? Colors.white24 : Colors.black38, fontSize: 12),
+            style: TextStyle(color: state.isDarkMode ? Colors.white24 : Colors.black54, fontSize: 12),
           ),
           const SizedBox(height: 24),
           if (_iniData == null && !_isLoading)
-            Expanded(child: Center(child: Text("Carregue o arquivo do seu pendrive para começar a editar.", style: TextStyle(color: state.isDarkMode ? Colors.white24 : Colors.black38))))
+            Expanded(child: Center(child: Text("Carregue o arquivo do seu pendrive para começar a editar.", style: TextStyle(color: state.isDarkMode ? Colors.white24 : Colors.black54))))
           else if (_isLoading)
             const Expanded(child: Center(child: CircularProgressIndicator(color: Color(0xFF107C10))))
           else
@@ -248,11 +248,11 @@ class _DashLaunchViewState extends State<DashLaunchView> {
         onChanged: (val) => _iniData![section][key] = val,
         decoration: InputDecoration(
           labelText: label,
-          labelStyle: TextStyle(color: state.isDarkMode ? Colors.white38 : Colors.black45),
+          labelStyle: TextStyle(color: state.isDarkMode ? Colors.white38 : Colors.black87),
           filled: true,
           fillColor: state.isDarkMode ? Colors.white.withOpacity(0.03) : Colors.black.withOpacity(0.05),
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
-          prefixIcon: Icon(Icons.folder, size: 20, color: state.isDarkMode ? Colors.white24 : Colors.black26),
+          prefixIcon: Icon(Icons.folder, size: 20, color: state.isDarkMode ? Colors.white24 : Colors.black54),
           suffixIcon: IconButton(
             icon: const Icon(Icons.file_open_outlined, size: 20, color: Color(0xFF107C10)),
             onPressed: () async {

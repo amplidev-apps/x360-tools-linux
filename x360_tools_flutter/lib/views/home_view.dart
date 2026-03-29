@@ -271,7 +271,7 @@ class HomeView extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E1E1E),
+        color: state.isDarkMode ? const Color(0xFF1E1E1E) : Colors.black.withOpacity(0.05),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: const Color(0xFF107C10), width: 1),
       ),
@@ -281,11 +281,11 @@ class HomeView extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text("Itens Selecionados", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                Text("Itens Selecionados", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: state.isDarkMode ? Colors.white : Colors.black)),
                 const SizedBox(height: 8),
                 Text(
                   "${state.selectedPackages.length} pacotes prontos para instalação.",
-                  style: TextStyle(color: Colors.white.withOpacity(0.5)),
+                  style: TextStyle(color: state.isDarkMode ? Colors.white.withOpacity(0.5) : Colors.black54),
                 ),
               ],
             ),

@@ -87,7 +87,7 @@ class _ConvertViewState extends State<ConvertView> {
                   Text(state.tr("x360 Converter"), style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: state.isDarkMode ? Colors.white : Colors.black)),
                   Text(
                     state.tr("Prepare seus jogos para rodar no console."),
-                    style: TextStyle(fontSize: 16, color: state.isDarkMode ? Colors.white.withOpacity(0.5) : Colors.black.withOpacity(0.5)),
+                    style: TextStyle(fontSize: 16, color: state.isDarkMode ? Colors.white.withOpacity(0.5) : Colors.black87),
                   ),
                 ],
               ),
@@ -218,9 +218,11 @@ class _ConvertViewState extends State<ConvertView> {
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
-                      _status, 
+                      _status,
                       style: TextStyle(
-                        color: _status.contains("Erro") ? Colors.redAccent : Colors.greenAccent,
+                        color: _status.contains("Erro") 
+                            ? (state.isDarkMode ? Colors.redAccent : Colors.red[800]) 
+                            : (state.isDarkMode ? Colors.greenAccent : Colors.green[800]),
                         fontWeight: FontWeight.w500,
                       ),
                       textAlign: TextAlign.center,
@@ -255,11 +257,11 @@ class _ConvertViewState extends State<ConvertView> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(icon, color: isSelected ? (state.isDarkMode ? Colors.white : Colors.black) : (state.isDarkMode ? Colors.white24 : Colors.black26), size: 32),
+              Icon(icon, color: isSelected ? (state.isDarkMode ? Colors.white : Colors.black) : (state.isDarkMode ? Colors.white24 : Colors.black54), size: 32),
               const SizedBox(height: 16),
-              Text(title, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: isSelected ? (state.isDarkMode ? Colors.white : Colors.black) : (state.isDarkMode ? Colors.white54 : Colors.black54))),
+              Text(title, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: isSelected ? (state.isDarkMode ? Colors.white : Colors.black) : (state.isDarkMode ? Colors.white54 : Colors.black87))),
               const SizedBox(height: 4),
-              Text(subtitle, style: TextStyle(fontSize: 14, color: isSelected ? (state.isDarkMode ? Colors.white70 : Colors.black.withOpacity(0.6)) : (state.isDarkMode ? Colors.white24 : Colors.black26))),
+              Text(subtitle, style: TextStyle(fontSize: 14, color: isSelected ? (state.isDarkMode ? Colors.white70 : Colors.black.withOpacity(0.8)) : (state.isDarkMode ? Colors.white24 : Colors.black54))),
             ],
           ),
         ),
@@ -271,7 +273,7 @@ class _ConvertViewState extends State<ConvertView> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: state.isDarkMode ? Colors.white54 : Colors.black54)),
+        Text(label, style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: state.isDarkMode ? Colors.white54 : Colors.black87)),
         const SizedBox(height: 12),
         Row(
           children: [

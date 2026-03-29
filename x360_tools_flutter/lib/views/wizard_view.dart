@@ -11,7 +11,7 @@ class WizardView extends StatelessWidget {
     final state = context.watch<AppState>();
 
     return Container(
-      color: Colors.black.withOpacity(0.9),
+      color: state.isDarkMode ? Colors.black.withOpacity(0.9) : Colors.white.withOpacity(0.98),
       padding: const EdgeInsets.all(60),
       child: Column(
         children: [
@@ -22,7 +22,7 @@ class WizardView extends StatelessWidget {
               const Spacer(),
               IconButton(
                 onPressed: () => state.setWizardActive = false, 
-                icon: const Icon(Icons.close, color: Colors.white54),
+                icon: Icon(Icons.close, color: state.isDarkMode ? Colors.white54 : Colors.black54),
               ),
             ],
           ),
@@ -55,7 +55,7 @@ class WizardView extends StatelessWidget {
               
               Row(
                 children: [
-                  Text("${state.tr("Step")} ${state.wizardStep + 1} ${state.tr("of")} 6", style: const TextStyle(color: Colors.white30)),
+                  Text("${state.tr("Step")} ${state.wizardStep + 1} ${state.tr("of")} 6", style: TextStyle(color: state.isDarkMode ? Colors.white30 : Colors.black38)),
                   const SizedBox(width: 24),
                   ElevatedButton(
                     onPressed: (state.wizardStep == 1 && state.selectedDrive == null)
@@ -89,7 +89,7 @@ class WizardView extends StatelessWidget {
       case 3: return _buildDashboardStep(state);
       case 4: return _buildPluginsStep(state);
       case 5: return _buildSummaryStep(state);
-      default: return const Text("Unknown Step");
+      default: return Text(state.tr("Unknown Step"));
     }
   }
 
@@ -99,11 +99,11 @@ class WizardView extends StatelessWidget {
       children: [
         const Icon(Icons.auto_awesome, size: 80, color: Color(0xFF107C10)),
         const SizedBox(height: 24),
-        Text(state.tr("Welcome to x360 Tools v2.0"), style: const TextStyle(fontSize: 40, fontWeight: FontWeight.w900)),
+        Text(state.tr("Welcome to x360 Tools v2.0"), style: TextStyle(fontSize: 40, fontWeight: FontWeight.w900, color: state.isDarkMode ? Colors.white : Colors.black)),
         const SizedBox(height: 16),
         Text(
           state.tr("This wizard will guide you through preparing your USB device for your Xbox 360."),
-          style: TextStyle(fontSize: 18, color: Colors.white.withOpacity(0.5)),
+          style: TextStyle(fontSize: 18, color: state.isDarkMode ? Colors.white.withOpacity(0.5) : Colors.black54),
           textAlign: TextAlign.center,
         ),
       ],
@@ -119,7 +119,7 @@ class WizardView extends StatelessWidget {
         DropdownButton<String>(
           value: state.selectedDrive?['device'],
           isExpanded: true,
-          dropdownColor: Colors.black,
+          dropdownColor: state.isDarkMode ? Colors.black : Colors.white,
           items: state.drives.map((d) => DropdownMenuItem<String>(
             value: d['device'],
             child: Text("${d['device']} - ${d['label']} (${d['size_gb']} GB)"),
@@ -159,6 +159,7 @@ class WizardView extends StatelessWidget {
         Row(
           children: [
             _buildOptionCard(
+              state,
               state.tr("RGH / JTAG"), 
               state.tr("Modified hardware that runs unsigned code and homebrew."),
               state.consoleType == "RGH",
@@ -166,6 +167,7 @@ class WizardView extends StatelessWidget {
             ),
             const SizedBox(width: 24),
             _buildOptionCard(
+              state,
               state.tr("LT / Original / Não Sei"), 
               state.tr("Standard or Flash-only console for playing backups from disc."),
               state.consoleType == "LT",
@@ -227,8 +229,8 @@ class WizardView extends StatelessWidget {
       children: [
         Text(state.tr("Installation Summary"), style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold)),
         const SizedBox(height: 24),
-        Text("${state.tr("Dispositivo USB")}: ${state.selectedDrive?['device']} (${state.selectedDrive?['label']})"),
-        Text("${state.tr("Tipo de Console")}: ${state.consoleType == 'RGH' ? 'RGH/JTAG' : 'LT / Original'}"),
+        Text("${state.tr("Dispositivo USB")}: ${state.selectedDrive?['device']} (${state.selectedDrive?['label']})", style: TextStyle(color: state.isDarkMode ? Colors.white70 : Colors.black87)),
+        Text("${state.tr("Tipo de Console")}: ${state.consoleType == 'RGH' ? 'RGH/JTAG' : 'LT / Original'}", style: TextStyle(color: state.isDarkMode ? Colors.white70 : Colors.black87)),
         const SizedBox(height: 32),
         Text(state.tr("Packages to Install:"), style: const TextStyle(fontWeight: FontWeight.bold)),
         const SizedBox(height: 8),
@@ -244,22 +246,22 @@ class WizardView extends StatelessWidget {
     );
   }
 
-  Widget _buildOptionCard(String title, String desc, bool isActive, VoidCallback onTap) {
+  Widget _buildOptionCard(AppState state, String title, String desc, bool isActive, VoidCallback onTap) {
     return Expanded(
       child: InkWell(
         onTap: onTap,
         child: Container(
           padding: const EdgeInsets.all(32),
           decoration: BoxDecoration(
-            color: isActive ? const Color(0xFF107C10).withOpacity(0.1) : Colors.white12,
+            color: isActive ? const Color(0xFF107C10).withOpacity(0.1) : (state.isDarkMode ? Colors.white12 : Colors.black.withOpacity(0.05)),
             border: Border.all(color: isActive ? const Color(0xFF107C10) : Colors.transparent, width: 2),
             borderRadius: BorderRadius.circular(16),
           ),
           child: Column(
             children: [
-              Text(title, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+              Text(title, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: state.isDarkMode ? Colors.white : Colors.black)),
               const SizedBox(height: 12),
-              Text(desc, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white54)),
+              Text(desc, textAlign: TextAlign.center, style: TextStyle(color: state.isDarkMode ? Colors.white54 : Colors.black54)),
             ],
           ),
         ),

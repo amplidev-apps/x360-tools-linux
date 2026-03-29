@@ -15,7 +15,7 @@ class _FtpViewState extends State<FtpView> {
   void _connect(AppState state) async {
     final ip = _ipController.text.trim();
     if (ip.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Digite o IP do Xbox.")));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(state.tr("Digite o IP do Xbox."))));
       return;
     }
     await state.ftpConnect(ip);
@@ -40,14 +40,14 @@ class _FtpViewState extends State<FtpView> {
           style: TextStyle(color: state.isDarkMode ? Colors.white : Colors.black),
           decoration: InputDecoration(
             hintText: state.tr("Nome da pasta"),
-            hintStyle: TextStyle(color: state.isDarkMode ? Colors.white38 : Colors.black45),
+            hintStyle: TextStyle(color: state.isDarkMode ? Colors.white38 : Colors.black54),
             enabledBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Color(0xFF107C10))),
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text(state.tr("Cancelar"), style: TextStyle(color: state.isDarkMode ? Colors.white54 : Colors.black54)),
+            child: Text(state.tr("Cancelar"), style: TextStyle(color: state.isDarkMode ? Colors.white54 : Colors.black87)),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF107C10)),
@@ -80,7 +80,7 @@ class _FtpViewState extends State<FtpView> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text(state.tr("Cancelar"), style: TextStyle(color: state.isDarkMode ? Colors.white54 : Colors.black54)),
+            child: Text(state.tr("Cancelar"), style: TextStyle(color: state.isDarkMode ? Colors.white54 : Colors.black87)),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
@@ -131,7 +131,7 @@ class _FtpViewState extends State<FtpView> {
                     const SizedBox(height: 8),
                     Text(
                       state.tr("Gerencie e instale arquivos no Xbox 360 pelo ar (Requer Aurora/FSD3)."),
-                      style: TextStyle(fontSize: 14, color: state.isDarkMode ? Colors.white54 : Colors.black54),
+                      style: TextStyle(fontSize: 14, color: state.isDarkMode ? Colors.white54 : Colors.black87),
                     ),
                   ],
                 ),
@@ -157,7 +157,7 @@ class _FtpViewState extends State<FtpView> {
                     style: TextStyle(color: state.isDarkMode ? Colors.white : Colors.black, fontSize: 18),
                     decoration: InputDecoration(
                       hintText: "192.168.0.X",
-                      hintStyle: TextStyle(color: state.isDarkMode ? Colors.white24 : Colors.black26),
+                      hintStyle: TextStyle(color: state.isDarkMode ? Colors.white24 : Colors.black45),
                       labelText: state.tr("Endereço IP do Xbox 360"),
                       labelStyle: const TextStyle(color: Color(0xFF107C10)),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
@@ -165,7 +165,7 @@ class _FtpViewState extends State<FtpView> {
                         borderRadius: BorderRadius.circular(8),
                         borderSide: const BorderSide(color: Color(0xFF107C10), width: 2),
                       ),
-                      prefixIcon: Icon(Icons.router, color: state.isDarkMode ? Colors.white54 : Colors.black54),
+                      prefixIcon: Icon(Icons.router, color: state.isDarkMode ? Colors.white54 : Colors.black87),
                     ),
                   ),
                 ),
@@ -212,12 +212,12 @@ class _FtpViewState extends State<FtpView> {
                         const SizedBox(height: 24),
                         Text(
                           state.tr("Nenhuma conexão ativa."),
-                          style: TextStyle(color: state.isDarkMode ? Colors.white38 : Colors.black45, fontSize: 18),
+                          style: TextStyle(color: state.isDarkMode ? Colors.white38 : Colors.black87, fontSize: 18),
                         ),
                         const SizedBox(height: 8),
                         Text(
                           state.tr("Certifique-se de que a Aurora ou Freestyle estão abertas no console e o FTP ativado."),
-                          style: TextStyle(color: state.isDarkMode ? Colors.white24 : Colors.black38, fontSize: 14),
+                          style: TextStyle(color: state.isDarkMode ? Colors.white24 : Colors.black54, fontSize: 14),
                         ),
                       ],
                     ),
@@ -299,13 +299,13 @@ class _FtpViewState extends State<FtpView> {
                       return ListTile(
                         leading: Icon(
                           isDir ? Icons.folder : Icons.insert_drive_file,
-                          color: isDir ? const Color(0xFF107C10) : (state.isDarkMode ? Colors.white54 : Colors.black54),
+                          color: isDir ? const Color(0xFF107C10) : (state.isDarkMode ? Colors.white54 : Colors.black87),
                           size: 32,
                         ),
                         title: Text(item['name'], style: TextStyle(color: state.isDarkMode ? Colors.white : Colors.black)),
-                        subtitle: Text(item['size'].toString(), style: TextStyle(color: state.isDarkMode ? Colors.white38 : Colors.black45)),
+                        subtitle: Text(item['size'].toString(), style: TextStyle(color: state.isDarkMode ? Colors.white38 : Colors.black54)),
                         trailing: IconButton(
-                          icon: Icon(Icons.delete_outline, color: state.isDarkMode ? Colors.white38 : Colors.black45),
+                          icon: Icon(Icons.delete_outline, color: state.isDarkMode ? Colors.white38 : Colors.black54),
                           onPressed: () => _deleteItem(state, item['name'], isDir),
                         ),
                         onTap: () {
