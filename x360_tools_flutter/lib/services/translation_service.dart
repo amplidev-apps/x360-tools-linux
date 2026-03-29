@@ -298,7 +298,6 @@ class TranslationService {
     "Erro ao excluir": {"pt": "Erro ao excluir", "en": "Error deleting", "es": "Error al eliminar"},
     "Gamerpic exportada com sucesso!": {"pt": "Gamerpic exportada com sucesso!", "en": "Gamerpic exported successfully!", "es": "¡Gamerpic exportada con éxito!"},
     "Erro ao exportar": {"pt": "Erro ao exportar", "en": "Error exporting", "es": "Error al exportar"},
-    "Gamerpic injetada com sucesso!": {"pt": "Gamerpic injetada com sucesso!", "en": "Gamerpic injected successfully!", "es": "¡Gamerpic inyectada con éxito!"},
     "Iniciando download da TU...": {"pt": "Iniciando download da TU...", "en": "Starting TU download...", "es": "Iniciando descarga de TU..."},
     "Iniciando download da DLC...": {"pt": "Iniciando download da DLC...", "en": "Starting DLC download...", "es": "Iniciando descarga de DLC..."},
     "Aviso: Selecione um dispositivo para instalar a TU.": {"pt": "Aviso: Selecione um dispositivo para instalar a TU.", "en": "Warning: Select a device to install TU.", "es": "Aviso: Seleccione un dispositivo para instalar la TU."},
@@ -340,8 +339,6 @@ class TranslationService {
     },
     "Selecionar Executável (.xex)": {"pt": "Selecionar Executável (.xex)", "en": "Select Executable (.xex)", "es": "Seleccionar Ejecutable (.xex)"},
     "DashLaunch Pro Editor": {"pt": "DashLaunch Pro Editor", "en": "DashLaunch Pro Editor", "es": "DashLaunch Pro Editor"},
-    "EXTRAT TO PC": {"pt": "EXTRAIR PARA O PC", "en": "EXTRACT TO PC", "es": "EXTRAER AL PC"},
-    "DEFINIR NOME": {"pt": "DEFINIR NOME", "en": "SET NAME", "es": "DEFINIR NOMBRE"},
     "GERENCIADOR DE CONTEÚDO": {"pt": "GERENCIADOR DE CONTEÚDO", "en": "CONTENT MANAGER", "es": "GESTOR DE CONTENIDO"},
     "Explore e gerencie o conteúdo do seu dispositivo Xbox 360.": {"pt": "Explore e gerencie o conteúdo do seu dispositivo Xbox 360.", "en": "Explore and manage your Xbox 360 device content.", "es": "Explora y gestiona el contenido de tu dispositivo Xbox 360."},
     "SAVES": {"pt": "SAVES / PERFIS", "en": "SAVES / PROFILES", "es": "SAVES / PERFILES"},
@@ -367,7 +364,6 @@ class TranslationService {
     "Falha na conexão": {"pt": "Falha na conexão", "en": "Connection failure", "es": "Fallo de conexión"},
     "BAIXAR E INSTALAR": {"pt": "BAIXAR E INSTALAR", "en": "DOWNLOAD & INSTALL", "es": "DESCARGAR E INSTALAR"},
     "INSTALAR DLC": {"pt": "INSTALAR DLC", "en": "INSTALL DLC", "es": "INSTALAR DLC"},
-    "Gamerpic excluída do dispositivo.": {"pt": "Gamerpic excluída do dispositivo.", "en": "Gamerpic deleted from device.", "es": "Gamerpic eliminada del dispositivo."},
   };
 
   static String tr(String key, String lang) {

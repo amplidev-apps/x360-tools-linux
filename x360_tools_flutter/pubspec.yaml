@@ -51,6 +51,7 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^5.0.0
+  msix: ^3.16.13
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -67,6 +68,8 @@ flutter:
   assets:
     - assets/
     - assets/gamecovers/
+    - assets/python_backend/
+    - assets/python_backend/core/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
@@ -85,3 +88,13 @@ flutter:
         - asset: assets/fonts/Segoe UI Bold Italic.ttf
           weight: 700
           style: italic
+
+msix_config:
+  display_name: x360 Tools
+  publisher_display_name: AmpliMusic
+  identity_name: com.amplimusic.x360tools
+  msix_version: 2.0.0.0
+  logo_path: assets/app_icon.png
+  capabilities: internetClient, privateNetworkClientServer, runFullTrust
+  execution_alias: x360tools
+  architecture: x64

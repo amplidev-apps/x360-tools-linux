@@ -3,7 +3,34 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 
 class PythonBridge {
-  static const String bridgeScript = '../service_bridge.py';
+  static String get _bridgeScript {
+    if (Platform.isWindows) {
+      // When bundled in MSIX/Exe, assets are in data/flutter_assets/assets/python_backend/
+      final String exePath = Platform.resolvedExecutable;
+      final Directory exeDir = File(exePath).parent;
+      final String assetPath = "${exeDir.path}\\data\\flutter_assets\\assets\\python_backend\\service_bridge.py";
+      
+      if (File(assetPath).existsSync()) {
+        return assetPath;
+      }
+      
+      // Fallback for debug/development
+      return 'assets/python_backend/service_bridge.py';
+    }
+    return '../service_bridge.py';
+  }
+  
+  static String? get _bridgeDir {
+    if (Platform.isWindows) {
+      final String script = _bridgeScript;
+      if (script.contains('\\')) {
+        return script.substring(0, script.lastIndexOf('\\'));
+      }
+    }
+    return null; // Current dir for Linux
+  }
+
+  static String get _pythonCmd => Platform.isWindows ? 'python' : 'python3';
   static final Map<String, Process> _activeProcesses = {};
 
   static Future<void> cancelDownload(String id) async {
@@ -58,7 +85,7 @@ class PythonBridge {
       String? iaUser,
       String? iaPass,
   }) async {
-    final List<String> args = ['python3', bridgeScript, '--cmd', cmd];
+    final List<String> args = [_bridgeScript, '--cmd', cmd];
     if (arg != null) args.addAll(['--arg', arg]);
     if (platform != null) args.addAll(['--platform', platform]);
     if (category != null) args.addAll(['--category', category]);
@@ -86,7 +113,7 @@ class PythonBridge {
     if (cookie != null) args.addAll(['--cookie', cookie]);
 
     try {
-      final Process process = await Process.start(args[0], args.sublist(1));
+      final Process process = await Process.start(_pythonCmd, args, workingDirectory: _bridgeDir);
       
       final StringBuffer stdoutBuffer = StringBuffer();
       final StringBuffer stderrBuffer = StringBuffer();
@@ -233,11 +260,11 @@ class PythonBridge {
   }
 
   static Future<Map<String, dynamic>> createBackup(String device, String destPath, {String? label, Function(String)? onProgress}) async {
-    final List<String> args = ['python3', bridgeScript, '--cmd', 'create_backup', '--device', device, '--dest', destPath];
+    final List<String> args = [_bridgeScript, '--cmd', 'create_backup', '--device', device, '--dest', destPath];
     if (label != null && label.isNotEmpty) {
       args.addAll(['--label', label]);
     }
-    final process = await Process.start(args[0], args.sublist(1));
+    final process = await Process.start(_pythonCmd, args, workingDirectory: _bridgeDir);
     
     String? lastLine;
     await for (final line in process.stdout.transform(utf8.decoder).transform(const LineSplitter())) {
@@ -257,11 +284,11 @@ class PythonBridge {
   }
 
   static Future<Map<String, dynamic>> restoreBackup(String backupPath, String device, {String? label, Function(String)? onProgress}) async {
-    final List<String> args = ['python3', bridgeScript, '--cmd', 'restore_backup', '--src', backupPath, '--device', device];
+    final List<String> args = [_bridgeScript, '--cmd', 'restore_backup', '--src', backupPath, '--device', device];
     if (label != null && label.isNotEmpty) {
       args.addAll(['--label', label]);
     }
-    final process = await Process.start(args[0], args.sublist(1));
+    final process = await Process.start(_pythonCmd, args, workingDirectory: _bridgeDir);
     
     String? lastLine;
     await for (final line in process.stdout.transform(utf8.decoder).transform(const LineSplitter())) {
@@ -297,8 +324,7 @@ class PythonBridge {
     {bool onDevice = true, Function(String)? onProgress}
   ) async {
     final List<String> args = [
-      'python3', 
-      bridgeScript, 
+      _bridgeScript, 
       '--cmd', 'install_game', 
       '--url', url, 
       '--name', name, 
@@ -307,7 +333,7 @@ class PythonBridge {
       '--on-device', onDevice.toString()
     ];
 
-    final process = await Process.start(args[0], args.sublist(1));
+    final process = await Process.start(_pythonCmd, args, workingDirectory: _bridgeDir);
     _activeProcesses[id] = process;
     
     String? lastLine;
@@ -338,8 +364,7 @@ class PythonBridge {
     {Function(String)? onProgress}
   ) async {
     final List<String> args = [
-      'python3', 
-      bridgeScript, 
+      _bridgeScript, 
       '--cmd', 'install_dlc', 
       '--url', url, 
       '--name', name, 
@@ -347,7 +372,7 @@ class PythonBridge {
       '--device', device
     ];
 
-    final process = await Process.start(args[0], args.sublist(1));
+    final process = await Process.start(_pythonCmd, args, workingDirectory: _bridgeDir);
     _activeProcesses[id] = process;
     
     String? lastLine;
@@ -420,8 +445,8 @@ class PythonBridge {
     required String titleId,
     required String dest,
   }) async* {
-    final process = await Process.start('python3', [
-      bridgeScript,
+    final process = await Process.start(_pythonCmd, [
+      _bridgeScript,
       '--cmd', 'install_tu',
       '--url', url,
       '--name', name,
