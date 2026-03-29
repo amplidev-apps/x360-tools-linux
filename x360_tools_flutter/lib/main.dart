@@ -256,7 +256,7 @@ class _MainShellState extends State<MainShell> {
                                 state.isDarkMode ? Colors.yellow.shade800 : Colors.blue.shade700, 
                                 state.toggleTheme),
                             const SizedBox(width: 10),
-                            const Text("v1.1", style: TextStyle(color: Colors.white38, fontSize: 12)),
+                            const Text("v2.0", style: TextStyle(color: Colors.white38, fontSize: 12)),
                           ],
                         ),
                       ),

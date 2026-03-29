@@ -286,7 +286,7 @@ viewport {
         ini_btn.connect("clicked", self.on_show_ini_editor)
         footer.pack_start(ini_btn, False, False, 10)
         
-        version_label = Gtk.Label(label="v1.1")
+        version_label = Gtk.Label(label="v2.0")
         footer.pack_end(version_label, False, False, 0)
         
         self.content_vbox.pack_end(footer, False, False, 0)
