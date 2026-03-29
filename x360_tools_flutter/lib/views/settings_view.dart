@@ -77,8 +77,8 @@ class SettingsView extends StatelessWidget {
               child: Row(
                 children: [
                   Expanded(
-                    child: _buildTextField(
-                      state,
+                    child: SettingsTextField(
+                      isDarkMode: state.isDarkMode,
                       label: "IP Console",
                       initialValue: state.ftpIp,
                       onChanged: (val) => state.updateSettings(fIp: val),
@@ -86,8 +86,8 @@ class SettingsView extends StatelessWidget {
                   ),
                   const SizedBox(width: 16),
                   Expanded(
-                    child: _buildTextField(
-                      state,
+                    child: SettingsTextField(
+                      isDarkMode: state.isDarkMode,
                       label: "Usuário",
                       initialValue: state.ftpUser,
                       onChanged: (val) => state.updateSettings(fUser: val),
@@ -95,8 +95,8 @@ class SettingsView extends StatelessWidget {
                   ),
                   const SizedBox(width: 16),
                   Expanded(
-                    child: _buildTextField(
-                      state,
+                    child: SettingsTextField(
+                      isDarkMode: state.isDarkMode,
                       label: "Senha",
                       initialValue: state.ftpPass,
                       onChanged: (val) => state.updateSettings(fPass: val),
@@ -119,8 +119,8 @@ class SettingsView extends StatelessWidget {
               child: Row(
                 children: [
                   Expanded(
-                    child: _buildTextField(
-                      state,
+                    child: SettingsTextField(
+                      isDarkMode: state.isDarkMode,
                       label: state.tr("E-mail"),
                       initialValue: state.archiveEmail,
                       onChanged: (val) => state.updateSettings(aEmail: val),
@@ -128,8 +128,8 @@ class SettingsView extends StatelessWidget {
                   ),
                   const SizedBox(width: 16),
                   Expanded(
-                    child: _buildTextField(
-                      state,
+                    child: SettingsTextField(
+                      isDarkMode: state.isDarkMode,
                       label: state.tr("Senha"),
                       initialValue: state.archivePassword,
                       onChanged: (val) => state.updateSettings(aPass: val),
@@ -323,20 +323,65 @@ class SettingsView extends StatelessWidget {
       ),
     );
   }
+}
 
-  Widget _buildTextField(AppState state, {required String label, required String initialValue, required Function(String) onChanged, bool isPassword = false}) {
+class SettingsTextField extends StatefulWidget {
+  final String label;
+  final String initialValue;
+  final Function(String) onChanged;
+  final bool isPassword;
+  final bool isDarkMode;
+
+  const SettingsTextField({
+    super.key,
+    required this.label,
+    required this.initialValue,
+    required this.onChanged,
+    required this.isDarkMode,
+    this.isPassword = false,
+  });
+
+  @override
+  State<SettingsTextField> createState() => _SettingsTextFieldState();
+}
+
+class _SettingsTextFieldState extends State<SettingsTextField> {
+  late TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.initialValue);
+  }
+
+  @override
+  void didUpdateWidget(SettingsTextField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.initialValue != oldWidget.initialValue && widget.initialValue != _controller.text) {
+      _controller.text = widget.initialValue;
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return TextField(
-      controller: TextEditingController(text: initialValue),
-      obscureText: isPassword,
-      onChanged: onChanged,
-      style: TextStyle(color: state.isDarkMode ? Colors.white : Colors.black, fontSize: 14),
+      controller: _controller,
+      obscureText: widget.isPassword,
+      onChanged: widget.onChanged,
+      style: TextStyle(color: widget.isDarkMode ? Colors.white : Colors.black, fontSize: 14),
       decoration: InputDecoration(
-        labelText: label,
-        labelStyle: TextStyle(color: state.isDarkMode ? Colors.white38 : Colors.black45),
-        enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: state.isDarkMode ? Colors.white10 : Colors.black12), borderRadius: BorderRadius.circular(8)),
+        labelText: widget.label,
+        labelStyle: TextStyle(color: widget.isDarkMode ? Colors.white38 : Colors.black45),
+        enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: widget.isDarkMode ? Colors.white10 : Colors.black12), borderRadius: BorderRadius.circular(8)),
         focusedBorder: OutlineInputBorder(borderSide: const BorderSide(color: Color(0xFF107C10)), borderRadius: BorderRadius.circular(8)),
         filled: true,
-        fillColor: state.isDarkMode ? Colors.black26 : Colors.black.withOpacity(0.05),
+        fillColor: widget.isDarkMode ? Colors.black26 : Colors.black.withOpacity(0.05),
       ),
     );
   }
