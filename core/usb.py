@@ -89,44 +89,66 @@ def _detect_linux_drives():
         def process_device(dev, parent_removable=False, parent_usb=False):
             rm_val = str(dev.get("rm", ""))
             is_removable = parent_removable or rm_val == "1" or rm_val.lower() == "true"
+            # TRAN column = usb for external drives
             is_usb = parent_usb or dev.get("tran") == "usb"
             
             children = dev.get("children", [])
+            
+            # If it's a disk with children, we recurse to find partitions
+            # BUT we keep the "is_usb" and "is_removable" status from the parent disk
             if children:
                 for child in children:
                     process_device(child, is_removable, is_usb)
-                return
+                if dev.get("type") == "disk":
+                    # We usually want partitions, but if nothing was found in children, 
+                    # we might check the disk itself later if it has a filesystem (rare but possible)
+                    pass
 
-            if is_removable or is_usb or dev.get("type") == "part":
-                if not is_removable and not is_usb:
-                    return
-                
-                name = dev.get("name")
-                if not name.startswith("/dev/"):
-                    name = f"/dev/{name}"
-                
-                mpts = dev.get("mountpoints") or []
-                mpt = dev.get("mountpoint")
-                if not mpt and mpts:
-                    for p in mpts:
-                        if p:
-                            mpt = p
-                            break
-                
-                drives.append(DriveInfo(
-                    device=name,
-                    label=dev.get("label") or "NO_LABEL",
-                    size_gb=parse_size_to_gb(dev.get("size", "0")),
-                    mount_point=mpt or "",
-                    fstype=dev.get("fstype") or "UNKNOWN",
-                    is_removable=True
-                ))
+            dev_type = dev.get("type", "")
+            name = dev.get("name")
+            
+            # We want it if it's USB OR Removable OR specifically a partition on such a device
+            # OR if it's an external HDD (which often has RM=0 but TRAN=usb)
+            should_include = is_removable or is_usb
+            
+            if not should_include:
+                # DEBUG: Log ignored non-removable/non-usb devices if they are block devices
+                import sys
+                print(f"DEBUG: Ignoring internal/fixed device {name}", file=sys.stderr)
+                return
+            
+            if not name.startswith("/dev/"):
+                name = f"/dev/{name}"
+            
+            mpt = dev.get("mountpoint")
+            mpts = dev.get("mountpoints") or []
+            if not mpt and mpts:
+                for p in mpts:
+                    if p:
+                        mpt = p
+                        break
+            
+            fs = (dev.get("fstype") or "").lower()
+            
+            # For Xbox 360 tools, we focus on FAT32/VFAT
+            # However, for 'Detection', we should show the device even if type is unknown 
+            # so the user can format it.
+            
+            drives.append(DriveInfo(
+                device=name,
+                label=dev.get("label") or "NO_LABEL",
+                size_gb=parse_size_to_gb(dev.get("size", "0")),
+                mount_point=mpt or "",
+                fstype=fs or "UNKNOWN",
+                is_removable=is_removable or is_usb
+            ))
 
         for dev in data.get("blockdevices", []):
             process_device(dev)
             
     except Exception as e:
-        print(f"Error detecting drives: {e}")
+        import sys
+        print(f"Error detecting drives: {e}", file=sys.stderr)
     return drives
 
 def format_fat32(device):
@@ -161,5 +183,6 @@ def _format_linux_fat32(device):
             subprocess.run(["pkexec"] + cmd, check=True)
         return True
     except Exception as e:
-        print(f"Format error: {e}")
+        import sys
+        print(f"Format error: {e}", file=sys.stderr)
         return False

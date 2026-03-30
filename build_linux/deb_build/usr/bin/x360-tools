@@ -1,0 +1,5 @@
+#!/bin/bash
+export LD_LIBRARY_PATH="/usr/lib/x360-tools/x360_tools_flutter/lib:${LD_LIBRARY_PATH}"
+export PYTHONPATH="/usr/lib/x360-tools:${PYTHONPATH}"
+cd /usr/lib/x360-tools/x360_tools_flutter
+exec ./x360_tools "$@"

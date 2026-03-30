@@ -1,0 +1,11 @@
+Package: x360-tools
+Version: 2.0
+Architecture: amd64
+Maintainer: AmpliDev <support@amplidev.com>
+Depends: python3, python3-requests, python3-urllib3, libgtk-3-0, util-linux, mtools, fatattr
+Section: utils
+Priority: optional
+Description: x360 Tools v2.0 - Premium Xbox 360 Management Suite
+ x360 Tools is a comprehensive ecosystem for managing Xbox 360 consoles,
+ featuring a premium Flutter interface and a high-performance Python engine.
+ Effortlessly manage games, dashboards, and system backups on Linux.
