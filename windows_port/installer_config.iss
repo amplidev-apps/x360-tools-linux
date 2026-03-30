@@ -9,7 +9,7 @@ DefaultGroupName=x360 Tools
 UninstallDisplayIcon={app}\x360_tools_flutter.exe
 Compression=lzma2/max
 SolidCompression=yes
-OutputDir=.\installer_output
+OutputDir=.\windows_port\installer_output
 OutputBaseFilename=x360Tools_Setup
 SetupIconFile=x360_tools_flutter\windows\runner\resources\app_icon.ico
 WizardStyle=modern
@@ -23,10 +23,10 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 
 [Files]
 ; Flutter Executable and Core DLLs
+; Run this script from the project root!
 Source: "x360_tools_flutter\build\windows\x64\runner\Release\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs
 
 ; Python Backend (Bundled assets)
-; This assumes build_windows.ps1 has been run and assets are in data/flutter_assets/assets/python_backend
 Source: "x360_tools_flutter\build\windows\x64\runner\Release\data\flutter_assets\assets\python_backend\*"; DestDir: "{app}\data\flutter_assets\assets\python_backend"; Flags: ignoreversion recursesubdirs
 
 [Icons]
