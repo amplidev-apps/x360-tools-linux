@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=x360 Tools
+Exec=x360-tools
+Icon=x360-tools
+Type=Application
+Categories=Utility;Game;
+Comment=Xbox 360 Management Suite
+Terminal=false
+Version=1.0

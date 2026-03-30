@@ -26,16 +26,28 @@ class MetadataService:
         if hasattr(self, '_initialized'): return
         self._initialized = True
         
-        # Use absolute path relative to this file to avoid CWD issues (V47)
-        self.cache_dir = cache_dir or os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        self.cache_path = os.path.join(self.cache_dir, "applib", "title_cache.json")
-        self.map_path = os.path.join(self.cache_dir, "applib", "freemarket_covers_map.json")
-        self.db_path = os.path.join(self.cache_dir, "applib", "metadata.db")
-        self.secondary_map_path = os.path.join(self.cache_dir, "applib", "title_ids.json")
+        # 📂 V110: Hybrid Path Management
+        # project_root is where the app is installed (/usr/lib/x360-tools/ or dev dir)
+        self.project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        # self.cache_dir is the legacy project root pointer
+        self.cache_dir = cache_dir or self.project_root
+        
+        # 📁 READ-ONLY Assets (shipped with the app)
+        self.shipped_applib = os.path.join(self.cache_dir, "applib")
+        self.map_path = os.path.join(self.shipped_applib, "freemarket_covers_map.json")
+        self.db_path = os.path.join(self.shipped_applib, "metadata.db")
+        self.secondary_map_path = os.path.join(self.shipped_applib, "title_ids.json")
+        
+        # 📁 WRITABLE Cache (~/.x360tools/)
+        self.user_dir = os.path.expanduser("~/.x360tools")
+        self.user_cache_dir = os.path.join(self.user_dir, "cache")
+        os.makedirs(self.user_cache_dir, exist_ok=True)
+        os.makedirs(os.path.join(self.user_cache_dir, "covers"), exist_ok=True)
+        
+        self.cache_path = os.path.join(self.user_cache_dir, "title_cache.json")
         
         self.covers_map = {}
         self.secondary_map = {}
-        os.makedirs(os.path.dirname(self.cache_path), exist_ok=True)
         self._load_maps()
         
         self.cache = self._load_cache()
@@ -128,7 +140,9 @@ class MetadataService:
                 search_pattern = re.sub(r'[^a-zA-Z0-9]', '%', clean)
                 search_pattern = re.sub(r'%+', '%', search_pattern).strip('%')
                 
-                conn = sqlite3.connect(db_path)
+                # 📜 Open in read-only mode for packaged builds (V114)
+                db_uri = f"file:{db_path}?mode=ro"
+                conn = sqlite3.connect(db_uri, uri=True)
                 cur = conn.cursor()
                 
                 # Search Strategy:
@@ -183,7 +197,7 @@ class MetadataService:
 
         # Simple path reconstruction without checking file existence (MUCH faster)
         if tid != "Desconhecido":
-            local_path = os.path.join(self.cache_dir, "applib", "cache", "covers", f"{tid}.jpg")
+            local_path = os.path.join(self.user_cache_dir, "covers", f"{tid}.jpg")
 
         return {
             "TitleID": tid,
@@ -209,7 +223,9 @@ class MetadataService:
             db_path = os.path.join(self.cache_dir, "titleIDs.db")
             row = None
             if os.path.exists(db_path):
-                conn = sqlite3.connect(db_path)
+                # 📜 Open in read-only mode for packaged builds (V114)
+                db_uri = f"file:{db_path}?mode=ro"
+                conn = sqlite3.connect(db_uri, uri=True)
                 cur = conn.cursor()
                 # ⚔️ Dynamic Search (V106): Try exact first, then fuzzy
                 cur.execute("SELECT Title_ID, Full_Name, Publisher, Region, Features FROM TitleIDs WHERE Full_Name = ? OR AKA = ? LIMIT 1", (clean.strip(), clean.strip()))
@@ -300,8 +316,10 @@ class MetadataService:
         # PHASE 1: Try Local SQLite Metadata DB (V43 - Offline First)
         if os.path.exists(self.db_path):
             try:
-                conn = sqlite3.connect(self.db_path, timeout=10)
-                conn.execute("PRAGMA journal_mode=WAL;")
+                # 📜 Open in read-only mode and DISABLE WAL for stability in packages (V114)
+                db_uri = f"file:{self.db_path}?mode=ro"
+                conn = sqlite3.connect(db_uri, uri=True, timeout=10)
+                # Removed problematic WAL pragma from read-only fs
                 cur = conn.cursor()
                 norm = normalize_for_map(name)
                 cur.execute("SELECT * FROM games WHERE title_id = ? OR normalized_name = ? OR name = ?", (name, norm, name))
@@ -314,6 +332,7 @@ class MetadataService:
                     
                     res = {
                         "TitleID": row[0],
+                        "title_id": row[0], # 📜 Alias for UI parity (V109)
                         "Name": row[1],
                         "Description": translated_desc,
                         "Developer": row[4] or "Xbox Studios",
@@ -352,11 +371,71 @@ class MetadataService:
             except Exception as e:
                 print(f"[!] SQLite Error: {e}")
 
-        # PHASE 2: Unity Scraping Fallback (Online)
+        # PHASE 1.5: Check Secondary JSON Map (V118)
+        norm = normalize_for_map(name)
+        if norm in self.secondary_map:
+            tid = self.secondary_map[norm]
+            res = {
+                "TitleID": tid,
+                "title_id": tid,
+                "Name": name,
+                "Description": "Metadata resolvida via mapeamento local off-line.",
+                "Developer": "Unknown",
+                "Publisher": "Unknown",
+                "ReleaseDate": "Unknown",
+                "Rating": "4.5",
+                "Genre": "General",
+                "Region": "Region Free",
+                "CoverUrl": f"https://xboxunity.net/Resources/Lib/Images/Covers/{tid}.jpg",
+                "Source": "OFFLINE MAP",
+                "TitleUpdates": []
+            }
+            self._unity_cache[cache_key] = res
+            return res
+
+        # PHASE 2: Unity Scraping Fallback (Online) (V108)
+        try:
+            url = "https://xboxunity.net/Resources/Lib/TitleSearch.php"
+            params = {"search": name, "count": 5}
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Referer': 'https://xboxunity.net/'
+            }
+            resp = requests.get(url, params=params, headers=headers, timeout=12, verify=False)
+            if resp.status_code == 200:
+                data = resp.json()
+                if data.get('Items') and len(data['Items']) > 0:
+                    item = data['Items'][0]
+                    tid = item.get('TitleID', 'Desconhecido')
+                    
+                    # 📜 Metadata field standardization for maximum UI compatibility (V109)
+                    res = {
+                        "TitleID": tid,
+                        "title_id": tid, # Lowercase/Snake alias for UI
+                        "Name": item.get('Name', name),
+                        "Description": "Baixado de XboxUnity. Disponível via x360 Tools Library.",
+                        "Developer": "Unity Developer",
+                        "Publisher": "Xbox Unity",
+                        "ReleaseDate": "Unknown",
+                        "Rating": "4.5",
+                        "Genre": "General",
+                        "Region": "Region Free",
+                        "CoverUrl": f"https://xboxunity.net/Resources/Lib/Images/Covers/{tid}.jpg",
+                        "Source": "UNITY LIVE",
+                        "TitleUpdates": self._fetch_tus_dynamically(tid)
+                    }
+                    
+                    # Cache successful online lookup
+                    self._unity_cache[cache_key] = res
+                    return res
+        except Exception as e:
+            print(f"[!] Phase 2 Scraper Error: {e}")
+
         # Final Fallback: use 4B4D07E2.jpg (V41)
         fallback_path = os.path.join(self.cache_dir, "assets", "gamecovers", "4B4D07E2.jpg")
         fallback_res = {
             "TitleID": "Desconhecido",
+            "title_id": "Desconhecido",
             "CoverUrl": "https://xboxunity.net/Resources/Lib/Images/Covers/4B4D07E2.jpg",
             "LocalPath": fallback_path if os.path.exists(fallback_path) else None,
             "Name": name,
@@ -371,7 +450,7 @@ class MetadataService:
     def _download_to_cache(self, url, title_id):
         if not url: return None
         if url.startswith("http://"): url = url.replace("http://", "https://")
-        dest = os.path.join(self.cache_dir, "applib", "cache", "covers", f"{title_id}.jpg")
+        dest = os.path.join(self.user_cache_dir, "covers", f"{title_id}.jpg")
         os.makedirs(os.path.dirname(dest), exist_ok=True)
         if os.path.exists(dest): return dest
         try:
@@ -391,11 +470,11 @@ class MetadataService:
             url = "https://xboxunity.net/Resources/Lib/TitleUpdateInfo.php"
             params = {"titleid": title_id}
             headers = {
-                'User-Agent': 'Mozilla/5.0 x360Tools/1.1',
-                'X-Requested-With': 'XMLHttpRequest',
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept': 'application/json, text/javascript, */*; q=0.01',
                 'Referer': 'https://xboxunity.net/'
             }
-            resp = requests.get(url, params=params, headers=headers, timeout=10, verify=False)
+            resp = requests.get(url, params=params, headers=headers, timeout=12, verify=False)
             if resp.status_code != 200: return []
             
             data = resp.json()

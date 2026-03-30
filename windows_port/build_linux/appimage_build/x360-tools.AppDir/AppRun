@@ -1,0 +1,6 @@
+#!/bin/bash
+HERE="$(dirname "$(readlink -f "${0}")")"
+export LD_LIBRARY_PATH="${HERE}/usr/lib/x360-tools/x360_tools_flutter/lib:${LD_LIBRARY_PATH}"
+export PYTHONPATH="${HERE}/usr/lib/x360-tools:${PYTHONPATH}"
+cd "${HERE}/usr/lib/x360-tools/x360_tools_flutter"
+exec ./x360_tools "$@"

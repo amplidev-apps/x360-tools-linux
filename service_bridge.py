@@ -175,10 +175,29 @@ def main():
                 result = {"status": "success", "data": details}
 
         elif args.cmd == "install_dlc":
-            if not args.url or not args.name or not args.title_id or not args.device:
+            if not args.url or not args.name or not args.device:
                 result = {"status": "error", "message": "Missing arguments for DLC installation"}
             else:
-                engine = FreemarketEngine()
+                # V118: Auto-resolve TitleID if missing (Crucial for IA Catalog DLCs)
+                title_id = args.title_id
+                if not title_id:
+                    service = MetadataService()
+                    # 1. Try resolving metadata for the DLC name directly
+                    details = service.search_unity_by_name(args.name)
+                    if not details or details.get("TitleID") == "Desconhecido":
+                        # 2. Extract and try base game name (e.g. "Naughty Bear DLC" -> "Naughty Bear")
+                        import re
+                        base_name = re.sub(r' (DLC|TU|X360).*$', '', args.name, flags=re.IGNORECASE).strip()
+                        details = service.search_unity_by_name(base_name)
+                    
+                    if details and details.get("TitleID") != "Desconhecido":
+                        title_id = details.get("TitleID")
+                        print(f"DEBUG: V118 resolved TitleID {title_id} for {args.name}", flush=True)
+
+                if not title_id:
+                    result = {"status": "error", "message": f"Não foi possível resolver o TitleID para '{args.name}'. Por favor, use um jogo com metadados."}
+                else:
+                    engine = FreemarketEngine()
                 def progress_callback(msg):
                     print(msg, flush=True)
 
@@ -197,10 +216,21 @@ def main():
                     result = {"status": "error", "message": str(e)}
 
         elif args.cmd == "install_tu":
-            if not args.url or not args.name or not args.title_id or not args.device:
+            if not args.url or not args.name or not args.device:
                 result = {"status": "error", "message": "Missing arguments for TU installation"}
             else:
-                engine = FreemarketEngine()
+                # V118: Auto-resolve TitleID if missing
+                title_id = args.title_id
+                if not title_id:
+                    service = MetadataService()
+                    details = service.search_unity_by_name(args.name)
+                    if details and details.get("TitleID") != "Desconhecido":
+                        title_id = details.get("TitleID")
+                
+                if not title_id:
+                    result = {"status": "error", "message": f"Não foi possível resolver o TitleID para TU de '{args.name}'"}
+                else:
+                    engine = FreemarketEngine()
                 def progress_callback(msg):
                     print(msg, flush=True)
 

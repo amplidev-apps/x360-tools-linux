@@ -27,19 +27,26 @@ IA_CLASSIC_IDS = ["mxogcx-xbox-ztm"]
 
 class FreemarketEngine:
     def __init__(self, cache_dir=None):
-        if cache_dir is None:
-            self.cache_dir = os.path.expanduser("~/.x360tools/freemarket")
-        else:
-            self.cache_dir = cache_dir
+        # 📂 V110: Hybrid Path Management
+        # PROJECT_ROOT is where the app is installed (/usr/lib/x360-tools/ or dev dir)
+        self.project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        self.shipped_dbs_dir = os.path.join(self.project_root, "applib", "ia_dbs")
+        
+        # USER_DIR is where we store writable cache (~/.x360tools/)
+        self.user_dir = os.path.expanduser("~/.x360tools/freemarket")
+        self.cache_dir = cache_dir or self.user_dir
         os.makedirs(self.cache_dir, exist_ok=True)
+        
+        # ia_dbs_dir points to home by default for downloads, but logic will check shipped_dbs first
         self.ia_dbs_dir = os.path.join(self.cache_dir, "ia_dbs")
         os.makedirs(self.ia_dbs_dir, exist_ok=True)
-        # Per-platform cache files (V97 fix: avoid 360 cache being used for classic)
-        self.cache_file_360 = os.path.join(self.cache_dir, "game_list_360.json")
-        self.cache_file_classic = os.path.join(self.cache_dir, "game_list_classic.json")
-        self.cache_file = self.cache_file_360  # legacy fallback
         
-        # Initialize persistent session (V96)
+        # Per-platform cache files
+        self.cache_file_360 = os.path.join(self.cache_dir, "game_list_360_v117.json")
+        self.cache_file_classic = os.path.join(self.cache_dir, "game_list_classic_v117.json")
+        self.cache_file = self.cache_file_360
+        
+        # Initialize persistent session
         self.session = requests.Session()
         self.session.headers.update({
             "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
@@ -194,19 +201,43 @@ class FreemarketEngine:
                     except Exception as e:
                         print(f"Failed to download {ia_id}: {e}", file=sys.stderr)
             
-            threads = []
+            # 🚀 Download standard IDs in background NO JOIN (V113)
+            # This prevents bridge timeout while catalog is downloading.
             for ia_id in ids:
-                t = threading.Thread(target=download_db, args=(ia_id,))
+                t = threading.Thread(target=download_db, args=(ia_id,), daemon=True)
                 t.start()
-                threads.append(t)
-            for t in threads: t.join()
             
+            # 📂 Automatic Discovery (Merge shipped + downloaded)
+            # Proceed immediately with existing files.
+            all_db_files = []
+            # Priority 1: Shipped databases (Full release)
+            if os.path.exists(self.shipped_dbs_dir):
+                for f in os.listdir(self.shipped_dbs_dir):
+                    if f.endswith("_meta.sqlite"):
+                        all_db_files.append(os.path.join(self.shipped_dbs_dir, f))
+            
+            # Priority 2: Downloaded databases (Cache)
+            if os.path.exists(self.ia_dbs_dir):
+                for f in os.listdir(self.ia_dbs_dir):
+                    if f.endswith("_meta.sqlite"):
+                        path = os.path.join(self.ia_dbs_dir, f)
+                        # Avoid duplicates
+                        if not any(os.path.basename(p) == f for p in all_db_files):
+                            all_db_files.append(path)
+
             raw_games = []
-            for ia_id in ids:
-                db_path = os.path.join(self.ia_dbs_dir, f"{ia_id}_meta.sqlite")
-                if not os.path.exists(db_path): continue
+            for db_path in all_db_files:
+                fname = os.path.basename(db_path)
+                # 🆔 Extract correct IA Identifier (V116)
+                current_ia_id = fname.replace("_meta.sqlite", "")
+                
+                # 🎮 Determine platform based on DB name
+                db_platform = "classic" if ("classic" in fname.lower() or "mxogcx" in fname.lower() or "og" in fname.lower()) else "360"
+                
                 try:
-                    conn = sqlite3.connect(db_path, timeout=10)
+                    # 📜 Open in read-only mode for packaged builds (V114)
+                    db_uri = f"file:{db_path}?mode=ro"
+                    conn = sqlite3.connect(db_uri, uri=True, timeout=10)
                     cur = conn.cursor()
                     cur.execute("SELECT s3key FROM s3api_per_key_metadata WHERE s3key LIKE '%.zip' OR s3key LIKE '%.iso' OR s3key LIKE '%.rar' OR s3key LIKE '%.7z'")
                     for row in cur.fetchall():
@@ -222,18 +253,19 @@ class FreemarketEngine:
                         # V106: Always replace dots with spaces for a cleaner UI display
                         name = name.replace(".", " ")
 
-                        
                         is_dlc, base_name = self._detect_dlc_info(name)
+                        # V117: Preserve slashes in IA URLs to support subdirectories
                         raw_games.append({
                             "name": name,
-                            "url": f"https://archive.org/download/{ia_id}/{urllib.parse.quote(filename)}",
-                            "platform": platform,
+                            "url": f"https://archive.org/download/{current_ia_id}/{urllib.parse.quote(filename, safe='/')}",
+                            "platform": db_platform,
+                            "ia_id": current_ia_id,
                             "is_dlc": is_dlc,
                             "base_game_name": base_name
                         })
                     conn.close()
                 except Exception as e:
-                    print(f"Error reading DB {ia_id}: {e}", file=sys.stderr)
+                    print(f"Error reading DB {fname}: {e}", file=sys.stderr)
             
             if raw_games:
                 with open(cache_file, "w") as f:

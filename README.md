@@ -1,4 +1,4 @@
-# x360 Tools for Linux — v2.0 🎮🟩
+# x360 Tools (Linux & Windows) — v2.0 🎮🟩
 
 > **The Definitive Xbox 360 Management Ecosystem** | Flutter v2.0 Premium Interface × Asynchronous Python Engine
 
@@ -9,8 +9,8 @@
 <a name="português"></a>
 ## 🇧🇷 Português
 
-### A Nova Era do Modding: x360 Tools para Linux
-O **x360 Tools for Linux v2.0** é a materialização de um projeto de engenharia de software focado em performance, estética e usabilidade. Desenvolvido para usuários de Xbox 360 RGH/JTAG e LT, este ecossistema não é apenas um utilitário, mas uma central de comando completa que integra descoberta de jogos, gestão de biblioteca, configuração de sistema e manutenção de hardware em uma única interface fluida.
+### A Nova Era do Modding: x360 Tools (Cross-Platform)
+O **x360 Tools v2.0** é a materialização de um projeto de engenharia de software focado em performance, estética e usabilidade. Desenvolvido para usuários de Xbox 360 RGH/JTAG e LT, este ecossistema não é apenas um utilitário, mas uma central de comando completa que integra descoberta de jogos, gestão de biblioteca, configuração de sistema e manutenção de hardware em uma única interface fluida, agora disponível para **Linux e Windows**.
 
 Construído sobre uma **arquitetura híbrida**, o projeto utiliza **Flutter v2.0** para garantir uma UI de nível "AAA" com suporte a temas Dinâmicos (Dark/Light) e **Python 3 Assíncrono** para lidar com operações pesadas de I/O em segundo plano, garantindo que a interface nunca trave, mesmo durante downloads de 32 threads ou conversões de ISO.
 
@@ -85,9 +85,18 @@ O editor de `launch.ini` permite controlar o coração do console:
 |--------|------------|------------------|
 | **Frontend** | Flutter 3.x | UI, Gestão de Estado (Provider), Animações |
 | **Bridge** | Service Bridge | Comunicação via Stream Assíncrona |
-| **Backend** | Python 3.10+ | Lógica de Negócio, Threading, I/O |
-| **Database** | SQLite 3 | Cache de Catálogo e Metadados |
-| **Payloads** | C++/Rust | STFS Injection, ISO Conversion |
+| **Backend** | Python 3.10+ | Lógica de Negócio (Asynchronous), Threading, I/O |
+| **Plataformas** | Linux & Windows | Suporte Nativo (AppImage/DEB & MSIX/Exe) |
+| **Database** | SQLite 3 | Cache de Catálogo e Metadados (AppData/%APPDATA%) |
+| **Payloads** | C++/Rust/Py | STFS Injection, ISO Conversion (.exe no Win) |
+
+---
+
+### 📦 Instalação no Windows
+Para usuários Windows, o processo é simplificado:
+1. Baixe o **Instalador Oficial (x360Tools_Setup.exe)** ou o pacote **MSIX**.
+2. O sistema instalará automaticamente o backend Python necessário.
+3. Certifique-se de ter os drivers de USB atualizados para o reconhecimento correto dos drives FAT32.
 
 ---
 

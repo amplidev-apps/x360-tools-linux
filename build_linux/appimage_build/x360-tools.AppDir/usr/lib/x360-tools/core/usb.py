@@ -2,13 +2,15 @@ import subprocess
 import os
 import json
 import time
+import sys
+import re
 
 class DriveInfo:
     def __init__(self, device, label, size_gb, mount_point, fstype, is_removable):
-        self.device = device
+        self.device = device # For Linux e.g. /dev/sdb1, for Windows e.g. E:
         self.label = label
         self.size_gb = size_gb
-        self.mount_point = mount_point
+        self.mount_point = mount_point # For Windows same as device
         self.fstype = fstype
         self.is_removable = is_removable
 
@@ -34,15 +36,57 @@ def parse_size_to_gb(size_str):
     return val / (1024.0**3) # Default assume bytes if no unit matched
 
 def detect_removable_drives():
+    if sys.platform == "win32":
+        return _detect_windows_drives()
+    return _detect_linux_drives()
+
+def _detect_windows_drives():
     drives = []
     try:
-        # Get all block devices with relevant info
-        # RM column is 1 for removable, TRAN is usb for external drives
+        # Get logical disks where DriveType=2 (Removable)
+        output = subprocess.check_output(["wmic", "logicaldisk", "where", "drivetype=2", "get", "deviceid,volumename,size", "/format:list"], text=True)
+        
+        current_drive = {}
+        for line in output.splitlines():
+            line = line.strip()
+            if not line:
+                if current_drive.get("DeviceID"):
+                    drives.append(DriveInfo(
+                        device=current_drive["DeviceID"],
+                        label=current_drive.get("VolumeName") or "NO_LABEL",
+                        size_gb=float(str(current_drive.get("Size", "0"))) / (1024**3),
+                        mount_point=current_drive["DeviceID"],
+                        fstype="FAT32", # Most Xbox drives are FAT32
+                        is_removable=True
+                    ))
+                    current_drive = {}
+                continue
+            
+            if "=" in line:
+                key, val = line.split("=", 1)
+                current_drive[key] = val
+        
+        # Catch last one
+        if current_drive.get("DeviceID"):
+            drives.append(DriveInfo(
+                device=current_drive["DeviceID"],
+                label=current_drive.get("VolumeName") or "NO_LABEL",
+            size_gb=float(str(current_drive.get("Size", "0"))) / (1024**3),
+                mount_point=current_drive["DeviceID"],
+                fstype="FAT32",
+                is_removable=True
+            ))
+    except Exception as e:
+        sys.stderr.write(f"Windows Drive Detection Error: {e}\n")
+    return drives
+
+def _detect_linux_drives():
+    drives = []
+    try:
         output = subprocess.check_output(["lsblk", "-o", "NAME,FSTYPE,LABEL,SIZE,MOUNTPOINT,RM,TYPE,TRAN", "-J"]).decode()
         data = json.loads(output)
         
         def process_device(dev, parent_removable=False, parent_usb=False):
-            # Check if it's removable OR its parent is removable
             rm_val = str(dev.get("rm", ""))
             is_removable = parent_removable or rm_val == "1" or rm_val.lower() == "true"
             # TRAN column = usb for external drives
@@ -109,35 +153,34 @@ def detect_removable_drives():
 
 def format_fat32(device):
     """Formats the given device to FAT32. WARNING: This erases data."""
+    if sys.platform == "win32":
+        return _format_windows_fat32(device)
+    return _format_linux_fat32(device)
+
+def _format_windows_fat32(device):
     try:
-        # Unmount first if mounted, use --force to avoid 'Device Busy'
-        # We try multiple times if it's busy
+        # device is usually E:
+        drive_letter = device.rstrip(":/\\")
+        cmd = ["format", f"{drive_letter}:", "/FS:FAT32", "/Q", "/V:X360TOOLS", "/Y"]
+        subprocess.run(cmd, check=True)
+        return True
+    except Exception as e:
+        sys.stderr.write(f"Windows Format Error: {e}\n")
+        return False
+
+def _format_linux_fat32(device):
+    try:
         for _ in range(3):
             res = subprocess.run(["udisksctl", "unmount", "-b", device, "--force"], capture_output=True)
             if res.returncode == 0 or b"not mounted" in res.stderr:
                 break
             time.sleep(1)
 
-        # Attempt formatting via udisks2 (sudo-less if policy allows)
-        # Note: udisksctl format is not always available, we fallback to mkfs
-        # But for 'automatic' without sudo, we can try pkexec or udisks dbus
-        
-        # Try udisksctl wipe-fs first if it exists (some versions have it)
         subprocess.run(["udisksctl", "wipe-fs", "-b", device], check=False)
-
-        # Re-running mkfs.vfat with -I -F 32
-        # If user wants NO sudo, we must hope they have permissions or use pkexec
-        # Let's try to use udisksctl to CREATE the filesystem if the command exists
-        # Actually, let's use a more reliable fallback
-        
         cmd = ["mkfs.vfat", "-F", "32", "-I", "-n", "X360TOOLS", device]
-        # Try without sudo first (maybe user in disk group)
         res = subprocess.run(cmd, capture_output=True)
         if res.returncode != 0:
-            # Try with pkexec (graphical prompt) instead of sudo (terminal prompt)
-            # This is 'automatic' in the sense that it handles the auth properly in UI
             subprocess.run(["pkexec"] + cmd, check=True)
-            
         return True
     except Exception as e:
         import sys

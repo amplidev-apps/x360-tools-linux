@@ -103,7 +103,10 @@ def main():
                     result = {"status": "error", "message": f"Caminho não encontrado: {args.dest}"}
                 else:
                     try:
-                        subprocess.Popen(["xdg-open", args.dest])
+                        if sys.platform == "win32":
+                            os.startfile(args.dest)
+                        else:
+                            subprocess.Popen(["xdg-open", args.dest])
                         result = {"status": "success", "message": f"Abrindo pasta: {args.dest}"}
                     except Exception as e:
                         sys.stderr.write(f"DEBUG: Error opening folder: {e}\n")
@@ -309,7 +312,10 @@ def main():
                 # If it's a file (GOD), explore the directory
                 target = args.src if os.path.isdir(args.src) else os.path.dirname(args.src)
                 try:
-                    subprocess.Popen(["xdg-open", target])
+                    if sys.platform == "win32":
+                        os.startfile(target)
+                    else:
+                        subprocess.Popen(["xdg-open", target])
                     result = {"status": "success"}
                 except:
                     result = {"status": "error", "message": "Falha ao abrir o explorador"}

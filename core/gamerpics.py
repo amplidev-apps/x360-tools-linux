@@ -23,9 +23,14 @@ PNG_SIG = b"\x89PNG\r\n\x1a\n"
 
 class GamerpicManager:
     def __init__(self, lib_dir):
-        self.lib_dir    = lib_dir
-        self.temp_dir   = os.path.join(tempfile.gettempdir(), "x360_gamerpics")
+        self.lib_dir     = lib_dir
+        self.user_dir    = os.path.expanduser("~/.x360tools")
+        self.gallery_dir = os.path.join(self.user_dir, "gallery", "gamerpics")
+        self.temp_dir    = os.path.join(tempfile.gettempdir(), "x360_gamerpics")
+        
         os.makedirs(self.temp_dir, exist_ok=True)
+        os.makedirs(self.gallery_dir, exist_ok=True)
+        
         self.game_db    = self._load_json(os.path.join(lib_dir, "games.json"), is_list=True)
         self.meta_cache = self._load_json(os.path.join(lib_dir, "metadata_cache.json"))
         self.last_metadata = []
@@ -213,8 +218,21 @@ class GamerpicManager:
         return all_meta
 
     def extract_all(self):
-        packs = [os.path.join(self.lib_dir, f) for f in os.listdir(self.lib_dir) 
-                 if os.path.isfile(os.path.join(self.lib_dir, f)) and not f.endswith(".json")]
+        packs = []
+        # V118: Scan both system library (read-only) and user gallery (writable)
+        for search_dir in [self.lib_dir, self.gallery_dir]:
+            if not os.path.exists(search_dir): continue
+            for f in os.listdir(search_dir):
+                path = os.path.join(search_dir, f)
+                if os.path.isfile(path) and not f.endswith((".json", ".db", ".db-wal", ".db-shm")):
+                    if os.path.getsize(path) < 0x2000:
+                        continue
+                    try:
+                        with open(path, "rb") as fh:
+                            if fh.read(4) in [b"CON ", b"LIVE", b"PIRS"]:
+                                packs.append(path)
+                    except: pass
+        
         all_meta = self._extract_from_files(packs)
         self.last_metadata = all_meta
         return all_meta
@@ -288,8 +306,6 @@ class GamerpicManager:
             display_name = name[:128]
             writer = STFSWriter(title_id="FFFE07D1", display_name=display_name)
             stfs_data = writer.create_package(png_data)
-
-            project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
             result = {"status": "success", "installed_path": None, "gallery_path": None, "name": name}
 
             # 3. Install to device if requested
@@ -305,14 +321,15 @@ class GamerpicManager:
 
             # 4. Save to local gallery if requested
             if save_to_gallery:
-                gallery_dir = os.path.join(project_root, "data", "gamerpics", "custom")
-                os.makedirs(gallery_dir, exist_ok=True)
+                # V118: Strictly use the user's home directory for the gallery
+                # to avoid "Read-only file system" errors in AppImage builds.
+                os.makedirs(self.gallery_dir, exist_ok=True)
                 stfs_filename = f"{safe_name}.stfs"
-                gallery_stfs_path = os.path.join(gallery_dir, stfs_filename)
+                gallery_stfs_path = os.path.join(self.gallery_dir, stfs_filename)
                 with open(gallery_stfs_path, "wb") as f:
                     f.write(stfs_data)
                 # Also save a PNG thumbnail for the gallery UI
-                thumb_path = os.path.join(gallery_dir, f"{safe_name}.png")
+                thumb_path = os.path.join(self.gallery_dir, f"{safe_name}.png")
                 img.save(thumb_path, format="PNG")
                 result["gallery_path"] = gallery_stfs_path
 

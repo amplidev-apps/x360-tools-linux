@@ -4,7 +4,8 @@ import shutil
 import subprocess
 import json
 import time
-from core.usb import detect_removable_drives
+from core.usb import detect_removable_drives, format_fat32
+import sys
 
 class BackupManager:
     """Manages full device backup and restoration for Xbox 360 USB drives."""
@@ -49,7 +50,7 @@ class BackupManager:
                     icon = "system_update"
 
                 # Get size
-                size = 0
+                size: int = 0
                 if is_dir:
                     for root, dirs, files in os.walk(item_path):
                         for f in files:
@@ -124,7 +125,7 @@ class BackupManager:
                             "size_bytes": 0
                         }
                     
-                    summary_map[top_item]["size_bytes"] += info.file_size
+                        summary_map[top_item]["size_bytes"] = int(summary_map[top_item]["size_bytes"]) + int(info.file_size)
         except Exception as e:
             print(f"Zip Summary error: {e}")
 
@@ -150,7 +151,7 @@ class BackupManager:
 
                 # 2. Count total items for progress
                 file_list = []
-                total_bytes = 0
+                total_bytes: int = 0
                 for root, dirs, files in os.walk(source_mount):
                     if any(sys_dir in root for sys_dir in [".Trash-1000", "System Volume Information", "$RECYCLE.BIN"]):
                         continue
@@ -166,7 +167,7 @@ class BackupManager:
                 if progress_cb: progress_cb(f"Found {len(file_list)} files. Total: {total_bytes // (1024*1024)} MB. Starting compression...")
 
                 # 3. Add files to zip
-                processed_bytes = 0
+                processed_bytes: int = 0
                 for i, (file_path, f_size) in enumerate(file_list):
                     rel_path = os.path.relpath(file_path, source_mount)
                     zipf.write(file_path, rel_path)
@@ -187,16 +188,22 @@ class BackupManager:
     @staticmethod
     def format_partition(device_path, label="X360USB"):
         """Formats the partition as FAT32 for Xbox 360 compatibility."""
+        if sys.platform == "win32":
+            # Windows formatting is handled in core.usb
+            if format_fat32(device_path):
+                return device_path # On Windows, mount point is same as device ID (E:)
+            return None
+            
         import glob
-        
-        # 1. Aggressive Unmount
+        # 1. Aggressive Unmount (Linux)
         patterns = [device_path, f"{device_path}[0-9]*", f"{device_path}p[0-9]*"]
         for p in patterns:
             for node in glob.glob(p):
                 subprocess.run(["udisksctl", "unmount", "-b", node, "--force"], capture_output=True, check=False)
         
-        # 2. Privileged Formatting
-        label_upper = str(label)[:11].upper()
+        # 2. Privileged Formatting (Linux)
+        label_val = str(label) if label else "X360USB"
+        label_upper = label_val[:11].upper()
         bash_cmd = f"wipefs -af {device_path} && partprobe {device_path} && sleep 1 && mkfs.vfat -I -F 32 -n \"{label_upper}\" {device_path} && partprobe {device_path} && sync"
         privileged_cmd = ["pkexec", "bash", "-c", bash_cmd]
         
@@ -208,7 +215,7 @@ class BackupManager:
                 raise Exception("A autorização foi cancelada pelo usuário.")
             raise Exception("Falha na formatação: O dispositivo pode estar bloqueado pelo sistema.")
             
-        # 3. Remount
+        # 3. Remount (Linux)
         mount_cmd = ["udisksctl", "mount", "-b", device_path]
         try:
             res = subprocess.run(mount_cmd, capture_output=True, text=True, check=True)
@@ -253,8 +260,8 @@ class BackupManager:
         
         with zipfile.ZipFile(backup_zip, 'r') as zipf:
             info_list = zipf.infolist()
-            total_bytes = sum(info.file_size for info in info_list if info.filename != "metadata.json")
-            processed_bytes = 0
+            total_bytes: int = sum(info.file_size for info in info_list if info.filename != "metadata.json")
+            processed_bytes: int = 0
             
             for i, info in enumerate(info_list):
                 if info.filename == "metadata.json": continue

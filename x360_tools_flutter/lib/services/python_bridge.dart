@@ -4,19 +4,21 @@ import 'package:flutter/foundation.dart';
 
 class PythonBridge {
   static String get _bridgeScript {
+    final String exePath = Platform.resolvedExecutable;
+    final Directory exeDir = File(exePath).parent;
+    
     if (Platform.isWindows) {
       // When bundled in MSIX/Exe, assets are in data/flutter_assets/assets/python_backend/
-      final String exePath = Platform.resolvedExecutable;
-      final Directory exeDir = File(exePath).parent;
       final String assetPath = "${exeDir.path}\\data\\flutter_assets\\assets\\python_backend\\service_bridge.py";
-      
-      if (File(assetPath).existsSync()) {
-        return assetPath;
-      }
-      
-      // Fallback for debug/development
-      return 'assets/python_backend/service_bridge.py';
+      if (File(assetPath).existsSync()) return assetPath;
+      return 'assets/python_backend/service_bridge.py'; // Fallback
     }
+    
+    // Linux Packaged Case (V115)
+    final String packagedPath = "${exeDir.path}/service_bridge.py";
+    if (File(packagedPath).existsSync()) return packagedPath;
+    
+    // Debug Case (Vite/Run Flutter)
     return '../service_bridge.py';
   }
   
