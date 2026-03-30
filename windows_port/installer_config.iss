@@ -9,9 +9,9 @@ DefaultGroupName=x360 Tools
 UninstallDisplayIcon={app}\x360_tools_flutter.exe
 Compression=lzma2/max
 SolidCompression=yes
-OutputDir=.\windows_port\installer_output
+OutputDir=.\installer_output
 OutputBaseFilename=x360Tools_Setup
-SetupIconFile=x360_tools_flutter\windows\runner\resources\app_icon.ico
+SetupIconFile=..\x360_tools_flutter\windows\runner\resources\app_icon.ico
 WizardStyle=modern
 
 [Languages]
@@ -23,11 +23,12 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 
 [Files]
 ; Flutter Executable and Core DLLs
-; Run this script from the project root!
-Source: "x360_tools_flutter\build\windows\x64\runner\Release\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs
+; Relative to this .iss file in windows_port/
+Source: "..\x360_tools_flutter\build\windows\x64\runner\Release\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs
 
 ; Python Backend (Bundled assets)
-Source: "x360_tools_flutter\build\windows\x64\runner\Release\data\flutter_assets\assets\python_backend\*"; DestDir: "{app}\data\flutter_assets\assets\python_backend"; Flags: ignoreversion recursesubdirs
+; These were copied to the flutter build output by the CI
+Source: "..\x360_tools_flutter\build\windows\x64\runner\Release\data\flutter_assets\assets\python_backend\*"; DestDir: "{app}\data\flutter_assets\assets\python_backend"; Flags: ignoreversion recursesubdirs
 
 [Icons]
 Name: "{group}\x360 Tools"; Filename: "{app}\x360_tools_flutter.exe"
