@@ -20,6 +20,9 @@ on:
         required: false
         default: false
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: windows-latest
