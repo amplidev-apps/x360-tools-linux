@@ -67,9 +67,10 @@ jobs:
           Write-Host "=== Bundle Python Backend ===" -ForegroundColor Cyan
           Write-Host "Target: $AssetDest" -ForegroundColor Yellow
           
-          # Create destination
-          New-Item -ItemType Directory -Path "$AssetDest\core" -Force | Out-Null
-          New-Item -ItemType Directory -Path "$AssetDest\assets" -Force | Out-Null
+          # Create all destination subdirectories upfront
+          @('core\data', 'applib', 'bin', 'assets', 'ui') | ForEach-Object {
+            New-Item -ItemType Directory -Path "$AssetDest\$_" -Force | Out-Null
+          }
           
           # Core modules
           Copy-Item -Path "core\*.py" -Destination "$AssetDest\core\" -Force
@@ -93,6 +94,11 @@ jobs:
           # Assets (icons, previews, fonts)
           if (Test-Path "assets") {
             Copy-Item -Path "assets\*" -Destination "$AssetDest\assets\" -Recurse -Force
+          }
+          
+          # UI files (Glade, CSS)
+          if (Test-Path "ui") {
+            Copy-Item -Path "ui\*" -Destination "$AssetDest\ui\" -Recurse -Force
           }
           
           # Database
