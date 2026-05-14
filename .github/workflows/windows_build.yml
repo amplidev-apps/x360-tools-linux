@@ -3,73 +3,186 @@ name: Windows Release Build
 on:
   push:
     tags:
-      - 'v*' # Trigger on version tags (e.g., v2.0.0)
-  workflow_dispatch: # Allow manual trigger
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version tag (e.g., v2.0.0)'
+        required: false
+        default: 'v2.0.0'
+      flutter_channel:
+        description: 'Flutter channel'
+        required: false
+        default: 'stable'
+      release:
+        description: 'Create GitHub Release'
+        type: boolean
+        required: false
+        default: false
 
 jobs:
   build:
     runs-on: windows-latest
 
+    env:
+      FLUTTER_DIR: x360_tools_flutter
+      PYTHON_VERSION: '3.10'
+
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          channel: 'stable'
+          channel: ${{ github.event.inputs.flutter_channel || 'stable' }}
           cache: true
 
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install Python Dependencies
+        run: |
+          pip install requests deep-translator urllib3 cryptography
+        working-directory: ${{ env.FLUTTER_DIR }}
 
       - name: Install Flutter Dependencies
         run: flutter pub get
-        working-directory: x360_tools_flutter
+        working-directory: ${{ env.FLUTTER_DIR }}
 
-      - name: Build Flutter Windows
+      - name: Build Flutter Windows (Release)
         run: flutter build windows --release
-        working-directory: x360_tools_flutter
+        working-directory: ${{ env.FLUTTER_DIR }}
 
       - name: Bundle Python Backend Assets
         shell: pwsh
         run: |
-          $AssetDest = "x360_tools_flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/python_backend"
-          New-Item -ItemType Directory -Path $AssetDest -Force
+          $BuildDir = "${{ env.FLUTTER_DIR }}\build\windows\x64\runner\Release"
+          $AssetDest = "$BuildDir\data\flutter_assets\assets\python_backend"
           
-          Write-Host "Copying core modules..."
-          Copy-Item -Path "core" -Destination "$AssetDest/core" -Recurse -Force
+          Write-Host "=== Bundle Python Backend ===" -ForegroundColor Cyan
+          Write-Host "Target: $AssetDest" -ForegroundColor Yellow
           
-          Write-Host "Copying service bridge..."
-          Copy-Item -Path "service_bridge.py" -Destination "$AssetDest/service_bridge.py" -Force
+          # Create destination
+          New-Item -ItemType Directory -Path "$AssetDest\core" -Force | Out-Null
+          New-Item -ItemType Directory -Path "$AssetDest\assets" -Force | Out-Null
           
-          Write-Host "Copying database and templates..."
-          if (Test-Path "titleIDs.db") { Copy-Item -Path "titleIDs.db" -Destination "$AssetDest/titleIDs.db" -Force }
-          if (Test-Path "assets") { Copy-Item -Path "assets" -Destination "$AssetDest/assets" -Recurse -Force }
+          # Core modules
+          Copy-Item -Path "core\*.py" -Destination "$AssetDest\core\" -Force
+          if (Test-Path "core\data") {
+            Copy-Item -Path "core\data\*" -Destination "$AssetDest\core\data\" -Recurse -Force
+          }
           
-          Write-Host "Backend bundling complete."
+          # Service bridge
+          Copy-Item -Path "service_bridge.py" -Destination "$AssetDest\" -Force
+          
+          # App libraries
+          if (Test-Path "applib") {
+            Copy-Item -Path "applib\*" -Destination "$AssetDest\applib\" -Recurse -Force
+          }
+          
+          # Binary payloads (extract-xiso, iso2god, etc.)
+          if (Test-Path "bin") {
+            Copy-Item -Path "bin\*" -Destination "$AssetDest\bin\" -Recurse -Force
+          }
+          
+          # Assets (icons, previews, fonts)
+          if (Test-Path "assets") {
+            Copy-Item -Path "assets\*" -Destination "$AssetDest\assets\" -Recurse -Force
+          }
+          
+          # Database
+          if (Test-Path "titleIDs.db") {
+            Copy-Item -Path "titleIDs.db" -Destination "$AssetDest\" -Force
+          }
+          
+          Write-Host "Bundle complete!" -ForegroundColor Green
+
+      - name: Install Inno Setup
+        shell: pwsh
+        run: |
+          Write-Host "Installing Inno Setup..." -ForegroundColor Cyan
+          $isccPath = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+          if (!(Test-Path $isccPath)) {
+            # Download and install Inno Setup silently
+            $url = "https://jrsoftware.org/download.php/is.exe"
+            $output = "$env:TEMP\innosetup.exe"
+            Invoke-WebRequest -Uri $url -OutFile $output -UseBasicParsing
+            Start-Process -FilePath $output -ArgumentList "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /DIR=`"C:\Program Files (x86)\Inno Setup 6`"" -Wait -NoNewWindow
+            Write-Host "Inno Setup installed." -ForegroundColor Green
+          } else {
+            Write-Host "Inno Setup already installed." -ForegroundColor Green
+          }
+        continue-on-error: true
 
       - name: Compile Inno Setup Installer
-        run: |
-          if (!(Test-Path "windows_port/installer_output")) { New-Item -ItemType Directory -Path "windows_port/installer_output" -Force }
-          iscc windows_port/installer_config.iss
         shell: pwsh
+        run: |
+          $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+          if (!(Test-Path $iscc)) {
+            Write-Error "ISCC.exe not found at $iscc"
+            exit 1
+          }
+          
+          $issFile = "windows_port\installer_config.iss"
+          $outputDir = "windows_port\installer_output"
+          
+          if (!(Test-Path $outputDir)) {
+            New-Item -ItemType Directory -Path $outputDir -Force | Out-Null
+          }
+          
+          Write-Host "Compiling installer with ISCC..." -ForegroundColor Cyan
+          & $iscc $issFile
+          
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "Inno Setup compilation failed with exit code $LASTEXITCODE"
+            exit $LASTEXITCODE
+          }
+          
+          Write-Host "Installer compiled successfully!" -ForegroundColor Green
 
-      - name: Upload Artifact (Experimental)
+      - name: Upload Installer Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: x360Tools-Setup-Preview
+          name: x360Tools-Setup-${{ github.event.inputs.version || github.ref_name }}
           path: windows_port/installer_output/x360Tools_Setup.exe
+          if-no-files-found: error
 
       - name: Create GitHub Release
-        if: startsWith(github.ref, 'refs/tags/')
+        if: >
+          (startsWith(github.ref, 'refs/tags/v') && !github.event.inputs.release) ||
+          (github.event.inputs.release == 'true')
         uses: softprops/action-gh-release@v2
         with:
           files: windows_port/installer_output/x360Tools_Setup.exe
-          tag_name: ${{ github.ref_name }}
-          name: Release ${{ github.ref_name }}
+          tag_name: ${{ github.event.inputs.version || github.ref_name }}
+          name: x360 Tools ${{ github.event.inputs.version || github.ref_name }}
+          body: |
+            ## x360 Tools for Windows
+            
+            ### 📥 Installer
+            - `x360Tools_Setup.exe` — Automated Windows installer
+            
+            ### 🛠️ Included Components
+            - Flutter v2.0 Premium UI
+            - Python 3.10 Backend Engine
+            - x360 Freemarket (CDN-normalized)
+            - Gamerpic Editor (STFS LIVE signing)
+            - DashLaunch Configuration
+            - FTP Native Client
+            - ISO → GOD Converter
+            - Xbox 360 USB/HDD Manager
+            
+            ### 📦 System Requirements
+            - Windows 10/11 (64-bit)
+            - 4GB RAM (8GB recommended)
+            - 500MB disk space
+            - USB port for Xbox 360 device connection
           draft: false
           prerelease: false
         env:
