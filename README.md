@@ -21,8 +21,10 @@ Construído sobre uma **arquitetura híbrida**, o projeto utiliza **Flutter v2.0
 #### 🛒 Descoberta: x360 Freemarket
 O portal definitivo para a preservação de jogos. Integrado com **14 bases de dados globais**, o Freemarket oferece:
 - **Ingestão Inteligente:** Busca multi-threaded em catálogos do Internet Archive.
+- **Normalização de CDN:** URLs CDN (dn######.ca.archive.org) são automaticamente convertidas para URLs canônicas, garantindo estabilidade.
 - **Deduplicação Pro:** Identificação automática de versões regionais (NTSC-U, PAL, NTSC-J).
 - **Instalação em 3 Cliques:** Download → Extração → Conversão GOD → Instalação automática.
+- **Resiliência:** Fallback nativo para extração ZIP sem dependências externas (7z/unrar).
 
 #### 📚 Gestão: Minha Biblioteca & Cloud Saves
 Um scanner de alta precisão que lê os cabeçalhos **STFS** diretamente do seu dispositivo:
@@ -37,6 +39,21 @@ Segurança de nível industrial para seu console:
 #### 📡 Conectividade: FTP Native Hub
 Gerenciamento sem fios sem depender de ferramentas de terceiros:
 - **Pure-Python FTP:** Cliente integrado para transferência bidirecional de alta velocidade entre Linux e Xbox.
+
+---
+
+### 🆕 Novidades da Versão Atual (V110-V119)
+
+| Melhoria | Descrição |
+|----------|-----------|
+| **STFS LIVE Signing** | Assinatura RSA com chaves oficiais MS Retail para pacotes LIVE de Gamerpics |
+| **Normalização CDN** | URLs do Archive.org (dn720000.ca.archive.org) convertidas para canônicas |
+| **Fallback ZIP Nativo** | Extração de arquivos ZIP via `zipfile` nativo do Python sem 7z |
+| **Paths Cross-Platform** | Novo módulo `core/paths.py` resolve diretórios de usuário no Linux e Windows |
+| **Detecção USB Aprimorada** | Reconhecimento mais amplo de pendrives e HDDs externos |
+| **Progresso ISO2GOD** | Parsing de porcentagem do iso2god-rs com suporte a múltiplos threads |
+| **Permissões Auto-fix** | Binários sem permissão de execução são corrigidos automaticamente |
+| **Gamerpic Editor** | Pré-seleção automática do drive ativo no Flutter |
 
 ---
 
@@ -84,19 +101,124 @@ O editor de `launch.ini` permite controlar o coração do console:
 | Camada | Tecnologia | Responsabilidade |
 |--------|------------|------------------|
 | **Frontend** | Flutter 3.x | UI, Gestão de Estado (Provider), Animações |
+| **Bridge** | Service Bridge (Python) | Comunicação via Stream Assíncrona |
+| **Backend** | Python 3.10+ | Lógica de Negócio (Asynchronous), Threading, I/O |
+| **Plataformas** | Linux & Windows | Suporte Nativo (AppImage/DEB & MSIX/Exe) |
+| **Database** | SQLite 3 | Cache de Catálogo e Metadados (AppData/%APPDATA%) |
+| **Payloads** | C++/Rust/Python | STFS Injection, ISO Conversion, Gamerpic Signing |
+
+---
+
+### 📦 Instalação
+
+#### Linux
+
+**AppImage (Recomendado):**
+```bash
+# Download da última versão
+wget https://github.com/amplidev-apps/x360-tools-linux/releases/latest/download/x360-tools-x86_64.AppImage
+
+# Torne executável
+chmod +x x360-tools-x86_64.AppImage
+
+# Execute
+./x360-tools-x86_64.AppImage
+```
+
+**Pacote Debian (Debian/Ubuntu/Mint):**
+```bash
+# Download
+wget https://github.com/amplidev-apps/x360-tools-linux/releases/latest/download/x360-tools-1.1.deb
+
+# Instalação
+sudo dpkg -i x360-tools-1.1.deb
+
+# Execute pelo menu ou terminal
+x360-tools
+```
+
+**A partir do código fonte:**
+```bash
+# Clone o repositório
+gh repo clone amplidev-apps/x360-tools-linux
+cd x360-tools-linux
+
+# (Opcional) Interface GTK3 Nativa
+pip install requests deep-translator urllib3
+./run.sh
+
+# (Premium) Interface Flutter
+cd x360_tools_flutter
+flutter pub get
+flutter run
+```
+
+**Dependências obrigatórias (Linux):**
+```bash
+sudo apt install python3 python3-pip python3-gi python3-gi-cairo gir1.2-gtk-3.0
+```
+
+**Dependências opcionais (recomendadas):**
+```bash
+# Para extração de jogos (7z e unrar)
+sudo apt install p7zip-full unrar
+
+# Para conversão ISO → GOD
+# (Baixe o iso2god-rs da página de releases)
+```
+
+#### Windows
+
+**Instalador Automático:**
+```bash
+# Baixe o instalador oficial da página de releases:
+# x360Tools_Setup.exe
+```
+
+**A partir do código fonte:**
+```bash
+# Clone o repositório
+git clone https://github.com/amplidev-apps/x360-tools-linux.git
+cd x360-tools-linux/x360_tools_flutter
+
+# Execute com o backend Python
+flutter pub get
+flutter run
+```
+
+---
+
+### 💻 Arquitetura Técnica (Detalhada)
+
+| Camada | Tecnologia | Responsabilidade |
+|--------|------------|------------------|
+| **Frontend** | Flutter 3.x | UI, Gestão de Estado (Provider), Animações |
 | **Bridge** | Service Bridge | Comunicação via Stream Assíncrona |
 | **Backend** | Python 3.10+ | Lógica de Negócio (Asynchronous), Threading, I/O |
 | **Plataformas** | Linux & Windows | Suporte Nativo (AppImage/DEB & MSIX/Exe) |
 | **Database** | SQLite 3 | Cache de Catálogo e Metadados (AppData/%APPDATA%) |
-| **Payloads** | C++/Rust/Py | STFS Injection, ISO Conversion (.exe no Win) |
+| **Payloads** | C++/Rust/Python | STFS Injection, ISO Conversion, Gamerpic Signing |
+
+#### Fluxo de Dados
+
+```
+[Flutter UI] ←→ [Service Bridge (stdin/stdout)] ←→ [Python Engine]
+                                                          ↕
+                                              [Freemarket, STFS, FTP, USB...]
+                                                          ↕
+                                              [Discos, Internet, Xbox 360]
+```
 
 ---
 
-### 📦 Instalação no Windows
-Para usuários Windows, o processo é simplificado:
-1. Baixe o **Instalador Oficial (x360Tools_Setup.exe)** ou o pacote **MSIX**.
-2. O sistema instalará automaticamente o backend Python necessário.
-3. Certifique-se de ter os drivers de USB atualizados para o reconhecimento correto dos drives FAT32.
+### 🧪 Testes
+
+```bash
+cd tests
+python3 verify_fixes.py
+python3 test_gamerpics.py
+python3 test_extreme.py
+```
 
 ---
 
@@ -112,8 +234,14 @@ Para usuários Windows, o processo é simplificado:
 
 #### 🛒 x360 Freemarket
 - **Infinite Library:** Access to thousands of titles via multi-threaded automated scrapers.
+- **CDN Normalization:** Unstable CDN URLs are automatically converted to canonical archive.org URLs.
 - **Smart Resolution:** Automatic TitleID and Region matching.
 - **One-Click Pipeline:** Download → Extract → GOD Convert → Deploy.
+- **Resilient Extraction:** Native Python ZIP fallback when 7z is unavailable.
+
+#### 🖼️ Gamerpic Editor
+- **STFS LIVE Signing:** Create authentic Xbox 360 Gamerpics with proper MS Retail RSA signatures.
+- **Direct Injection:** Install directly to your console's HDD via USB or FTP.
 
 #### 🛡️ System Image (.x360b)
 - **Low-Level Imaging:** Sector-by-sector backup with LZMA compression.
@@ -121,6 +249,67 @@ Para usuários Windows, o processo é simplificado:
 
 #### 📡 Pro Connectivity
 - **Native FTP:** No external clients needed. Integrated dual-pane wireless management.
+
+---
+
+### 📦 Installation
+
+#### Linux
+
+**AppImage (Recommended):**
+```bash
+wget https://github.com/amplidev-apps/x360-tools-linux/releases/latest/download/x360-tools-x86_64.AppImage
+chmod +x x360-tools-x86_64.AppImage
+./x360-tools-x86_64.AppImage
+```
+
+**Debian Package (Debian/Ubuntu/Mint):**
+```bash
+wget https://github.com/amplidev-apps/x360-tools-linux/releases/latest/download/x360-tools-1.1.deb
+sudo dpkg -i x360-tools-1.1.deb
+x360-tools
+```
+
+**From Source:**
+```bash
+gh repo clone amplidev-apps/x360-tools-linux
+cd x360-tools-linux
+
+# Native GTK3 Interface
+pip install requests deep-translator urllib3
+./run.sh
+
+# Premium Flutter Interface
+cd x360_tools_flutter
+flutter pub get
+flutter run
+```
+
+**Required Dependencies (Linux):**
+```bash
+sudo apt install python3 python3-pip python3-gi python3-gi-cairo gir1.2-gtk-3.0
+```
+
+**Optional Dependencies:**
+```bash
+sudo apt install p7zip-full unrar  # Game extraction
+# Download iso2god-rs from Releases page for ISO → GOD conversion
+```
+
+#### Windows
+
+**Automated Installer:**
+```bash
+# Download x360Tools_Setup.exe from Releases
+```
+
+**From Source:**
+```bash
+git clone https://github.com/amplidev-apps/x360-tools-linux.git
+cd x360-tools-linux/x360_tools_flutter
+flutter pub get
+flutter run
+```
 
 ---
 
@@ -139,6 +328,22 @@ Para usuários Windows, o processo é simplificado:
 - **Aurora/FSD:** Deployment is fully automated. The system places files and writes boot paths for you.
 - **Homebrew Library:** Pre-curated list of essentials (XeX Menu, DashLaunch, xm360).
 
+#### 4. Gamerpic Editor
+- Navigate to the Gamerpic Editor tab.
+- Select an image (PNG, JPG) — it will be resized to 64×64 and packaged in a proper STFS LIVE container.
+- Install directly to your connected device or save to gallery for later use.
+
+---
+
+### 🧪 Running Tests
+
+```bash
+cd tests
+python3 verify_fixes.py
+python3 test_gamerpics.py
+python3 test_extreme.py
+```
+
 ---
 
 <a name="español"></a>
@@ -150,8 +355,9 @@ Una suite profesional diseñada para la comunidad de Xbox 360, combinando la ele
 ---
 
 ### 🌟 Características Principales
-- **x360 Freemarket:** Descarga e instalación automática de juegos, DLCs y TUs.
-- **Gestión STFS:** Extracción de metadados y portadas directamente del dispositivo.
+- **x360 Freemarket:** Descarga e instalación automática de juegos, DLCs y TUs con normalización de CDN.
+- **Editor de Gamerpics:** Creación de paquetes STFS LIVE con firma RSA oficial.
+- **Gestión STFS:** Extracción de metadatos y portadas directamente del dispositivo.
 - **Backup Industrial:** Imágenes `.x360b` para una supervivencia total del sistema.
 - **FTP Integrado:** Gestión inalámbrica nativa.
 
@@ -162,16 +368,44 @@ Una suite profesional diseñada para la comunidad de Xbox 360, combinando la ele
 ```bash
 # Clone
 gh repo clone amplidev-apps/x360-tools-linux
-cd x360-tools-linux/v1.1
+cd x360-tools-linux
 
-# Dependencies
+# Dependencias
 pip install requests deep-translator urllib3
 
-# Run Premium UI
-./run_flutter.sh
+# Ejecutar interfaz nativa
+./run.sh
+
+# Interfaz Premium Flutter
+cd x360_tools_flutter
+flutter pub get
+flutter run
+```
+
+**Dependencias del sistema:**
+```bash
+sudo apt install python3 python3-pip python3-gi python3-gi-cairo gir1.2-gtk-3.0 p7zip-full unrar
 ```
 
 ---
 
+### 📋 Comparación de Versiones
+
+| Recurso | v1.0 | v1.1 (Actual) |
+|---------|------|---------------|
+| Interface GTK3 Nativa | ✅ | ✅ |
+| Interface Flutter Premium | ❌ | ✅ |
+| x360 Freemarket | ✅ | ✅ (CDN Normalizado) |
+| Gamerpic Editor | ❌ | ✅ (STFS LIVE) |
+| Windows Support | ❌ | ✅ |
+| FTP Nativo | ❌ | ✅ |
+| Backup .x360b | ❌ | ✅ |
+| ZIP Nativo (sem 7z) | ❌ | ✅ |
+| Cross-Platform Paths | ❌ | ✅ |
+| Detecção USB Aprimorada | ❌ | ✅ |
+
+---
+
 **x360 Tools for Linux** — *Powered by Linux, Designed for Xbox Legends.* 🎮🟩
-> Version: **v2.0** | Updated: March 2026 | Developed by: **AmpliDev**
+> Version: **v2.0** | Updated: May 2026 | Developed by: **AmpliDev**
+> Repository: [github.com/amplidev-apps/x360-tools-linux](https://github.com/amplidev-apps/x360-tools-linux)
