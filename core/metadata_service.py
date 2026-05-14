@@ -8,7 +8,7 @@ import difflib
 import sqlite3
 from core.utils import normalize_for_map
 from core.og_meta_loader import OGMetadataService
-from core.paths import get_user_data_dir
+from core.paths import get_user_data_dir, sqlite_uri
 
 try:
     from deep_translator import GoogleTranslator
@@ -141,9 +141,7 @@ class MetadataService:
                 search_pattern = re.sub(r'[^a-zA-Z0-9]', '%', clean)
                 search_pattern = re.sub(r'%+', '%', search_pattern).strip('%')
                 
-                # 📜 Open in read-only mode for packaged builds (V114)
-                db_uri = f"file:{db_path}?mode=ro"
-                conn = sqlite3.connect(db_uri, uri=True)
+                conn = sqlite3.connect(sqlite_uri(db_path), uri=True)
                 cur = conn.cursor()
                 
                 # Search Strategy:
@@ -224,9 +222,7 @@ class MetadataService:
             db_path = os.path.join(self.cache_dir, "titleIDs.db")
             row = None
             if os.path.exists(db_path):
-                # 📜 Open in read-only mode for packaged builds (V114)
-                db_uri = f"file:{db_path}?mode=ro"
-                conn = sqlite3.connect(db_uri, uri=True)
+                conn = sqlite3.connect(sqlite_uri(db_path), uri=True)
                 cur = conn.cursor()
                 # ⚔️ Dynamic Search (V106): Try exact first, then fuzzy
                 cur.execute("SELECT Title_ID, Full_Name, Publisher, Region, Features FROM TitleIDs WHERE Full_Name = ? OR AKA = ? LIMIT 1", (clean.strip(), clean.strip()))
@@ -317,9 +313,7 @@ class MetadataService:
         # PHASE 1: Try Local SQLite Metadata DB (V43 - Offline First)
         if os.path.exists(self.db_path):
             try:
-                # 📜 Open in read-only mode and DISABLE WAL for stability in packages (V114)
-                db_uri = f"file:{self.db_path}?mode=ro"
-                conn = sqlite3.connect(db_uri, uri=True, timeout=10)
+                conn = sqlite3.connect(sqlite_uri(self.db_path), uri=True, timeout=10)
                 # Removed problematic WAL pragma from read-only fs
                 cur = conn.cursor()
                 norm = normalize_for_map(name)

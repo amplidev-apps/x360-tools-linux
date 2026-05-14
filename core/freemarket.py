@@ -17,7 +17,7 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 from core.converter import GameConverter
 from core.utils import get_free_space, format_size
-from core.paths import get_user_data_dir
+from core.paths import get_user_data_dir, get_user_agent, sqlite_uri
 
 IA_360_IDS = [
     "XBOX_360_1", "XBOX_360_2", "XBOX_360_3", "XBOX_360_4", "XBOX_360_5", "XBOX_360_6", "XBOX_360_1_OTHER",
@@ -56,7 +56,7 @@ class FreemarketEngine:
         # Initialize persistent session
         self.session = requests.Session()
         self.session.headers.update({
-            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "User-Agent": get_user_agent(),
             "Accept-Language": "en-US,en;q=0.9,pt-BR;q=0.8,pt;q=0.7",
             "Referer": "https://archive.org/"
         })
@@ -242,9 +242,7 @@ class FreemarketEngine:
                 db_platform = "classic" if ("classic" in fname.lower() or "mxogcx" in fname.lower() or "og" in fname.lower()) else "360"
                 
                 try:
-                    # 📜 Open in read-only mode for packaged builds (V114)
-                    db_uri = f"file:{db_path}?mode=ro"
-                    conn = sqlite3.connect(db_uri, uri=True, timeout=10)
+                    conn = sqlite3.connect(sqlite_uri(db_path), uri=True, timeout=10)
                     cur = conn.cursor()
                     cur.execute("SELECT s3key FROM s3api_per_key_metadata WHERE s3key LIKE '%.zip' OR s3key LIKE '%.iso' OR s3key LIKE '%.rar' OR s3key LIKE '%.7z'")
                     for row in cur.fetchall():
@@ -817,7 +815,7 @@ class FreemarketEngine:
         
         session = requests.Session()
         session.headers.update({
-            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "User-Agent": get_user_agent(),
             "Accept": "application/json, text/plain, */*",
             "Origin": "https://archive.org",
             "Referer": login_page,
@@ -878,7 +876,7 @@ class FreemarketEngine:
     def _load_cookie(self):
         """Loads Archive.org cookies from JSON (modern) or TXT (legacy)."""
         json_path = os.path.join(self.cache_dir, "ia_cookies.json")
-        legacy_txt_path = os.path.expanduser("~/.x360tools/ia_cookie.txt")
+        legacy_txt_path = os.path.join(get_user_data_dir(), "ia_cookie.txt")
         
         # 1. Try Modern JSON (Full Jar)
         if os.path.exists(json_path):
@@ -923,7 +921,7 @@ class FreemarketEngine:
     def _get_headers(self, url):
         """Generates browser-like headers for Archive.org stability."""
         headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
+            'User-Agent': get_user_agent(),
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
             'Accept-Language': 'en-US,en;q=0.9',
             'Connection': 'keep-alive',
