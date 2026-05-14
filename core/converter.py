@@ -15,8 +15,17 @@ class GameConverter:
         """Find the binary in bin/ or system PATH."""
         # Check in bin_dir first
         local_path = os.path.join(self.bin_dir, bin_name)
-        if os.path.exists(local_path) and os.access(local_path, os.X_OK):
-            return local_path
+        if os.path.exists(local_path):
+            # Ensure it's executable
+            if not os.access(local_path, os.X_OK):
+                try:
+                    import stat
+                    st = os.stat(local_path)
+                    os.chmod(local_path, st.st_mode | stat.S_IEXEC)
+                except:
+                    pass
+            if os.access(local_path, os.X_OK):
+                return local_path
             
         # Fallback to system PATH
         path = shutil.which(bin_name)
@@ -52,8 +61,9 @@ class GameConverter:
         return self._run_command(cmd, progress_cb, allow_errors, process_callback=kwargs.get('process_callback'))
 
     def extract_archive(self, archive_path, dest_dir, progress_cb=None, **kwargs):
-        """Extracts any archive (.zip, .7z, .rar, .iso) using 7z or unrar."""
+        """Extracts any archive (.zip, .7z, .rar, .iso) using 7z, unrar or native zipfile."""
         is_rar = archive_path.lower().endswith('.rar') or kwargs.get('is_rar', False)
+        is_zip = archive_path.lower().endswith('.zip') or kwargs.get('is_zip', False)
         
         # Priority 1: unrar (best for RAR)
         unrar_bin = self.get_bin_path("unrar")
@@ -62,31 +72,42 @@ class GameConverter:
             cmd = [unrar_bin, "x", "-y", archive_path, dest_dir]
             return self._run_command(cmd, progress_cb, process_callback=kwargs.get('process_callback'))
 
-        # Priority 2: 7z
+        # Priority 2: 7z/7zz (supports ZIP, 7z, ISO, RAR fallback)
         bin_path = self.get_bin_path("7z") or self.get_bin_path("7zz") or self.get_bin_path("7za")
-        if not bin_path:
-            raise FileNotFoundError("7z binary not found. Please install p7zip-full or 7zip.")
-            
-        os.makedirs(dest_dir, exist_ok=True)
-        # -y: assume yes on all queries
-        # -o: output directory
-        cmd = [bin_path, "x", archive_path, f"-o{dest_dir}", "-y"]
-        
-        try:
-            return self._run_command(cmd, progress_cb, process_callback=kwargs.get('process_callback'))
-        except Exception as e:
-            if "Unsupported Method" in str(e) and is_rar:
-                raise Exception("Erro: Suporte a RAR ausente no 7-Zip (DFSG). Por favor, instale o pacote 'unrar' via terminal: sudo apt install unrar")
-            raise e
+        if bin_path:
+            os.makedirs(dest_dir, exist_ok=True)
+            # -y: assume yes on all queries, -o: output directory
+            cmd = [bin_path, "x", archive_path, f"-o{dest_dir}", "-y"]
+            try:
+                return self._run_command(cmd, progress_cb, process_callback=kwargs.get('process_callback'))
+            except Exception as e:
+                if "Unsupported Method" in str(e) and is_rar:
+                    raise Exception("Erro: Suporte a RAR ausente no 7-Zip (DFSG). Por favor, instale o pacote 'unrar' via terminal: sudo apt install unrar")
+                if not is_zip: # If it's ZIP, we can still try the native fallback
+                    raise e
 
-    def iso_to_god(self, iso_path, dest_dir, progress_cb=None, allow_errors=False, **kwargs):
+        # Priority 3: Native Python zipfile (Fallback for ZIP only)
+        if is_zip:
+            if progress_cb: progress_cb("Usando extrator ZIP nativo (Fallback)...")
+            try:
+                import zipfile
+                os.makedirs(dest_dir, exist_ok=True)
+                with zipfile.ZipFile(archive_path, 'r') as zf:
+                    zf.extractall(dest_dir)
+                return True
+            except Exception as e:
+                raise Exception(f"Falha na extração ZIP nativa: {e}")
+
+        raise FileNotFoundError("Nenhum extrator compatível encontrado (7z/unrar). Por favor, instale o pacote 'p7zip-full'.")
+
+    def iso_to_god(self, iso_path, dest_dir, progress_cb=None, allow_errors=False, num_threads=1, **kwargs):
         """Converts an ISO to GOD."""
         bin_path = self.get_bin_path("iso2god-rs") or self.get_bin_path("iso2god")
         if not bin_path:
             raise FileNotFoundError("ISO2GOD binary not found.")
             
         os.makedirs(dest_dir, exist_ok=True)
-        cmd = [bin_path, iso_path, dest_dir]
+        cmd = [bin_path, iso_path, dest_dir, "-j", str(num_threads)]
         return self._run_command(cmd, progress_cb, allow_errors, process_callback=kwargs.get('process_callback'))
 
     def _run_command(self, cmd, progress_cb=None, allow_errors=False, process_callback=None):
@@ -105,13 +126,23 @@ class GameConverter:
 
             last_lines = []
             if process.stdout is not None:
-                for line in process.stdout:
-                    clean_line = line.strip()
-                    if clean_line:
-                        last_lines.append(clean_line)
-                        if len(last_lines) > 5: last_lines.pop(0)
-                    if progress_cb:
-                        progress_cb(clean_line)
+                line_buffer = ""
+                while True:
+                    char = process.stdout.read(1)
+                    if not char:
+                        break
+                    
+                    if char in ('\n', '\r'):
+                        clean_line = line_buffer.strip()
+                        if clean_line:
+                            last_lines.append(clean_line)
+                            if len(last_lines) > 5:
+                                last_lines.pop(0)
+                            if progress_cb:
+                                progress_cb(clean_line)
+                        line_buffer = ""
+                    else:
+                        line_buffer += char
 
             process.wait()
             if process.returncode != 0:

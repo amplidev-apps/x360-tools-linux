@@ -52,6 +52,18 @@ class _GamerpicEditorDialogState extends State<GamerpicEditorDialog> {
     final filename = widget.imagePath.split('/').last.split('.').first;
     _nameCtrl = TextEditingController(text: filename);
 
+    // Pre-select the global device if available
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final state = context.read<AppState>();
+      if (state.selectedDrive != null) {
+        setState(() {
+          _installToDevice = true;
+          _selectedDevice = state.selectedDrive!['device'];
+        });
+      }
+    });
+
     // Load the image to get its dimensions
     _loadImageSize();
   }

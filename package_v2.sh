@@ -35,7 +35,11 @@ cp "$BASE_DIR/service_bridge.py" "$DEB_ROOT/usr/lib/$APP_NAME/"
 cp -r "$BASE_DIR/core" "$DEB_ROOT/usr/lib/$APP_NAME/"
 cp -r "$BASE_DIR/applib" "$DEB_ROOT/usr/lib/$APP_NAME/"
 cp -r "$BASE_DIR/assets" "$DEB_ROOT/usr/lib/$APP_NAME/"
+cp -r "$BASE_DIR/bin" "$DEB_ROOT/usr/lib/$APP_NAME/"
 cp "$BASE_DIR/titleIDs.db" "$DEB_ROOT/usr/lib/$APP_NAME/" 2>/dev/null || true
+
+# Ensure all binaries in bin/ are executable
+chmod +x "$DEB_ROOT/usr/lib/$APP_NAME/bin/"* || true
 
 # Create Symlink in /usr/bin
 ln -s "/usr/lib/$APP_NAME/x360_tools" "$DEB_ROOT/usr/bin/$APP_NAME"

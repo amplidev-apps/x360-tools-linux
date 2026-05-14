@@ -328,6 +328,7 @@ class PythonBridge {
     final List<String> args = [
       _bridgeScript, 
       '--cmd', 'install_game', 
+      '--id', id,          // V119: Pass task_id for per-task temp dirs
       '--url', url, 
       '--name', name, 
       '--platform', platform, 
@@ -368,6 +369,7 @@ class PythonBridge {
     final List<String> args = [
       _bridgeScript, 
       '--cmd', 'install_dlc', 
+      '--id', id,          // V119: Pass task_id for per-task temp dirs
       '--url', url, 
       '--name', name, 
       '--title-id', titleId, 

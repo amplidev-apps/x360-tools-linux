@@ -35,3 +35,7 @@ x360_tools
 output_classic.json
 output_360.json
 scripts/freemarket_db.sqlite
+build.log
+build.pid
+temp/
+debug/

@@ -2,11 +2,12 @@ import os
 import json
 import shutil
 from core.stfs import get_stfs_metadata
+from core.paths import get_user_data_dir
 
 class LibraryScanner:
     def __init__(self):
         # Persistent storage for user-defined names (TitleID -> Name)
-        self.data_dir = os.path.join(os.path.expanduser("~"), ".x360tools")
+        self.data_dir = get_user_data_dir()
         os.makedirs(self.data_dir, exist_ok=True)
         self.user_titles_path = os.path.join(self.data_dir, "user_titles.json")
         self.user_titles = self._load_user_titles()

@@ -109,12 +109,17 @@ def _detect_linux_drives():
             
             # We want it if it's USB OR Removable OR specifically a partition on such a device
             # OR if it's an external HDD (which often has RM=0 but TRAN=usb)
-            should_include = is_removable or is_usb
+            # V110: Relaxed inclusion - include all USB devices AND all Removable devices
+            # Even if TRAN is missing, inclusion is based on RM
+            should_include = is_removable or is_usb or (dev.get("tran") == "usb")
             
             if not should_include:
-                # DEBUG: Log ignored non-removable/non-usb devices if they are block devices
-                import sys
-                print(f"DEBUG: Ignoring internal/fixed device {name}", file=sys.stderr)
+                # Still check if it might be a partition on a USB stick even if lsblk didn't catch the flag
+                if name.startswith("/dev/sd") and not name.startswith("/dev/sda"):
+                    # Typical USB pattern sdb, sdc... (sda is usually system)
+                    should_include = True
+            
+            if not should_include:
                 return
             
             if not name.startswith("/dev/"):

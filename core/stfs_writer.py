@@ -1,26 +1,31 @@
+try:
+    from core.crypto import STFSCrypto
+except ImportError:
+    from .crypto import STFSCrypto
 import struct
 import hashlib
 import os
+import binascii
 
-# STFS Constants
+# STFS V1 Constants
 STFS_HEADER_SIZE      = 0xAC00
 STFS_BLOCK_SIZE       = 0x1000
-STFS_HASH_BLOCK_GAP   = 0xAA      # One hash block every 170 data blocks
-STFS_MAGIC_CON        = b"CON "
+STFS_MAGIC_LIVE       = b"LIVE"
 
-# Metadata Offsets
-OFF_CONTENT_ID        = 0x32C
+# Metadata Offsets (STFS V1 Standard)
+OFF_SIGNATURE         = 0x004
+OFF_HEADER_HASH       = 0x32C
+OFF_DESCRIPTOR        = 0x344
 OFF_CONTENT_TYPE      = 0x344
 OFF_TITLE_ID          = 0x360
-OFF_CONSOLE_ID        = 0x369
-OFF_PROFILE_ID        = 0x371
+OFF_MASTER_HASH       = 0x381
 OFF_DISPLAY_NAME      = 0x411
 OFF_DESCRIPTION       = 0x491
 OFF_TITLE_NAME        = 0x591
 
 
 class STFSWriter:
-    """A minimal STFS CON writer for Gamer Pictures."""
+    """A professional STFS LIVE signer for Xbox 360."""
 
     def __init__(self, title_id="FFFE07D1", display_name="Custom Gamerpic"):
         self.title_id     = title_id
@@ -29,77 +34,65 @@ class STFSWriter:
         self._init_header()
 
     def _init_header(self):
-        # Magic
-        self.header[0:4] = STFS_MAGIC_CON
+        # 1. Start with Magic
+        self.header[0:4] = STFS_MAGIC_LIVE
         
-        # Content Type: Gamer Picture (0x00020000)
-        # Note: Some sources say 0x00080000, but 0x00020000 is common for Marketplace/Gamerpics
+        # 2. Try to load original metadata structure from base template
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        template_path = os.path.join(base_dir, "..", "applib", "custom_gp_40150.stfs")
+        if os.path.exists(template_path):
+            with open(template_path, "rb") as f:
+                # Read the entire first metadata area
+                self.header[:] = f.read(STFS_HEADER_SIZE)
+                
+        # 3. Force Magic to LIVE
+        self.header[0:4] = STFS_MAGIC_LIVE
+        
+        # 4. Patch Metadata with custom info
+        # Title ID (Big Endian)
+        struct.pack_into(">I", self.header, OFF_TITLE_ID, int(self.title_id, 16))
+        # Content Type (Big Endian, 0x00020000 = Gamerpic)
         struct.pack_into(">I", self.header, OFF_CONTENT_TYPE, 0x00020000)
         
-        # Title ID
-        self.header[OFF_TITLE_ID: OFF_TITLE_ID + 4] = bytes.fromhex(self.title_id)
-        
-        # Profile ID (Global: 0000000000000000)
-        self.header[OFF_PROFILE_ID: OFF_PROFILE_ID + 8] = b"\x00" * 8
-        
-        # Console ID (Can be 0 for CON)
-        self.header[OFF_CONSOLE_ID: OFF_CONSOLE_ID + 5] = b"\x00" * 5
-
-        # Display Name (UTF-16BE)
+        # Display Name & Descriptions (UTF-16BE strictly 128 bytes)
         name_utf16 = self.display_name.encode("utf-16be")
-        self.header[OFF_DISPLAY_NAME: OFF_DISPLAY_NAME + len(name_utf16)] = name_utf16
-        
-        # Descriptions
-        self.header[OFF_DESCRIPTION: OFF_DESCRIPTION + len(name_utf16)] = name_utf16
-        self.header[OFF_TITLE_NAME: OFF_TITLE_NAME + len(name_utf16)] = name_utf16
+        limit = 128
+        for off in [OFF_DISPLAY_NAME, OFF_DESCRIPTION, OFF_TITLE_NAME]:
+            # Clear area
+            self.header[off: off + 128 * 2] = b"\x00" * (128 * 2) 
+            # Write name
+            self.header[off: off + min(len(name_utf16), 128 * 2)] = name_utf16[:128 * 2]
+
+        # 5. Clear signature area before calculation
+        self.header[OFF_SIGNATURE : OFF_SIGNATURE + 256] = b"\x00" * 256
+        self.header[OFF_HEADER_HASH : OFF_HEADER_HASH + 20] = b"\x00" * 20
+        self.header[OFF_MASTER_HASH : OFF_MASTER_HASH + 20] = b"\x00" * 20
 
     def create_package(self, png_data):
-        """Creates a minimal 1-file STFS package with the given PNG and returns the bytearray."""
+        """Creates a signed 64KB LIVE package using MS Retail keys."""
         
-        # STFS is block-based. We need:
-        # 1. Header (0xAC00) + Padding to 0xC000
-        # 2. Hash Block 0 (0x1000) at 0xC000 ? 
-        # Actually, for small files, many tools start data at 0xC000 and ignore advanced hashing
-        # But to be safe, we'll follow the standard structure seen in real packs.
-        
-        # Let's align with what GamerpicManager expected:
-        # dir_offset at 0xCD00 (which is entry in a data block)
-        # png data starting after dir entries.
-        
-        file_data = bytearray()
-        
-        # Directory Entry (64 bytes)
-        # 0x00: Filename (40 bytes)
-        # 0x2F: First Block (3 bytes)
-        # 0x34: Size (4 bytes)
+        # 1. Prepare Directory Entry (V1 Block 0)
+        # Offset 0xC000 in file
         dir_entry = bytearray(0x40)
-        name_b = b"64_custom.png"
+        name_b = b"64_Gamerpic.png" 
         dir_entry[0: len(name_b)] = name_b
-        struct.pack_into(">I", dir_entry, 0x34, len(png_data))
-        # First block = 0 (we only have one file)
-        dir_entry[0x2F] = 0x00 
+        dir_entry[0x28] = len(name_b) # STFS Name Length
         
-        # The directory table is usually in the first data block.
-        # Data block 0 starts at 0xC000 (after header 0xAC00 + Hash Block 0x1000 + some padding?)
-        # Standard: 
-        # 0x0 - 0xAC00: Header
-        # 0xAC00 - 0xB000: Padding
-        # 0xB000 - 0xC000: Hash Block 0
-        # 0xC000 - 0xD000: Data Block 0 (contains Directory)
-        # 0xD000 - 0xE000: Data Block 1 (contains PNG part 1)
+        blocks_allocated = (len(png_data) + 0xFFF) // 0x1000
+        # Allocated Count: Little Endian (3 bytes)
+        dir_entry[0x29:0x2C] = blocks_allocated.to_bytes(3, 'little') 
+        # Start Block Number: Little Endian (3 bytes) (Gamerpic PNG starts at block 1)
+        dir_entry[0x2C:0x2F] = (1).to_bytes(3, 'little') 
+        dir_entry[0x2F] = 0x00 # Type = File
+        # File Size: Big Endian (4 bytes)
+        struct.pack_into(">I", dir_entry, 0x30, len(png_data)) 
         
-        # BUILD FILE:
-        full_file = bytearray(self.header)
-        full_file.extend(b"\x00" * (0xB000 - len(full_file)))
-        
-        # Hash Block 0 (Placeholder)
-        hash_block = bytearray(0x1000)
-        
-        # Data Block 0 (Directory)
+        # 2. Create Data Blocks
+        # Block 0: Directory listing
         data_block_0 = bytearray(0x1000)
-        data_block_0[0xD00: 0xD00 + 0x40] = dir_entry # Put at 0xD00 in block => 0xC000 + 0xD00 = 0xCD00
+        data_block_0[0:0x40] = dir_entry
         
-        # Data Block 1+ (PNG)
+        # Block 1+: PNG data
         png_blocks = []
         for i in range(0, len(png_data), 0x1000):
             block = bytearray(0x1000)
@@ -107,30 +100,50 @@ class STFSWriter:
             block[:len(chunk)] = chunk
             png_blocks.append(block)
             
-        # Hashing
-        # Hash of Data Block 0
-        h0 = hashlib.sha1(data_block_0).digest()
-        hash_block[0:20] = h0
-        # Hashes of PNG blocks
-        for i, pb in enumerate(png_blocks):
-            h = hashlib.sha1(pb).digest()
-            # Store in hash block (24 bytes per entry: 20 hash + 4 metadata)
-            off = (i + 1) * 24 
-            hash_block[off: off+20] = h
-            
-        # Update Content Size in Header
-        struct.pack_into(">I", full_file, 0x398, (1 + len(png_blocks))) # Block count
+        # 3. Generate Level 0 Hash Block (at 0xAC00)
+        # Each record is 24 bytes (20 hash + 4 status)
+        hash_block_l0 = bytearray(0x1000)
         
-        # Assemble
-        full_file.extend(hash_block)
+        # Hash record for Block 0 (Directory)
+        hash_block_l0[0:20] = hashlib.sha1(data_block_0).digest()
+        hash_block_l0[20:24] = binascii.unhexlify("80000000") # EOF
+        
+        # Hash records for PNG blocks
+        for i, pb in enumerate(png_blocks):
+            off = (i + 1) * 24 
+            hash_block_l0[off : off+20] = hashlib.sha1(pb).digest()
+            status = 0x80 if i == len(png_blocks) - 1 else 0xC0
+            next_p = 0 if i == len(png_blocks) - 1 else i + 2
+            val = (status << 24) | next_p
+            struct.pack_into(">I", hash_block_l0, off+20, val)
+            
+        # 4. Merkle Tree & Header Re-Hashing
+        # Master Hash = SHA1(Level 0 Hash Table)
+        master_hash = hashlib.sha1(hash_block_l0).digest()
+        self.header[OFF_MASTER_HASH : OFF_MASTER_HASH + 20] = master_hash
+        
+        # Header Hash = SHA1(header[0x344 : 0xAC00])
+        meta_to_hash = self.header[OFF_DESCRIPTOR : STFS_HEADER_SIZE]
+        header_hash = hashlib.sha1(meta_to_hash).digest()
+        self.header[OFF_HEADER_HASH : OFF_HEADER_HASH + 20] = header_hash
+        
+        # 5. RSA Resign
+        # MS Retail Signer for LIVE/PIRS: signs exactly 0x118 bytes starting at 0x22C
+        signature = STFSCrypto.sign_stfs_header(self.header)
+        self.header[OFF_SIGNATURE : OFF_SIGNATURE + 256] = signature
+        
+        # 6. Assembly
+        full_file = bytearray(self.header)
+        # Hash Table area (starts immediately after header)
+        full_file.extend(hash_block_l0) # 0xAC00 - 0xBC00
+        # Data area (starts at 0xC000 for standard small STFS packages)
+        full_file.extend(b"\x00" * (0xC000 - len(full_file)))
         full_file.extend(data_block_0)
         for pb in png_blocks:
             full_file.extend(pb)
             
-        # Final signature (Null signature for CON)
-        # In a real CON, 0x4 - 0x22C is the RSA signature.
-        # RGH consoles ignore it if it's all zeros or garbage as long as it's there.
-        full_file[4: 0x22C] = b"\x00" * (0x22C - 4)
-        
+        # Pad to exactly 64KB (minimum valid 360 STFS size)
+        if len(full_file) < 0x10000:
+            full_file.extend(b"\x00" * (0x10000 - len(full_file)))
+            
         return full_file
-

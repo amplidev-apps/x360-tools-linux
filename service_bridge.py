@@ -24,6 +24,7 @@ from core.dashlaunch import DashLaunchEditor
 from core.ftp_client import XboxFTPClient
 from core.save_manager import SaveManager
 from core.metadata_service import MetadataService
+from core.paths import get_user_data_dir
 
 def main():
     parser = argparse.ArgumentParser(description="x360 Tools Service Bridge")
@@ -62,6 +63,13 @@ def main():
     args = parser.parse_args()
     
     result = {"status": "error", "message": "Unknown command"}
+    
+    # Ensure user directories exist
+    user_dir = get_user_data_dir()
+    os.makedirs(os.path.join(user_dir, "freemarket", "ia_dbs"), exist_ok=True)
+    os.makedirs(os.path.join(user_dir, "freemarket", "install_temp", "def"), exist_ok=True)
+    os.makedirs(os.path.join(user_dir, "metadata_cache", "covers"), exist_ok=True)
+    os.makedirs(os.path.join(user_dir, "gamerpics", "gallery"), exist_ok=True)
     
     try:
         if args.cmd == "list_drives":
@@ -113,30 +121,52 @@ def main():
                         result = {"status": "error", "message": f"Erro ao abrir pasta: {e}"}
 
         elif args.cmd == "install_game":
-            if not args.url or not args.name or not args.platform or not args.device:
-                result = {"status": "error", "message": "Missing arguments for game installation"}
+            # Support both --device ftp://... and --host ...
+            if not args.device and args.host:
+                args.device = f"ftp://{args.host}"
+                sys.stderr.write(f"DEBUG: Constructed FTP device from host: {args.device}\n")
+
+            missing = []
+            if not args.url: missing.append("url")
+            if not args.name: missing.append("name")
+            if not args.platform: missing.append("platform")
+            if not args.device: missing.append("device")
+            
+            if missing:
+                msg = f"Missing arguments for game installation: {', '.join(missing)}"
+                sys.stderr.write(f"DEBUG: {msg}\n")
+                result = {"status": "error", "message": msg}
             else:
                 engine = FreemarketEngine()
                 def progress_callback(msg):
                     print(msg, flush=True)
                 
+                # V103 Handle on_device safely
+                on_dev = False
+                if args.on_device:
+                    on_dev = (args.on_device.lower() == 'true')
+
                 try:
                     success = engine.install_game(
                         args.url, 
                         args.name, 
                         args.platform, 
                         args.device, 
-                        on_device=(args.on_device.lower() == 'true'),
+                        on_device=on_dev,
                         progress_cb=progress_callback,
                         task_id=args.id # V103
                     )
                     result = {"status": "success" if success else "error", "message": "Instalação concluída" if success else "Falha na instalação"}
                 except Exception as e:
+                    import traceback
+                    sys.stderr.write(f"DEBUG: Exception in install_game: {e}\n")
+                    sys.stderr.write(traceback.format_exc())
                     result = {"status": "error", "message": str(e)}
 
         elif args.cmd == "pause_download":
             if args.id:
-                temp_base = os.path.join(os.path.expanduser("~/.x360tools/freemarket"), "install_temp")
+                user_dir = get_user_data_dir()
+                temp_base = os.path.join(user_dir, "freemarket", "install_temp")
                 temp_dir = os.path.join(temp_base, args.id)
                 os.makedirs(temp_dir, exist_ok=True)
                 with open(os.path.join(temp_dir, "pause.flag"), "w") as f: f.write("1")
@@ -144,14 +174,16 @@ def main():
         
         elif args.cmd == "resume_download":
             if args.id:
-                temp_base = os.path.join(os.path.expanduser("~/.x360tools/freemarket"), "install_temp")
+                user_dir = get_user_data_dir()
+                temp_base = os.path.join(user_dir, "freemarket", "install_temp")
                 flag = os.path.join(temp_base, args.id, "pause.flag")
                 if os.path.exists(flag): os.remove(flag)
                 result = {"status": "success", "message": "Threaded download resumed"}
 
         elif args.cmd == "cancel_download":
             if args.id:
-                temp_base = os.path.join(os.path.expanduser("~/.x360tools/freemarket"), "install_temp")
+                user_dir = get_user_data_dir()
+                temp_base = os.path.join(user_dir, "freemarket", "install_temp")
                 temp_dir = os.path.join(temp_base, args.id)
                 os.makedirs(temp_dir, exist_ok=True)
                 with open(os.path.join(temp_dir, "stop.flag"), "w") as f: f.write("1")
@@ -198,22 +230,22 @@ def main():
                     result = {"status": "error", "message": f"Não foi possível resolver o TitleID para '{args.name}'. Por favor, use um jogo com metadados."}
                 else:
                     engine = FreemarketEngine()
-                def progress_callback(msg):
-                    print(msg, flush=True)
+                    def progress_callback(msg):
+                        print(msg, flush=True)
 
-                try:
-                    success = engine.install_dlc(
-                        args.url, 
-                        args.name, 
-                        args.title_id, 
-                        args.device, 
-                        progress_cb=progress_callback,
-                        task_id=args.id # V103
-                    )
-                    result = {"status": "success" if success else "error", "message": "Instalação da DLC concluída" if success else "Falha na instalação da DLC"}
-                except Exception as e:
-                    progress_callback(f"PHASE:Erro: {e}")
-                    result = {"status": "error", "message": str(e)}
+                    try:
+                        success = engine.install_dlc(
+                            args.url, 
+                            args.name, 
+                            title_id, 
+                            args.device, 
+                            progress_cb=progress_callback,
+                            task_id=args.id # V103
+                        )
+                        result = {"status": "success" if success else "error", "message": "Instalação da DLC concluída" if success else "Falha na instalação da DLC"}
+                    except Exception as e:
+                        progress_callback(f"PHASE:Erro: {e}")
+                        result = {"status": "error", "message": str(e)}
 
         elif args.cmd == "install_tu":
             if not args.url or not args.name or not args.device:
@@ -231,20 +263,20 @@ def main():
                     result = {"status": "error", "message": f"Não foi possível resolver o TitleID para TU de '{args.name}'"}
                 else:
                     engine = FreemarketEngine()
-                def progress_callback(msg):
-                    print(msg, flush=True)
+                    def progress_callback(msg):
+                        print(msg, flush=True)
 
-                try:
-                    success = engine.install_tu(
-                        args.url, 
-                        args.name, 
-                        args.title_id, 
-                        args.device, 
-                        progress_cb=progress_callback
-                    )
-                    result = {"status": "success" if success else "error", "message": "Title Update instalada com sucesso" if success else "Falha na instalação da TU"}
-                except Exception as e:
-                    result = {"status": "error", "message": str(e)}
+                    try:
+                        success = engine.install_tu(
+                            args.url, 
+                            args.name, 
+                            title_id, 
+                            args.device, 
+                            progress_cb=progress_callback
+                        )
+                        result = {"status": "success" if success else "error", "message": "Title Update instalada com sucesso" if success else "Falha na instalação da TU"}
+                    except Exception as e:
+                        result = {"status": "error", "message": str(e)}
 
 
         elif args.cmd == "set_ia_cookie":

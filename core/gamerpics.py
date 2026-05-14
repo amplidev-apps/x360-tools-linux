@@ -18,13 +18,15 @@ try:
 except ImportError:
     from .stfs_writer import STFSWriter
 
+from core.paths import get_user_data_dir
+
 PNG_SIG = b"\x89PNG\r\n\x1a\n"
 
 
 class GamerpicManager:
     def __init__(self, lib_dir):
         self.lib_dir     = lib_dir
-        self.user_dir    = os.path.expanduser("~/.x360tools")
+        self.user_dir = os.path.join(get_user_data_dir(), "gamerpics")
         self.gallery_dir = os.path.join(self.user_dir, "gallery", "gamerpics")
         self.temp_dir    = os.path.join(tempfile.gettempdir(), "x360_gamerpics")
         
@@ -160,7 +162,7 @@ class GamerpicManager:
 
                     # ── 1. Find the STFS internal directory offset ───────────────
                     dir_off = None
-                    for off in [0xCD00, 0xBD00, 0xAD00, 0x9D00, 0x24C000]:
+                    for off in [0xC000, 0xCD00, 0xBD00, 0xAD00, 0x9D00, 0x24C000]:
                         sig = mm[off:off+3]
                         if sig.startswith((b"64_", b"32_", b"gp_")):
                             dir_off = off; break
@@ -296,9 +298,9 @@ class GamerpicManager:
 
             img = img.resize((64, 64), Image.LANCZOS)
 
-            # Save to PNG in memory
+            # Save to PNG in memory without extraneous metadata (EXIF/etc)
             buf = BytesIO()
-            img.save(buf, format="PNG")
+            img.save(buf, format="PNG", optimize=True)
             png_data = buf.getvalue()
 
             # 2. Build STFS package
@@ -312,31 +314,33 @@ class GamerpicManager:
             if device_path:
                 target_dir = os.path.join(device_path, "Content", "0000000000000000",
                                            "FFFE07D1", "00020000")
+                print(f"DEBUG: Installing Gamerpic to: {target_dir}", file=sys.stderr)
                 os.makedirs(target_dir, exist_ok=True)
                 stfs_filename = f"{safe_name}.stfs"
                 installed_path = os.path.join(target_dir, stfs_filename)
                 with open(installed_path, "wb") as f:
                     f.write(stfs_data)
                 result["installed_path"] = installed_path
+                print(f"DEBUG: Successfully wrote {len(stfs_data)} bytes to {installed_path}", file=sys.stderr)
 
             # 4. Save to local gallery if requested
             if save_to_gallery:
-                # V118: Strictly use the user's home directory for the gallery
-                # to avoid "Read-only file system" errors in AppImage builds.
                 os.makedirs(self.gallery_dir, exist_ok=True)
                 stfs_filename = f"{safe_name}.stfs"
                 gallery_stfs_path = os.path.join(self.gallery_dir, stfs_filename)
                 with open(gallery_stfs_path, "wb") as f:
                     f.write(stfs_data)
-                # Also save a PNG thumbnail for the gallery UI
                 thumb_path = os.path.join(self.gallery_dir, f"{safe_name}.png")
                 img.save(thumb_path, format="PNG")
                 result["gallery_path"] = gallery_stfs_path
+                print(f"DEBUG: Saved to gallery: {gallery_stfs_path}", file=sys.stderr)
 
             return result
 
         except Exception as e:
-            return {"status": "error", "message": str(e)}
+            import traceback
+            traceback.print_exc()
+            return {"status": "error", "message": f"Falha na criação/instalação: {str(e)}"}
 
 
     # ──── Injection ───────────────────────────────────────────────────── #

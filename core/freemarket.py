@@ -17,6 +17,7 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 from core.converter import GameConverter
 from core.utils import get_free_space, format_size
+from core.paths import get_user_data_dir
 
 IA_360_IDS = [
     "XBOX_360_1", "XBOX_360_2", "XBOX_360_3", "XBOX_360_4", "XBOX_360_5", "XBOX_360_6", "XBOX_360_1_OTHER",
@@ -32,17 +33,23 @@ class FreemarketEngine:
         self.project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         self.shipped_dbs_dir = os.path.join(self.project_root, "applib", "ia_dbs")
         
-        # USER_DIR is where we store writable cache (~/.x360tools/)
-        self.user_dir = os.path.expanduser("~/.x360tools/freemarket")
+        # USER_DIR is where we store writable cache (~/.x360tools/freemarket)
+        self.user_dir = os.path.join(get_user_data_dir(), "freemarket")
         self.cache_dir = cache_dir or self.user_dir
         os.makedirs(self.cache_dir, exist_ok=True)
+        
+        # V110: Compatibility with legacy ~/.x360tools/ location
+        self.cache_file_360 = os.path.join(self.cache_dir, "game_list_360_v117.json")
+        legacy_cache_360 = os.path.join(get_user_data_dir(), "game_list_360_v117.json")
+        if not os.path.exists(self.cache_file_360) and os.path.exists(legacy_cache_360):
+            import shutil
+            shutil.copy2(legacy_cache_360, self.cache_file_360)
         
         # ia_dbs_dir points to home by default for downloads, but logic will check shipped_dbs first
         self.ia_dbs_dir = os.path.join(self.cache_dir, "ia_dbs")
         os.makedirs(self.ia_dbs_dir, exist_ok=True)
         
         # Per-platform cache files
-        self.cache_file_360 = os.path.join(self.cache_dir, "game_list_360_v117.json")
         self.cache_file_classic = os.path.join(self.cache_dir, "game_list_classic_v117.json")
         self.cache_file = self.cache_file_360
         
@@ -407,10 +414,26 @@ class FreemarketEngine:
                 })
         return results
 
-    def _download_threaded(self, url, dest_path, headers, progress_cb, num_threads=32, task_id=None):
+    def _normalize_ia_url(self, url):
+        """Converts Archive.org CDN URLs (dn######.ca.archive.org) to canonical URLs.
+        Example: https://dn720000.ca.archive.org/0/items/XBOX_360_4/game.zip
+              -> https://archive.org/download/XBOX_360_4/game.zip
+        """
+        import re
+        # Match CDN pattern: dn######.ca.archive.org/0/items/<ia_id>/<filename>
+        m = re.match(r'https?://dn\d+\.ca\.archive\.org/\d+/items/([^/]+)/(.+)', url)
+        if m:
+            ia_id = m.group(1)
+            filename = m.group(2)
+            return f"https://archive.org/download/{ia_id}/{filename}"
+        return url
 
-        # Resolve final URL and size
-        with self.session.get(url, headers=headers, stream=True, timeout=60, verify=False) as r:
+    def _download_threaded(self, url, dest_path, headers, progress_cb, num_threads=32, task_id=None):
+        # Normalize CDN URLs to canonical Archive.org URL for reliability
+        canonical_url = self._normalize_ia_url(url)
+
+        # Resolve final URL and size (use canonical to avoid unstable CDN nodes)
+        with self.session.get(canonical_url, headers=headers, stream=True, timeout=60, verify=False) as r:
             # V106: Detect Archive.org restrictions early
             if r.status_code in (401, 403):
                  raise Exception("Acesso Negado (401/403). Este item é restrito e requer Login do Archive.org ou privilégios especiais.")
@@ -435,7 +458,7 @@ class FreemarketEngine:
                  raise Exception(f"{reason}. Por favor, tente refazer o login ou verifique se o item está disponível publicamente.")
 
             # Validate ZIP Magic Bytes if it's supposed to be a ZIP
-            if url.lower().endswith('.zip') and head_chunk:
+            if canonical_url.lower().endswith('.zip') and head_chunk:
                  if not head_chunk.startswith(b'PK'):
                       # Not a ZIP Archive!
                       snippet = head_chunk[:20].decode('utf-8', errors='ignore')
@@ -444,19 +467,14 @@ class FreemarketEngine:
             final_url = r.url
             total_size = int(r.headers.get('Content-Length', 0))
             accept_ranges = r.headers.get('Accept-Ranges', '').lower() == 'bytes'
-            
-            # If total_size is 0, we can try to get it from the chunk if we have to, 
-            # but usually Content-Length is present for valid direct links.
 
-
-            
         if total_size <= 0 or not accept_ranges or num_threads <= 1:
-            # Fallback to single stream
+            # Fallback to single stream (using canonical_url for reliability)
             downloaded = 0
             start_time = time.time()
             last_time = start_time
             last_dw = 0
-            with self.session.get(url, headers=headers, stream=True, timeout=60, verify=False) as r:
+            with self.session.get(canonical_url, headers=headers, stream=True, timeout=60, verify=False) as r:
                 r.raise_for_status()
                 with open(dest_path, 'wb') as f:
                     for chunk in r.iter_content(chunk_size=1024*1024):
@@ -498,6 +516,7 @@ class FreemarketEngine:
             try:
                 # V103 Support Pause (File-based)
                 task_dir = os.path.join(self.cache_dir, "install_temp", task_id if task_id else "def")
+                os.makedirs(task_dir, exist_ok=True)
                 stop_flag = os.path.join(task_dir, "stop.flag")
                 pause_flag = os.path.join(task_dir, "pause.flag")
 
@@ -1007,6 +1026,8 @@ class FreemarketEngine:
             if progress_cb: progress_cb(f"PHASE:Baixando {game_name}...")
             
             # Use engine session to ensure cookies are passed (V96)
+            # V119: Normalize CDN URLs to canonical Archive.org URL before any request
+            game_url = self._normalize_ia_url(game_url)
             headers = self._get_headers(game_url)
             
             # V106: Advance Redirect/Login detector before full threaded download
@@ -1028,6 +1049,7 @@ class FreemarketEngine:
 
             self._download_threaded(game_url, temp_archive, headers, game_download_cb, num_threads=32, task_id=task_id)
 
+
             if os.path.exists(stop_flag):
                 raise Exception("Download Cancelado pelo Usuário.")
 
@@ -1045,10 +1067,15 @@ class FreemarketEngine:
 
             # V106: Detect RAR to provide better error guidance on DFSG systems
             is_rar_file = game_url.lower().split('?')[0].endswith('.rar')
-            converter.extract_archive(temp_archive, extract_path, process_callback=pc, is_rar=is_rar_file)
+            try:
+                converter.extract_archive(temp_archive, extract_path, process_callback=pc, is_rar=is_rar_file)
+            except Exception as e:
+                if "Nenhum extrator compatível" in str(e):
+                    raise Exception("Erro de Extração: Nenhum extrator (7z/unrar) encontrado no sistema. Por favor, instale o pacote 'p7zip-full' ou 'unrar'.")
+                raise Exception(f"Falha na Extração: {e}")
             
             if os.path.exists(stop_flag):
-                raise Exception("Download Cancelado pelo Usuário.")
+                raise Exception("Download Cancelado pelo Usuário durante a extração.")
 
             if progress_cb: progress_cb("Progress: 80.0%|Finalizando I/O|--:--")
             
@@ -1082,10 +1109,22 @@ class FreemarketEngine:
                 os.makedirs(god_dest, exist_ok=True)
                 
                 def god_cb(line):
-                    # iso2god output can be parsed, for now we do a simple mapping
-                    if progress_cb: progress_cb("Progress: 85.0%|Convertendo|--:--")
+                    # iso2god-rs output: "[1/4] Writing Data.0000... 15%"
+                    import re
+                    m = re.search(r"(\d+)%", line)
+                    if m:
+                        sub_p = float(m.group(1))
+                        # Scale 0-100% of iso2god to 80-99% of overall
+                        overall_p = 80.0 + (sub_p * 0.19)
+                        if progress_cb: progress_cb(f"Progress: {overall_p:.1f}%|{line.strip()[:20]}|--:--")
+                    else:
+                        if progress_cb: progress_cb(f"Progress: 80.0%|{line.strip()[:20]}|--:--")
                 
-                converter.iso_to_god(full_iso_path, god_dest, progress_cb=god_cb, process_callback=pc)
+                # Use 4 threads for faster conversion on modern CPUs
+                try:
+                    converter.iso_to_god(full_iso_path, god_dest, progress_cb=god_cb, process_callback=pc, num_threads=4)
+                except Exception as e:
+                    raise Exception(f"Falha na Conversão para GOD: {e}. Verifique se há espaço no dispositivo ou se o arquivo ISO não está corrompido.")
                 
                 if is_ftp:
                     if progress_cb: progress_cb("Progress: 90.0%|Subindo via FTP|--:--")
@@ -1106,8 +1145,17 @@ class FreemarketEngine:
                 
                 if full_iso_path.lower().endswith(".iso"):
                     if progress_cb: progress_cb("PHASE:Extraindo ISO (Xbox Classic)...")
-                    if progress_cb: progress_cb("Progress: 85.0%|Extraindo ISO|--:--")
-                    converter.extract_xiso(full_iso_path, classic_dest, progress_cb=progress_cb, process_callback=pc)
+                    def xiso_cb(line):
+                        import re
+                        m = re.search(r"(\d+)%", line)
+                        if m:
+                            sub_p = float(m.group(1))
+                            overall_p = 85.0 + (sub_p * 0.14)
+                            if progress_cb: progress_cb(f"Progress: {overall_p:.1f}%|{line.strip()[:20]}|--:--")
+                        else:
+                            if progress_cb: progress_cb(f"Progress: 85.0%|{line.strip()[:20]}|--:--")
+                    
+                    converter.extract_xiso(full_iso_path, classic_dest, progress_cb=xiso_cb, process_callback=pc)
                 else:
                     if progress_cb: progress_cb("PHASE:Copiando arquivos...")
                     if progress_cb: progress_cb("Progress: 85.0%|Copiando|--:--")

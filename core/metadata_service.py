@@ -8,6 +8,7 @@ import difflib
 import sqlite3
 from core.utils import normalize_for_map
 from core.og_meta_loader import OGMetadataService
+from core.paths import get_user_data_dir
 
 try:
     from deep_translator import GoogleTranslator
@@ -38,8 +39,8 @@ class MetadataService:
         self.db_path = os.path.join(self.shipped_applib, "metadata.db")
         self.secondary_map_path = os.path.join(self.shipped_applib, "title_ids.json")
         
-        # 📁 WRITABLE Cache (~/.x360tools/)
-        self.user_dir = os.path.expanduser("~/.x360tools")
+        # V110: Simplified home resolution
+        self.user_dir = get_user_data_dir()
         self.user_cache_dir = os.path.join(self.user_dir, "cache")
         os.makedirs(self.user_cache_dir, exist_ok=True)
         os.makedirs(os.path.join(self.user_cache_dir, "covers"), exist_ok=True)
